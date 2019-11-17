@@ -2,7 +2,7 @@
 
 MapReduce工作机制全流程图
 
-![](C:\Users\宋天\Desktop\大数据\img\MapReduce\0-MapReduce工作机制-全流程.jpg)
+![](img\MapReduce\0-MapReduce工作机制-全流程.jpg)
 
 ## 1.MapTask工作机制
 
@@ -51,10 +51,44 @@ MapReduce工作机制全流程图
 
 ### 2.1详细步骤
 
-1. Copy阶段，简单地拉取数据。Reduce进程启动一些数据copy线程（Fetcher），通过HTTP方式请求maptask获取属于自己的文件。
-2. Merge阶段，这里的merge如map端的merge动作，只是数组中存放的是不同map端copy来的数值。copy过来的数据会先放入内存缓冲区中，这里的缓冲区大小要比map端的更为灵活。merge有三种形式：内存到内存，内存到磁盘，磁盘到磁盘。默认情况下第一种形式不启用。当内存中的数据量达到一定的阈值，就启动内存到磁盘的merge。与map端类似，这也是一个溢写的过程，这个过程中如果你设置有Combiner，也是会启用的，然后在磁盘中生成了众多的溢写文件。第二种merge方式一直在运行，直到没有map端的数据时才结束，然后启动第三种磁盘到磁盘的merge方式生成最终的文件
-3. 合并排序，把分散的数据合并成一个大的数据后，还会再对合并后的数据排序
-4. 对排序后的键值对调用reduce方法，键相等的键值对调用一次reduce方法，每次调用会产生零个或多个键值对，最后把这些输出的键值对写入到HDFS文件中
+1. Copy阶段，ReduceTask从各个MapTask上远程拷贝一片数据，并针对某一片数据，如果其大小超过一定阈值，则写到磁盘上，否则直接放到内存中。
+2. Merge阶段，在远程拷贝数据的同时，ReduceTask启动了两个后台线程对内存和磁盘上的文件进行合并，以防止内存使用过多或磁盘上文件过多。
+3. sort阶段，按照MapReduce语义，用户编写reduce()函数输入数据是按key进行聚集的一组数据。为了将key相同的数据聚在一起，Hadoop采用了基于排序的策略。由于各个MapTask已经实现对自己的处理结果进行了局部排序，因此，ReduceTask只需对所有数据进行一次归并排序即可。
+4. Reduce阶段：reduce()函数将计算结果写到HDFS上。
+
+### 2.2 设置ReduceTask并行度（个数）
+
+reducetask的并行度同样影响整个job的执行并发度和执行效率，但与maptask的并发数由切片数决定不同，Reducetask数量的决定是可以直接手动设置：
+
+```
+//默认值是1，手动设置为4
+job.setNumReduceTasks(4);
+```
+
+**注意：**
+
+1. reducetask=0，表示没有reduce阶段，输出文件个数和map个数一致。
+2. reducetask默认值就是1，所以输出文件个数为一个。
+3. 如果数据分布不均匀，就有可能在reduce阶段产生数据倾斜
+4. reducetask数量并不是任意设置，还要考虑业务逻辑需求，有些情况下，需要计算全局汇总结果，就只能有1个reducetask。
+5. 具体多少个reducetask，需要根据集群性能而定。
+6. 如果分区数不是1，但是reducetask为1，是否执行分区过程。答案是：不执行分区过程。因为在maptask的源码中，执行分区的前提是先判断reduceNum个数是否大于1。不大于1肯定不执行。
+
+**实验：**测试reducetask多少合适。
+
+1. 实验环境：1个master节点，16个slave节点：CPU:8GHZ，内存: 2G
+
+2. 实验结论：
+
+   改变reduce task （数据量为1GB）
+
+   MapTask = 16
+
+   | Reduce task | 1    | 5    | 10   | 15   | 16   | 20   | 25   | 30   | 45   | 60   |
+   | ----------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+   | 总时间      | 892  | 146  | 110  | 92   | 88   | 100  | 128  | 101  | 145  | 104  |
+
+   
 
 ## 3.Shuffle过程
 
@@ -73,7 +107,186 @@ Shuffle是MapReduce的核心，它分布在MapRedue的Map阶段和Reduce阶段�
 5. Merge阶段：在ReduceTask远程复制数据的同时，会在后台开启两个线程对内存到本地的数据文件进行合并操作
 6. Sort阶段：在对数据进行合并的同时，会进行排序操作，由于MapTask阶段已经对数据进行了局部的排序，ReduceTask只需要保证Copy的数据的最终整体有效性即可。Shuffle中的缓冲区大小会影响到MapReduce程序的执行效率，原则上说，缓冲区越大，磁盘IO的次数越小，执行速度就越快。缓冲区的大小可以通过参数调整，参数：`mapreduce.task.io.sort.mb`默认100M
 
+### 3.2 Partition分区
+
+1. 问题引出：要求将统计结果按照条件输出到不同文件中（分区）。比如：将统计结果按照手机归属地不同省份输出到不同的文件中（分区）
+
+2. 默认partition分区
+
+   ```java
+   public class HashPartitioner<K, V> extends Partitioner<K, V> {
+     public int getPartition(K key, V value, int numReduceTasks) {
+       return (key.hashCode() & Integer.MAX_VALUE) % numReduceTasks;
+     }
+   }
+   ```
+
+   默认分区是根据key的hashCode对ReduceTasks的个数取模得到的。用户无法控制那个key存储到那个分区
+
+3. 自定义Partioner步骤
+
+   1. 自定义类继承Partitioner，重写getPartition()方法
+
+      ```java
+      public class ProvincePartitioner extends Partitioner<Text, FlowBean> {
+      
+      	@Override
+      	public int getPartition(Text key, FlowBean value, int numPartitions) {
+      
+      // 1 获取电话号码的前三位
+      		String preNum = key.toString().substring(0, 3);
+      		
+      		int partition = 4;
+      		
+      		// 2 判断是哪个省
+      		if ("136".equals(preNum)) {
+      			partition = 0;
+      		}else if ("137".equals(preNum)) {
+      			partition = 1;
+      		}else if ("138".equals(preNum)) {
+      			partition = 2;
+      		}else if ("139".equals(preNum)) {
+      			partition = 3;
+      		}
+      		return partition;
+      	}
+      }
+      ```
+
+   2. 在job驱动中，设置自定义partitioner：
+
+      ```java
+      job.setPartitionerClass(CustomPartitioner.class);
+      ```
+
+   3. 自定义partition后，要根据自定义partitioner的逻辑设置相应数量的reduce task
+
+      ```java
+      job.setNumReduceTasks(5);
+      ```
+
+4. **注意：**
+
+   1. 如果reduceTask的数量> getPartition的结果数，则会多产生几个空的输出文件part-r-000xx；
+   2. 如果1<reduceTask的数量<getPartition的结果数，则有一部分分区数据无处安放，会Exception；
+   3. 如果reduceTask的数量=1，则不管mapTask端输出多少个分区文件，最终结果都交给这一个reduceTask，最终也就只会产生一个结果文件 part-r-00000；
+
+   例如：假设自定义分区数为5，则
+
+   （1）job.setNumReduceTasks(1);会正常运行，只不过会产生一个输出文件
+
+   （2）job.setNumReduceTasks(2);会报错
+
+   （3）job.setNumReduceTasks(6);大于5，程序会正常运行，会产生空文件
+
+### 3.3 WritableComparable排序
+
+- 排序是MapReduce框架中最重要的操作之一。MapTask和ReduceTask均会对数据（按照key）进行排序。该操作属于Hadoop的默认行为。任何应用程序中的数据均会被排序，而不逻辑上是否需要。**默认排序是按照字典顺序排序，且实现该排序的方法是快速排序**
+- 对于MapTask，它会将处理的结果暂时放到一个缓冲区，当缓冲区使用率达到一定阈值之后，再对缓冲区中的数据进行一次排序，并将这些有序数据写到磁盘上，而当数据处理完毕后，他会对磁盘上的所有文件进行一次合并，以将这些文件合并成一个大的有序文件
+- 对于ReduceTask，它从每个MapTask上远程拷贝相应的数据文件，如果文件大小超过一定阈值，则放到磁盘上，否则放到内存中。如果磁盘上文件数据达到一定阈值，则进行一次合并以生成一个更大的文件；如果内存中文件大小或者数据超过一定阈值，则进行一次合并后将数据写到磁盘上。当所有数据拷贝完毕以后，ReduceTask统一对内存和磁盘上所有的数据进行一次合并
+
+每个阶段的默认排序
+
+1. 排序的分类：
+
+   1. 部分排序
+
+      MapReduce根据输入记录的键对数据集排序。保证输出的每个文件内部排序
+
+   2. 全排序
+
+      如何用Hadoop产生一个全局排序的文件？最简单的方法是使用一个分区。但该方法在处理大型文件时效率极低，因为一台机器必须处理所有输出文件，从而完全丧失了MapReduce所提供的并行架构
+
+      **替代方案：**首先创建一系列排好序的文件；其次，串联这些文件；最后生成一个全局排序的文件。主要思路是使用一个分区来描述输出的全局排序。例如：可以为上述文件创建3个分区，在第一个分区中，记录的单词首字母a-g，第二个分区记录单词首字母h-n，第三个分区记录首字母o-z。
+
+   3. 辅助排序（GroupingComparator分组）
+
+      MapReduce框架在记录到达Reduce之前按键对记录排序，但键所对应的值并没有被排序。甚至在不同的执行轮次中，这些值的排序也不固定，因为他们来自不同的map任务且这些map任务在不同轮次中完成时间各不相同。一般来说，大多数MapReduce程序会避免让Reduce函数依赖于值的排序。但是，有时也需要通过特定的方法对键进行排序和分组等以实现对值的排序。
+
+   4. 二次排序
+
+      在自定义排序的过程中，如果compareTo中的判断条件为两个即为二次排序
+
+2. 自定义排序WritableComparable
+
+   1. 原理分析
+
+      bean对象实现WritableComparable接口重写compareTo方法，就可以实现排序
+
+      ```
+      @Override
+      public int compareTo(FlowBean o) {
+      	// 倒序排列，从大到小
+      	return this.sumFlow > o.getSumFlow() ? -1 : 1;
+      }
+      ```
+
+### 3.4 GroupComparator分组
+
+对Reduce阶段的数据根据某一个或几个字段进行分组
+
+详情见案例：求出每一个订单中最贵的商品（GroupingComparator）
+
+### 3.5 Combiner合并
+
+1. combiner是MR程序中Mapper和Reducer之外的一种组件
+
+2. combiner组件的父类就是Reducer
+
+3. combiner和Reducer的区别在于运行的位置
+
+   - combiner是在每一个mapTask所在的节点运行
+   - Reduce是接收全局所有的Mapper的输出结果
+
+4. combiner的意义就是对每一个MapTask的输出进行局部汇总，以减少网络传输量。
+
+5. combiner能够应用的前提是不能影响最终的业务逻辑，而且，combiner的诶输出kv应该跟Reducer的输入kv类型要对应起来
+
+   ```
+   Mapper
+   3 5 7 ->(3+5+7)/3=5 
+   2 6 ->(2+6)/2=4
+   Reducer
+   (3+5+7+2+6)/5=23/5    不等于    (5+4)/2=9/2
+   ```
+
+6. 自定义Combiner实现步骤
+
+   1. 自定义一个combiner继承Reducer，重写Reduce方法
+
+      ```java
+      public class WordcountCombiner extends Reducer<Text, IntWritable, Text, IntWritable>{
+      	@Override
+      	protected void reduce(Text key, Iterable<IntWritable> values,
+      			Context context) throws IOException, InterruptedException {
+              // 1 汇总操作
+      		int count = 0;
+      		for(IntWritable v :values){
+      			count = v.get();
+      		}
+              // 2 写出
+      		context.write(key, new IntWritable(count));
+      	}
+      }
+      ```
+
+   2. 在job驱动类中设置
+
+      ```java
+      job.setCombinerClass(WordcountCombiner.class);
+      ```
+
 ## 4.案例：Reduce端实现Join
+
+**原理：**
+
+- Map端的主要工作：为来自不同表(文件)的key/value对打标签以区别不同来源的记录。然后用连接字段作为key，其余部分和新加的标志作为value，最后进行输出。
+
+- Reduce端的主要工作：在reduce端以连接字段作为key的分组已经完成，我们只需要在每一个分组当中将那些来源于不同文件的记录(在map阶段已经打标志)分开，最后进行合并就ok了。
+
+**该方法的缺点：**
+
+这种方式的缺点很明显就是会造成map和reduce端也就是shuffle阶段出现大量的数据传输，效率很低。
 
 ### 4.1 需求
 
@@ -241,7 +454,17 @@ id 		 date 		pid 	amount
 
 ## 5.案例：Map端实现Join
 
-概述：适用于关联表中有小表的情形
+**使用场景：**适用于一张表十分小、一张表很大。
+
+**解决方案：**在map端缓存多张表，提前处理业务逻辑，这样增加map端业务，减少reduce端数据的压力，尽可能的减少数据倾斜。
+
+**具体办法：**采用distributedcache
+
+1. 在mapper的setup阶段，将文件读取到缓存集合中。
+
+2. 在驱动函数中加载缓存。
+
+   job.addCacheFile(new URI("file:/e:/mapjoincache/pd.txt"));// 缓存普通文件到task运行节点
 
 使用分布式缓存，可以将小表分发到所有的map节点，这样map节点就可以在本地对自己所读到的大表的数据进行join并输出最终结果，可以大大提高join的操作的并发度，加快处理速度
 
@@ -393,104 +616,95 @@ O:A,H,I,J
 1. 定义Mapper
 
    ```java
-   public class stepMapper1 extends Mapper<LongWritable,Text, Text,Text> {
+   public class OneFriendsMapper extends Mapper<LongWritable, Text,Text,Text> {
        @Override
        protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-           //1.拆分行文本数据，冒号拆分，冒号左边为v2
-           String[] split = value.toString().split(":");
-           String userStr = split[0];
    
-           //2.将冒号右边的字符串以逗号拆分，每个成员就是k2
-           String[] split1 = split[1].split(",");
-           for (String s : split1) {
-               //3.将k2和v2写入上下文
-               context.write(new Text(s),new Text(userStr));
+           String line = value.toString();
+           //person在前，friends在后
+           String[] split = line.split(":");
+           String person = split[0];
+           String[] friends = split[1].split(",");
+   
+           //friends在前，person在后
+           for (String friend : friends){
+               context.write(new Text(friend),new Text(person));
            }
-   
    
        }
    }
+   
    
    ```
 
 2. 定义Reduce
 
    ```java
-   public class stepReducer1 extends Reducer<Text,Text,Text,Text> {
+   public class OneFriendsReducer extends Reducer<Text, Text,Text,Text> {
        @Override
        protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-           //1.遍历集合，将每一个元素拼接得到k3
-           StringBuffer buffer = new StringBuffer();
-           for(Text value : values){
-               buffer.append(value.toString()).append("-");
+   
+           StringBuffer sb = new StringBuffer();
+           for (Text person :values){
+               sb.append(person).append(",");
            }
-           //2.k2就是v3
-           //3.将k3和v3写入上下文
-           context.write(new Text(buffer.toString()),key);
+   
+           context.write(key,new Text(sb.toString()));
        }
    }
+   
    
    ```
 
 3. 定义主类：
 
    ```java
-   public class joinMain extends Configured implements Tool {
-   
-       @Override
-       public int run(String[] strings) throws Exception {
-           //1.获取job对象
-           Job job = Job.getInstance(super.getConf(), "common_friends");
-           //2.设置job任务
-   
-           //设置输入类和输入路径
-           job.setInputFormatClass(TextInputFormat.class);
-           TextInputFormat.addInputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\common_friends_step1\\MyOutputformat.input"));
-           //设置map类和数据类型
-           job.setMapperClass(stepMapper1.class);
+   public class oneFriendsDriver {
+       public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\Friends\\friends.txt","G:\\学习\\maven\\src\\main\\java\\Friends\\out"};
+           //配置文件对象
+           Configuration conf = new Configuration();
+           Job job = Job.getInstance(conf);
+           //设置jab对象
+           job.setJarByClass(oneFriendsDriver.class);
+           //设置输入输出类
+           job.setMapperClass(OneFriendsMapper.class);
+           job.setReducerClass(OneFriendsReducer.class);
+           //指定map输出的数据类型
            job.setMapOutputKeyClass(Text.class);
            job.setMapOutputValueClass(Text.class);
-           //shuffle阶段省略，采用默认方法
-           //设置Reducer类和数据类型
-           job.setReducerClass(stepReducer1.class);
+           //指定最终输出的数据类型
            job.setOutputKeyClass(Text.class);
            job.setOutputValueClass(Text.class);
-           //设置输出类和输出的路径
-           job.setOutputFormatClass(TextOutputFormat.class);
-           TextOutputFormat.setOutputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\common_friends_step1\\out"));
+           //指定job输入输出目录
+           FileInputFormat.setInputPaths(job,new Path(args[0]));
+           FileOutputFormat.setOutputPath(job,new Path(args[1]));
    
-           //3.等待job任务结束
-           boolean b = job.waitForCompletion(true);
-           return b?0:1;
-       }
-   
-       public static void main(String[] args) throws Exception {
-           Configuration conf = new Configuration();
-   
-           //启动job任务
-           int run = ToolRunner.run(conf, new joinMain(), args);
+           //提交
+           boolean result = job.waitForCompletion(true);
+           System.exit(result?1:0);
        }
    }
    
    ```
-
+   
 4. 第一步 输出结果
 
    ```
-   I-K-B-G-F-H-O-C-D-	A
-   A-F-C-J-E-	B
-   E-A-H-B-F-G-K-	C
-   K-E-C-L-A-F-H-G-	D
-   F-M-L-H-G-D-C-B-A-	E
-   G-D-A-M-L-	F
-   M-	G
-   O-	H
-   C-O-	I
-   O-	J
-   B-	K
-   D-E-	L
-   E-F-	M
-   J-I-H-A-F-	O
+   A	I,K,B,G,F,H,O,C,D,
+   B	A,F,C,J,E,
+   C	E,A,H,B,F,G,K,
+   D	K,E,C,L,A,F,H,G,
+   E	F,M,L,H,G,D,C,B,A,
+   F	G,D,A,M,L,
+   G	M,
+   H	O,
+   I	C,O,
+   J	O,
+   K	B,
+   L	D,E,
+   M	E,F,
+   O	J,I,H,A,F,
    
    ```
 
@@ -499,131 +713,338 @@ O:A,H,I,J
 1. 定义Mapper
 
    ```java
-   public class stepMapper2 extends Mapper<LongWritable, Text,Text,Text> {
+   public class twoFriendsMapper extends Mapper<LongWritable, Text,Text,Text> {
        @Override
        protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-           /**
-            * k1       v1
-            * 0         A-F-C-J-E-	B
-            *
-            * k2       v2
-            * A-C      B
-            * A-E      B
-            * A-F      B
-            * C-E      B
-            * ......
-            */
-           //1.拆分行文本数据，得到v2
-           String[] split = value.toString().split("\t");
-           String friendStr = split[1];
-           //2.继续拆分以-为分隔符拆分行文本数据，得到一个数组
-           String[] userArray = split[0].split("-");
-           //3.对数组做一个排序
-           Arrays.sort(userArray);
-           //4.对数组中的元素进行两两组合，得到k2
-           /**
-            * A-E-C-J   --->       A C E
-            *
-            * A C E
-            *   A C E
-            */
-           for(int i = 0; i < userArray.length - 1 ; i++){
-               for (int j = i+1; j < userArray.length; j++) {
-                   //5.将k2和v2写入上下文中
-                   context.write(new Text(userArray[i] + "-" + userArray[j]),new Text(friendStr));
+           String line = value.toString();
+           String[] split = line.split("\t");
+   
+           String friend = split[0];
+           String[] persons = split[1].split(",");
+   
+           Arrays.sort(persons);
+   
+           for (int i = 0; i< persons.length-1; i++){
+               for (int j = i + 1; j < persons.length; j++) {
+                   context.write(new Text(persons[i]+"-"+persons[j]),new Text(friend));
                }
            }
-   
        }
    }
    
    ```
-
+   
 2. 定义Reduce
 
    ```java
-   public class stepReducer2 extends Reducer<Text,Text, Text,Text> {
+   public class twoFriendsReducer extends Reducer<Text, Text,Text,Text> {
        @Override
        protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-           //1.原来的k2就是k3
-           //2.将集合进行遍历，将集合中的元素拼接，得到v3
-           StringBuffer stringBuffer = new StringBuffer();
-           for (Text value : values) {
-               stringBuffer.append(value.toString()).append("-");
+           StringBuffer sb = new StringBuffer();
+           for (Text friend: values){
+               sb.append(friend).append(" ");
+           }
+           context.write(key,new Text(sb.toString()));
    
-            }
-           //3.将k3和v3写入上下文
-           context.write(key,new Text((stringBuffer.toString())));
        }
    }
    
    ```
-
+   
 3. 定义JoinMain
 
    ```java
-   public class joinMain extends Configured implements Tool {
-   
-       @Override
-       public int run(String[] strings) throws Exception {
-           //1.获取job对象
-           Job job = Job.getInstance(super.getConf(), "common_friends2");
-           //2.设置job任务
-   
-           //设置输入类和输入路径
-           job.setInputFormatClass(TextInputFormat.class);
-           TextInputFormat.addInputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\common_friends_step1\\out"));//上一个的输出
-           //设置map类和数据类型
-           job.setMapperClass(stepMapper2.class);
+   public class TwoFriendsDriver {
+       public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\Friends\\out","G:\\学习\\maven\\src\\main\\java\\Friends\\out1"};
+           //配置文件对象
+           Configuration conf = new Configuration();
+           Job job = Job.getInstance(conf);
+           //设置jab对象
+           job.setJarByClass(TwoFriendsDriver.class);
+           //设置输入输出类
+           job.setMapperClass(twoFriendsMapper.class);
+           job.setReducerClass(twoFriendsReducer.class);
+           //指定map输出的数据类型
            job.setMapOutputKeyClass(Text.class);
            job.setMapOutputValueClass(Text.class);
-           //shuffle阶段省略，采用默认方法
-           //设置Reducer类和数据类型
-           job.setReducerClass(stepReducer2.class);
+           //指定最终输出的数据类型
            job.setOutputKeyClass(Text.class);
            job.setOutputValueClass(Text.class);
-           //设置输出类和输出的路径
-           job.setOutputFormatClass(TextOutputFormat.class);
-           TextOutputFormat.setOutputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\common_friends_step2\\out"));
+           //指定job输入输出目录
+           FileInputFormat.setInputPaths(job,new Path(args[0]));
+           FileOutputFormat.setOutputPath(job,new Path(args[1]));
    
-           //3.等待job任务结束
-           boolean b = job.waitForCompletion(true);
-           return b?0:1;
-       }
-   
-       public static void main(String[] args) throws Exception {
-           Configuration conf = new Configuration();
-   
-           //启动job任务
-           int run = ToolRunner.run(conf, new joinMain(), args);
+           //提交
+           boolean result = job.waitForCompletion(true);
+           System.exit(result?1:0);
        }
    }
    
    ```
-
+   
 4. 第二步输出结果的一部分：
 
    ```
-   A-B	C-E-
-   A-C	B-E-D-
-   A-D	F-E-
-   A-E	B-D-C-
-   A-F	O-E-D-B-C-
-   A-G	C-F-D-E-
-   A-H	O-D-C-E-
-   A-I	O-
-   A-J	B-O-
+   A-B	C E 
+   A-C	B E D 
+   A-D	F E 
+   A-E	B D C 
+   A-F	O E D B C 
+   A-G	C F D E 
+   A-H	O D C E 
+   A-I	O 
+   A-J	B O 
+   A-K	C D 
+   A-L	D E F 
+   A-M	E F 
+   B-C	A E 
+   B-D	E A 
    ```
 
-   
+两个Driver共同执行的方法：
 
-## 7.案例：自定义InputFormt合并小文件
+```java
+public class AllFriendsDriver {
+    public static void main(String[] args) throws IOException {
+        args = new String[]{"G:\\学习\\maven\\src\\main\\java\\Friends\\friends.txt","G:\\学习\\maven\\src\\main\\java\\Friends\\out","G:\\学习\\maven\\src\\main\\java\\Friends\\out1"};
 
-### 7.1 需求
+        Configuration conf = new Configuration();
+        //job1
+        Job job1 = Job.getInstance(conf);
+
+        job1.setMapperClass(OneFriendsMapper.class);
+        job1.setReducerClass(OneFriendsReducer.class);
+
+        job1.setMapOutputKeyClass(Text.class);
+        job1.setMapOutputValueClass(Text.class);
+        job1.setOutputKeyClass(Text.class);
+        job1.setOutputValueClass(Text.class);
+
+        FileInputFormat.setInputPaths(job1,new Path(args[0]));
+        FileOutputFormat.setOutputPath(job1,new Path(args[1]));
+
+        //job2
+        Job job2 = Job.getInstance(conf);
+
+        job2.setMapperClass(twoFriendsMapper.class);
+        job2.setReducerClass(twoFriendsReducer.class);
+
+        job2.setMapOutputKeyClass(Text.class);
+        job2.setMapOutputValueClass(Text.class);
+        job2.setOutputKeyClass(Text.class);
+        job2.setOutputValueClass(Text.class);
+
+        FileInputFormat.setInputPaths(job2,new Path(args[1]));
+        FileOutputFormat.setOutputPath(job2,new Path(args[2]));
+
+
+        //job控制器
+        JobControl control = new JobControl("song");
+        ControlledJob ajob = new ControlledJob(job1.getConfiguration());
+        ControlledJob bjob = new ControlledJob(job2.getConfiguration());
+        bjob.addDependingJob(ajob);
+        control.addJob(ajob);
+        control.addJob(bjob);
+        Thread t = new Thread(control);
+        t.start();
+
+    }
+}
+
+```
+
+
+
+
+
+
+## 7 InputFormat数据输入
+
+### 7.1 切片计算公式
+
+1. 找到你的数据存储目录
+2. 开始遍历处理（规划切片）目录下的每一个文件
+3. 遍历第一个文件 （ss.txt)
+   1. 获取文件的大小fs.sizeOf(ss.txt);
+   2. 计算切片大小computeSplitSize方法
+   3. Math.max(minSize,Math.min(maxSize,blocksize))=blocksize=128M
+   4. **以上源码在FileInputormat的280行**
+   5. **默认情况下，切片大小=blocksize**
+   6. 开始切，形成第一个切片：ss.txt——0:128M，第二个切片 ss.txt——128:256M，第三个切片ss.txt—256M:300M（每次切片时，都要判断切完剩下的部分是否大于块的1.1倍，**不大于1.1倍就划分一块切片**）
+   7. 将切片信息写到一个切片规划文件中
+   8. 整个切片的核心过程在getSplit()方法中完成
+   9. 数据切片只是在逻辑上对输入数据进行分片，并不会在磁盘上将其切分成分片进行存储。InputSplit只记录了分片的元数据信息，比如起始位置、长度以及所在的节点列表等。
+   10. 注意：block是HDFS物理上存储的数，切片时对数据逻辑上的划分。
+4. **提交切片规划文件到yarn上，yarn上的MrAppMaster就可以根据切片规划文件计算开启maptask的个数**
+
+### 7.2FileInputFormat切片机制
+
+1. FileInputFortmat中默认的切片机制
+
+   - 简单地按照文件的内容长度进行切分
+   - 切片大小，默认等于block大小
+   - 切片时不考虑数据集整体，而是逐个针对每一个文件单独切片
+
+   比如待处理出具有两个文件：
+
+   ```
+   file1.txt    320M
+   file2.txt    10M
+   ```
+
+   经过FileInputFormat的切片机制运算后形成的切片信息如下：
+
+   ```
+   file1.txt.split1--  0~128
+   file1.txt.split2--  128~256
+   file1.txt.split3--  256~320
+   file2.txt.split1--  0~10M
+   ```
+
+2. FileInputFormat切片大小的参数配置
+
+   - 通过分析源码，在FileInputFormat中，计算切片大小的逻辑：Math.max(minSize, Math.min(maxSize, blockSize)); 
+
+   - 切片主要是由这几个值来运算决定的
+
+     - mapreduce.input.fileinputformat.split.minsize=1 默认值为1
+
+     - mapreduce.input.fileinputformat.split.maxsize= Long.MAXValue 默认值Long.MAXValue
+
+       因此，默认情况下，**切片大小=blocksize**。
+
+     - maxsize（切片最大值）：参数如果调得比blocksize小，则会让切片变小，而且就等于配置的这个参数的值。
+
+     - minsize（切片最小值）：参数调的比blockSize大，则可以让切片变得比blocksize还大。
+
+3. 获取切片信息的API
+
+   ```java
+   // 根据文件类型获取切片信息
+   FileSplit inputSplit = (FileSplit) context.getInputSplit();
+   // 获取切片的文件名称
+   String name = inputSplit.getPath().getName();
+   ```
+
+### 7.3 CombineTextInputFormat切片机制
+
+关于大量小文件的优化策略
+
+1. 默认情况下TextInputFormat对任务的切片机制是按文件规划切片，不管文件多小，都会是一个单独的切片，都会交给一个maptask，这样如果有大量小文件，就会产生大量的maptask，处理效率极其低下
+
+2. 优化策略：
+
+   1. 最好的办法，在数据处理系统的最前端（预处理/采集），将小文件先合并成大文件，再上传到HDFS做后续分析。
+   2. 补救措施：如果已经是大量小文件在HDFS中了，就可以使用另一种InputFormat来做切片（CombineTextInputFormat），它的切片逻辑跟TextFileInputFormat不同：它可以将多个小文件从逻辑上规划到一个切片中，这样，多个小文件就可以交个一个maptask。
+   3. **优先满足最小切片大小，**不超过最大切片大小
+      - CombineTextInputFormat.setMaxInputSplitSize(job, 4194304);// 4m
+      - CombineTextInputFormat.setMinInputSplitSize(job, 2097152);// 2m
+      - 举例：0.5m+1m+0.3m+5m=2m + 4.8m=2m + 4m + 0.8m
+
+3. 具体实现步骤
+
+   ```java
+   //  如果不设置InputFormat,它默认用的是TextInputFormat.class
+   job.setInputFormatClass(CombineTextInputFormat.class)
+   CombineTextInputFormat.setMaxInputSplitSize(job, 4194304);// 4m
+   CombineTextInputFormat.setMinInputSplitSize(job, 2097152);// 2m
+   ```
+
+
+
+### 7.4 InputFormat接口实现类
+
+- MapReduce任务的输入文件一般是存储在HDFS里面。输入的文件格式包括：基于行的日志文件、二进制格式文件等。这些文件一般会很大，达到数十GB，甚至更大。那么MapReduce是如何读取这些数据的呢？答案：InputFormat接口
+
+  > InputFormat常见的接口实现类包括：TextInputFormat、KeyValueTextInputFormat、NLineInputFormat、CombineTextInputFormat和自定义InputFormat等。
+
+  
+
+  1. TextInputFormat
+
+     TextInputFormat是默认的InputFormat。每条记录是一行输入。键是LongWritable类型，存储该行在整个文件中的字节偏移量。值是这行内容，不包括任何行终止符（换行符和回车符）
+
+     以下是一个示例，比如，一个分片包含了如下4条文本记录
+
+     ```
+     Rich learning form
+     Intelligent learning engine
+     Learning more convenient
+     From the real demand for more close to the enterprise
+     ```
+
+     每条记录髰为以下键/值对
+
+     ```
+     (0,Rich learning form)
+     (19,Intelligent learning engine)
+     (47,Learning more convenient)
+     (72,From the real demand for more close to the enterprise)
+     ```
+
+     很明显，键并不是行号。一般情况下，很难取得行号，因为文件按字节而不是按行切分为分片
+
+  2. KeyValueTextInputFormat(仅知道即可）
+
+     每一行均为一条记录，被分隔符分割为key，value。可以通过在驱动类中设置conf.set(KeyValueLineRecordReader.KEY_VALUE_SEPERATOR, " ");来设定分隔符。默认分隔符是tab（\t）。
+
+     以下是一个示例，输入是一个包含4条记录的分片。其中——>表示一个（水平方向的）制表符。
+
+     ```
+     line1 ——>Rich learning form
+     line2 ——>Intelligent learning engine
+     line3 ——>Learning more convenient
+     line4 ——>From the real demand for more close to the enterprise
+     ```
+
+     每条记录表示为以下键/值对：
+
+     ```
+     (line1,Rich learning form)
+     (line2,Intelligent learning engine)
+     (line3,Learning more convenient)
+     (line4,From the real demand for more close to the enterprise)
+     ```
+
+     此时的键是每行排在制表符之前的Text序列。
+
+  3. NLineInputFormat(仅知道即可）
+
+     如果使用NlineInputFormat，代表每个map进程处理的InputSplit不再按block块去划分，而是按NlineInputFormat指定的行数N来划分。即输入文件的总行数/N=切片数，如果不整除，切片数=商+1。
+
+     以下是一个示例，仍然以上面的4行输入为例。
+
+     ```
+     Rich learning form
+     Intelligent learning engine
+     Learning more convenient
+     From the real demand for more close to the enterprise
+     ```
+
+      例如，如果N是2，则每个输入分片包含两行。开启2个maptask。
+
+     ```
+     (0,Rich learning form)
+     (19,Intelligent learning engine)
+     ```
+
+     另一个 mapper 则收到后两行：
+
+     ```
+     (47,Learning more convenient)
+     (72,From the real demand for more close to the enterprise)
+     ```
+
+      这里的键和值与TextInputFormat生成的一样。
+
+## 8.案例：自定义InputFormt合并小文件
+
+### 8.1 需求
 
 无论hdfs还是MapReduce，对于小文件都有折损率，实践中，又难免面临处理大量小文件的场景，此时，就需要有相应的解决方案
 
-### 7.2 分析实现
+### 8.2 分析实现
 
 小文件的优化无非以下几种方式：
 
@@ -791,15 +1212,45 @@ O:A,H,I,J
    
    ```
 
-   
 
-## 8.案例：自定义OutputFormat
 
-### 8.1 需求
+
+## 9. OutputFormat数据输出
+
+### 9.1 OutputFormat接口实现类
+
+OutputFormat是MapReduce输出的基类，所有实现MapReduce输出都实现了OutputFormat接口。下面介绍几种常见的OutputFormat实现类：
+
+1. 文本输出TextOutputFormat
+
+   默认的输出格式是TextOutputFormat，它把每条记录写为文本行。它的键和值可以是任意类型，因为TextOutputFormat调用toString()方法把他们转换为字符串
+
+2. SequenceFileOutputFormat
+
+   sequenceFileOutputFormat将它的输出写为一个顺序文件。如果输出需要作为后续MapReduce任务的输入，这便是一种好的输格式，因为他的格式紧凑，很容易被压缩
+
+### 9.2 自定义OutputFormat
+
+为了实现控制最终文件的输出路径，可以自定义OutputFormat。
+
+要在一个mapreduce程序中根据数据的不同输出两类结果到不同目录，这类灵活的输出需求可以通过自定义outputformat来实现。
+
+1. 自定义Outputformat步骤
+
+   - 自定义一个类继承FileOutputFormat
+   - 改写recorewriter，具体改写输出数据的方法write();
+
+2. 实操案例
+
+   见案例
+
+## 10.案例：自定义OutputFormat
+
+### 10.1 需求
 
 现在有一些订单的评论数据，需求：将订单的好评与差评进行区分，将最终的数据分开到不同的文件夹下面去，数据内容参见文件，其中数据第九个字段表示好评，中评，差评。0：好评，1：中评，2：差评
 
-### 8.2 分析实现
+### 10.2 分析实现
 
 实现要点：
 
@@ -926,11 +1377,11 @@ O:A,H,I,J
 
    
 
-## 9.自定义分组求取topN
+## 11.自定义分组求取topN
 
 分组是MapReduce当中Reduce端的一个功能组件，主要的作用是决定哪些数据作为一组，调用一次Reduce的逻辑，默认是每个不同的key，作为多个不同的组，每个组调用一次Reduce逻辑，我们可以自定义分组实现不同的key作为同一组，调用一次Reduce逻辑
 
-### 9.1需求
+### 11.1需求
 
 有如下订单数据：
 
@@ -946,7 +1397,7 @@ Order_0000003 	Pdt_01 		222.8
 
 现在需要求出每一个订单中成交金额最大的一笔
 
-### 9.2 分析实现
+### 11.2 分析实现
 
 - 利用订单ID和成交金额作为key，可以将map解读那读取到的所有订单数据按照ID区分，按照金额排序，发送到Reduce
 - 在Reduce端利用分组将订单ID相同的KV聚合成组，然后取第一个即是最大值

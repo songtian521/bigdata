@@ -2,6 +2,8 @@
 
 ## 1.MapReduce介绍
 
+### 1.1定义
+
 MapReduce思想在生活中处处可见。或多或少都曾接触过这种思想。MapReduce的思想核心是“分而治之”，适用于大量复杂的任务处理场景（大规模数据处理场景）。
 
 - Map负责“分”，即把复杂的任务分解为若干个简单的任务来并行处理。可以拆分的前提是这些小任务可以并行计算，彼此间几乎没有依赖关系
@@ -15,12 +17,31 @@ MapReduce思想在生活中处处可见。或多或少都曾接触过这种思�
 
   这两个阶段合起来正是MapReduce思想的体现
 
-![](C:\Users\宋天\Desktop\大数据\img\MapReduce\MapReduce编程流程.jpg)
+![](img\MapReduce\MapReduce编程流程.jpg)
 
 使用比较通俗的语言进行解释MapReduce就是：
 
 - 我们要数图书馆的所有书，你数1号书架，我数2号书架。这就是Map。我们人越多，数书就更快。
 - 现在我们到一起，把所有人的统计数加在一起。这就是Reduce。
+
+### 1.2 MapReduce优缺点 
+
+1. 优点：
+
+   1. **MapReduce易于编程。**它简单的实现一些接口，就可以完成一个分布式程序，这个分布式程序可以分布到大量廉价的PC机器上运行。也就是说你写一个分布式程序，跟写一个简单的串行程序是一模一样的。就是因为这个 特点使得MapReduce编程变得非常流行
+   2. **良好的扩展性**。当你的计算资源不能得到满足的时候，你可以通过简单的增加机器来扩展它的计算能力
+   3. **高容错性**。MapReduce设计的初衷就是时程序能够部署在廉价的PC机器上，这就要求它具有很高的容错性。比如，其中一台机器挂了，他可以把上面的计算任务转移到另外一个节点上运行，不至于这个任务运行失败，而且这个过程不需要人工参与，而完全是由Hadoop内部完成的
+   4. **适合PB级以上的海量数据的离线处理**，说明他适合离线处理而不适合在线处理。比如像毫秒级别的返回一个结果，MapReduce很难做到
+
+2. 缺点
+
+   MapReduce不擅长做实时计算、流式计算】DGA(有向图)计算。
+
+   1. **实时计算**。MapReduce无法向mySql一样，在毫秒或者秒级内返回结果
+   2. **流式计算**。流式计算的输入数据是动态的，而MapReduce的输入数据集是静态的，不能动态变化。这是因为MapReduce自身的设计特点决定了数据源必须是静态的
+   3. **DAG(有向无环图)**。多个应用程序存在依赖关系，后一个应用程序的输入为前一个的输出。在这种情况下，MapReduce并不是不能做，而是使用后，每个MapReduce作业的输出结果都会写入到磁盘，会造成 大量的磁盘IO，导致性能非常低下
+
+   
 
 ## 2.MapReduce设计构思
 
@@ -39,23 +60,36 @@ Map和Reduce为程序员提供了一个清晰的接口抽象描述。MapReduce�
 2. MapTask负责整个map阶段的整个数据处理流程
 3. ReduceTask负责Reduce阶段的整个数据处理流程
 
-![](C:\Users\宋天\Desktop\大数据\img\MapReduce\MapReduce思想.bmp)
+![](img\MapReduce\MapReduce思想.bmp)
 
 ## 3.MapReduce编程规范
 
-MapReduce的开发一共有八个步骤，其中Map阶段分为2个步骤，Shuffle阶段有4个步骤，Reduce分为2个步骤
-
-1. Map阶段2个步骤
-   - 设置InputForMat类，将数据切分为key-value（k1，v1）对，输入到第二步
-   - 自定义Map逻辑，将第一步的结果转换为另外的key-value（k2，v2）对，输出结果
-2. Shuffle阶段的四个步骤
+1. Map阶段
+   
+   - 用户自定义的Mapper要继承自己的父类
+   
+   - Mapper的输入数据是KV对的形式（KV的类型可自定义）
+   - Mapper中的业务逻辑写在map()方法中
+   - Mapper的输出数据是KV对的形式（KV的类型可自定义）
+   - **map()方法（maptask进程）对每一个<K,V>调用一次**
+   
+2. Shuffle阶段
    - 对输出的key-value进行**分区**
    - 对不同分区的数据按照相同的key**排序**
    - （可选）对分组过的数据初步**规约**，降低数据的网络拷贝
    - 对数组进行**分组**，相同key的value放入一个集合中
-3. Reduce阶段2个步骤
-   - 对多个Map任务的结果进行排序以及合并，编写Reduce函数实现自己的逻辑，对输入的key-value进行处理，转为新的key-value（k3，v3）输出
-   - 设置OutputFormat处理并保存Reduce输出的key-value数据
+
+3. Reduce阶段
+
+   - 用户自定义的Reducer要继承自己的父类
+
+   - Reducer的输入数据类型对应Mapper的输出数据类型，也是KV
+   - Reducer的业务逻辑写在reduce()方法中
+   - **Reducetask进程对每一组相同k的<k,v>组调用一次reduce()方法**
+
+4. Deiver阶段
+
+   整个程序需要一个Driver来进行提交，提交的是一个描述了各种必要信息的job对象
 
 ## 4.WordCound案例
 
@@ -65,7 +99,7 @@ MapReduce的开发一共有八个步骤，其中Map阶段分为2个步骤，Shuf
 
 ![WordCount案例](img\MapReduce\WordCount案例.jpg)
 
-1. 数据格式准备，保存为txt文件
+1. 数据准备，保存为txt文件
 
    ```txt
    hello,world,hadoop
@@ -267,7 +301,7 @@ TextOutputFormat.setOutputPath(job,new Path("file:///F:\\wordcount\\output"));
 - 其实就是相同类型的数据，有共性的数据，送到一起处理
 - Reduce当中默认的分区只要一个
 
-![](C:\Users\宋天\Desktop\大数据\img\MapReduce\Shuffle阶段-分区.bmp)
+![](img\MapReduce\Shuffle阶段-分区.bmp)
 
 需求：将以下数据进行分开
 
@@ -417,6 +451,8 @@ TextOutputFormat.setOutputPath(job,new Path("file:///F:\\wordcount\\output"));
 
 计数器是收集作业统计信息的有效手段之一，用于质量控制或应用，计数器还可辅助诊断系统故障。如果需要将日志信息传输到map或reduce任务，更好的方法通常是看能否用一个计数器值来记录某一特定时间的发生。对于大型分布式作业而言，使用计数器更为方便。除了因为获取计数器值比输出日志更方便，还有根据计数器值统计特定事件的发生次数要比分析一堆日志文件容易得多
 
+Hadoop为每个作业维护若干内置计数器，以描述多项指标。例如，某些计数器记录已处理的字节数和记录数，使用户可监控已处理的输入数据量和已产生的输出数据量。
+
 hadoop内置计数器列表
 
 | MapReduce任务计数器    | org.apache.hadoop.mapreduce.TaskCounter                      |
@@ -429,12 +465,31 @@ hadoop内置计数器列表
 每次mapreduce执行完成之后，我们都会看到一些日志记录出来，其中最重要的一些日志记
 录如下截图
 
-![](C:\Users\宋天\Desktop\大数据\img\MapReduce\日志详情.PNG)
+![](img\MapReduce\日志详情.PNG)
 
 所有的这些都是MapReduce的计数器的功能，既然MapReduce当中有计数器的功能，我们如
 何实现自己的计数器？？？
 
 需求：以以上分区代码为案例，统计map接收到的数据记录条数
+
+1. API
+
+   - 1
+
+     ```java
+     采用枚举的方式统计计数
+     enum MyCounter{MALFORORMED,NORMAL}
+     //对枚举定义的自定义计数器加1
+     context.getCounter(MyCounter.MALFORORMED).increment(1);
+     ```
+
+   - 2
+
+     ```java
+     采用计数器组、计数器名称的方式统计
+     context.getCounter("counterGroup", "countera").increment(1);
+     组名和计数器名称随便起，但最好有意义。
+     ```
 
 ### 7.1实现计数器方式1
 
@@ -496,14 +551,44 @@ public class partitionReducer extends Reducer<Text, NullWritable,Text,NullWritab
 ## 8.MapReduce排序和序列化
 
 - 序列化是指把结构化对象转化为字节流
+  - 序列化就是把内存中的对象，转换成字节序列（或其他数据传输协议），以便于存储（持久化）和网络传输
 - 反序列化是序列化的逆过程，把字节流转为结构化对象。当要在进程间传递对象或持久化对象的时候，就需要序列化对象成字节流，反之当要接收到或从磁盘读取的字节流转换为对象，就要进行反序列化
-- Java的序列化是一个重量级序列化框架，一个对象被序列化后，会附带很多额外的信息（各种校验信息，header，继承体系等），不便于在网络中搞笑传输。所以，hadoop自己开发了一套序列化机制Writable，精简高效，不用像java对象类一样传输多层的父子关系，需要哪个属性就传输哪个属性值，大大的减少懒得网络传输的开销
+- **Java的序列化是一个重量级序列化框架，**一个对象被序列化后，会附带很多额外的信息（各种校验信息，header，继承体系等），**不便于在网络中高效传输**。所以，**hadoop自己开发了一套序列化机制Writable**，精简高效，不用像java对象类一样传输多层的父子关系，需要哪个属性就传输哪个属性值，大大的减少懒得网络传输的开销
 - writable是hadoop的序列化格式，hadoop定义了这样一个writable接口。一个类要支持可序列化就只需要实现这个接口即可
 - 另外writable有一个子接口是writableComparable，writableComparable是即可实现序列化，也可以对key进行比较，我们这里可以通过自定义key实现writableComparable来实现我们的排序功能
 
-![1-Shuffle阶段的排序和序列化](img\MapReduce\1-Shuffle阶段的排序和序列化.jpg)
+### 8.1 为什么序列化对Hadoop很重要
 
-案例：shuffle 排序和序列化
+- 因为Hadoop在集群之间进行通讯或者RPC调用的时候，需要序列化，而且要求序列化 要快，且体积要小，占用带宽要小。所以必须理解Hadoop的序列化机制
+- 序列化和反序列化在分布式数据领域中经常出现：进程通信和永久存储。然而Hadoop中各个节点的通信是通过远程调用RPC实现的，那么RPC序列化要求具有以下的特点
+  1. **紧凑**：紧凑的格式能让我们充分利用网络带宽，而带宽是数据中心最稀缺的资源
+  2. **快速**：进程通信形成了分布式系统的骨架，所以需要尽量减少序列化和反序列化的性能开销，这是最基本的
+  3. **可扩展**：协议为了满足新的需求变化，所以控制客户端和服务器的过程中，需要直接引进相应的协议，这些是新协议，原序列化方式能支持新的协议报文
+  4. **互操作**：能支持不同语言写的客户端和服务端进行交互
+
+### 8.2 常用数据序列化类型
+
+常用的数据类型对应的Hadoop数据序列化类型
+
+| Java类型   | Hadoop Writable类型 |
+| ---------- | ------------------- |
+| boolean    | BooleanWritable     |
+| byte       | ByteWritable        |
+| **int**    | **IntWritable**     |
+| float      | FloatWritable       |
+| **long**   | **LongWritable**    |
+| **double** | **DoubleWritable**  |
+| **string** | **Text**            |
+| map        | MapWritable         |
+| array      | ArrayWritable       |
+
+
+
+### 8.2案例：shuffle 排序和序列化
+
+逻辑思维：
+
+![1-Shuffle阶段的排序和序列化](img\MapReduce\1-Shuffle阶段的排序和序列化.jpg)
 
 1. 准备数据
 
@@ -676,7 +761,7 @@ public class partitionReducer extends Reducer<Text, NullWritable,Text,NullWritab
 
 ## 9.规约Combiner
 
-概念：每一个map都可能会产生大量的本地输出，Combiner的作用就是对map端的输出夏怒走一次合并，以减少在map和reduce节点之间的数据传输量，以提高网络IO性能，是MapReduce的一种优化手段之一
+概念：每一个map都可能会产生大量的本地输出，Combiner的作用就是对map端的输出先做一次合并，以减少在map和reduce节点之间的数据传输量，以提高网络IO性能，是MapReduce的一种优化手段之一
 
 - combiner是MR程序中Mapper和Reducer之外的一种组件
 - combiner组件的父类就是Reducer
@@ -685,7 +770,7 @@ public class partitionReducer extends Reducer<Text, NullWritable,Text,NullWritab
   - Reducer是接收全局所有的Mapper输出结果
 - combiner的意义就是对每一个maptask的输出进行局部汇总，以减少网络传输量
 
-![2-规约概念](C:\Users\宋天\Desktop\大数据\img\MapReduce\2-规约概念.bmp)
+![2-规约概念](img\MapReduce\2-规约概念.bmp)
 
 实现步骤：
 
@@ -904,7 +989,7 @@ combiner能够应用的前提是不能影响最终的业务逻辑，而且，com
 
 分析：以手机号码作为key值，下行流量，上行流量，上行总流量下行总流量四个字段分别作为value值，然后以这key，和value作为map阶段的输出，reduce阶段的输入
 
-![3-流量统计求和](C:\Users\宋天\Desktop\大数据\img\MapReduce\3-流量统计求和.bmp)
+![3-流量统计求和](img\MapReduce\3-流量统计求和.bmp)
 
 1. 自定义map的输出value对象flowBean
 
@@ -1175,7 +1260,7 @@ combiner能够应用的前提是不能影响最终的业务逻辑，而且，com
        @Override
        public int compareTo(FlowBean o) {
            //this.upFlow .compareTo(o.getUpFlow());
-           return  o.upFlow - this.upFlow;//降序
+           return  o.upFlow - this.upFlow;//降序 返回-1为降序
        }
    }
    
