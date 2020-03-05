@@ -525,7 +525,7 @@ SecondaryNameNode的namesecondary/current目录和主namenode的current目录的
 
 DataNode工作机制
 
-![](C:\Users\宋天\Desktop\大数据\img\DataNode工作机制.png)
+![](\img\DataNode工作机制.png)
 
 解读：
 

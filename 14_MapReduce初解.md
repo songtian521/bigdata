@@ -28,14 +28,14 @@ MapReduce思想在生活中处处可见。或多或少都曾接触过这种思�
 
 1. 优点：
 
-   1. **MapReduce易于编程。**它简单的实现一些接口，就可以完成一个分布式程序，这个分布式程序可以分布到大量廉价的PC机器上运行。也就是说你写一个分布式程序，跟写一个简单的串行程序是一模一样的。就是因为这个 特点使得MapReduce编程变得非常流行
+   1. **MapReduce易于编程。**它简单的实现一些接口，就可以完成一个分布式程序，这个分布式程序可以分布到大量廉价的PC机器上运行。也就是说你写一个分布式程序，跟写一个简单的串行程序是一模一样的。就是因为这个特点使得MapReduce编程变得非常流行
    2. **良好的扩展性**。当你的计算资源不能得到满足的时候，你可以通过简单的增加机器来扩展它的计算能力
-   3. **高容错性**。MapReduce设计的初衷就是时程序能够部署在廉价的PC机器上，这就要求它具有很高的容错性。比如，其中一台机器挂了，他可以把上面的计算任务转移到另外一个节点上运行，不至于这个任务运行失败，而且这个过程不需要人工参与，而完全是由Hadoop内部完成的
+   3. **高容错性**。MapReduce设计的初衷就是使程序能够部署在廉价的PC机器上，这就要求它具有很高的容错性。比如，其中一台机器挂了，他可以把上面的计算任务转移到另外一个节点上运行，不至于这个任务运行失败，而且这个过程不需要人工参与，而完全是由Hadoop内部完成的
    4. **适合PB级以上的海量数据的离线处理**，说明他适合离线处理而不适合在线处理。比如像毫秒级别的返回一个结果，MapReduce很难做到
 
 2. 缺点
 
-   MapReduce不擅长做实时计算、流式计算】DGA(有向图)计算。
+   **MapReduce不擅长做实时计算、流式计算】DGA(有向图)计算。**
 
    1. **实时计算**。MapReduce无法向mySql一样，在毫秒或者秒级内返回结果
    2. **流式计算**。流式计算的输入数据是动态的，而MapReduce的输入数据集是静态的，不能动态变化。这是因为MapReduce自身的设计特点决定了数据源必须是静态的
@@ -64,6 +64,8 @@ Map和Reduce为程序员提供了一个清晰的接口抽象描述。MapReduce�
 
 ## 3.MapReduce编程规范
 
+用户编写的程序分成三个部分：Mapper，Reducer，Driver(提交运行mr程序的客户端)
+
 1. Map阶段
    
    - 用户自定义的Mapper要继承自己的父类
@@ -74,11 +76,18 @@ Map和Reduce为程序员提供了一个清晰的接口抽象描述。MapReduce�
    - **map()方法（maptask进程）对每一个<K,V>调用一次**
    
 2. Shuffle阶段
-   - 对输出的key-value进行**分区**
-   - 对不同分区的数据按照相同的key**排序**
-   - （可选）对分组过的数据初步**规约**，降低数据的网络拷贝
-   - 对数组进行**分组**，相同key的value放入一个集合中
-
+   - maptask收集我们的map()方法输出的kv对，放到内存缓冲区中
+   - 从内存缓冲区不断溢出本地磁盘文件，可能会溢出多个文件
+   - 多个溢出文件会被合并成大的溢出文件
+   - 在溢出的过程中，及合并的过程中，都要调用partitioner进行分区和针对key进行排序
+- reducetask根据自己的分区号，去各个maptask机器上取相对应的结果分区数据
+   - reducetask会取到同一个分区的来自不同maptask的结果文件，reducetask会将这些文件进行合并（归并排序）
+   - 合并成大文件之后，shuffle的过程也就结束了，后面进入reducetask的逻辑运算过程（从文件中取出一个一个的键值对group，调用用户自定义的reduce()方法）
+   
+   **注意：**Shuffle中的缓冲区大小会影响到mapreduce的程序执行效率，原则上说，缓冲区越大，磁盘IO的次数越少，执行速度就越快
+   
+   缓冲区的大小可以通过参数调整，参数：io.sort.mb  默认100M。
+   
 3. Reduce阶段
 
    - 用户自定义的Reducer要继承自己的父类
@@ -490,6 +499,10 @@ hadoop内置计数器列表
      context.getCounter("counterGroup", "countera").increment(1);
      组名和计数器名称随便起，但最好有意义。
      ```
+   
+2. 案例实操
+
+   日志清洗（数据清洗）
 
 ### 7.1实现计数器方式1
 
@@ -553,13 +566,13 @@ public class partitionReducer extends Reducer<Text, NullWritable,Text,NullWritab
 - 序列化是指把结构化对象转化为字节流
   - 序列化就是把内存中的对象，转换成字节序列（或其他数据传输协议），以便于存储（持久化）和网络传输
 - 反序列化是序列化的逆过程，把字节流转为结构化对象。当要在进程间传递对象或持久化对象的时候，就需要序列化对象成字节流，反之当要接收到或从磁盘读取的字节流转换为对象，就要进行反序列化
-- **Java的序列化是一个重量级序列化框架，**一个对象被序列化后，会附带很多额外的信息（各种校验信息，header，继承体系等），**不便于在网络中高效传输**。所以，**hadoop自己开发了一套序列化机制Writable**，精简高效，不用像java对象类一样传输多层的父子关系，需要哪个属性就传输哪个属性值，大大的减少懒得网络传输的开销
+- **Java的序列化是一个重量级序列化框架，**一个对象被序列化后，会附带很多额外的信息（各种校验信息，header，继承体系等），**不便于在网络中高效传输**。所以，**hadoop自己开发了一套序列化机制Writable**，精简高效，不用像java对象类一样传输多层的父子关系，需要哪个属性就传输哪个属性值，大大的减少了网络传输的开销
 - writable是hadoop的序列化格式，hadoop定义了这样一个writable接口。一个类要支持可序列化就只需要实现这个接口即可
 - 另外writable有一个子接口是writableComparable，writableComparable是即可实现序列化，也可以对key进行比较，我们这里可以通过自定义key实现writableComparable来实现我们的排序功能
 
 ### 8.1 为什么序列化对Hadoop很重要
 
-- 因为Hadoop在集群之间进行通讯或者RPC调用的时候，需要序列化，而且要求序列化 要快，且体积要小，占用带宽要小。所以必须理解Hadoop的序列化机制
+- 因为Hadoop在集群之间进行通讯或者RPC调用的时候，需要序列化，而且要求序列化要快，且体积要小，占用带宽要小。所以必须理解Hadoop的序列化机制
 - 序列化和反序列化在分布式数据领域中经常出现：进程通信和永久存储。然而Hadoop中各个节点的通信是通过远程调用RPC实现的，那么RPC序列化要求具有以下的特点
   1. **紧凑**：紧凑的格式能让我们充分利用网络带宽，而带宽是数据中心最稀缺的资源
   2. **快速**：进程通信形成了分布式系统的骨架，所以需要尽量减少序列化和反序列化的性能开销，这是最基本的
@@ -755,6 +768,55 @@ public class partitionReducer extends Reducer<Text, NullWritable,Text,NullWritab
        }
    }
    
+   ```
+
+
+### 8.3 自定义bean对象实现序列化（Writable）的注意事项
+
+1. 必须实现writable接口
+
+2. 反序列化时，需要反射调用空参构造函数，所以必须有空参构造
+
+   ```java
+   public FlowBean(){
+   	super();
+   }
+   ```
+
+3. 重写序列化方法
+
+   ```java
+   @Override
+   public void write (DataOutput out)throws IOException{
+   	out.writeLong(upFlow);
+   	out.writeLong(downFlow);
+   	out.writeLong(sumFlow);
+   }
+   ```
+
+4. 重写反序列化方法
+
+   ```java
+   @Override
+   public void readFields(DataInput in)throws IOException{
+   	upFlow = in.readLong();
+   	downFlow = in.readLong();
+   	sumFlow = in.readLong();
+   }
+   ```
+
+5. **注意反序列化的顺序和序列化的顺序完全一致**
+
+6. 要想把结果显示在文件中，需要重写toString()，可用`"\t"`分开，方便后续用
+
+7. 如果需要将自定义的bean放在key中传输，则还需要实现comparable接口，因为MapReduce框中的shuffle过程一定会对key进行排序
+
+   ```java
+   @Override
+   public int compareTo(FlowBean o){
+   	//倒序排序。从大到小
+   	return this.sumFloe > o.getSumFloe() ? -1 :1;
+   }
    ```
 
    

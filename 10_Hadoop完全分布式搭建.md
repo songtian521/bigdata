@@ -35,6 +35,8 @@
 
 4. 修改DNS客户机配置文件
 
+    vim /etc/resolv.conf
+
    ```
    nameserver 8.8.8.8
    nameserver 8.8.4.4
@@ -49,7 +51,7 @@
 6. 修改主机名
 
    ```
-   hostnamectl set-hostname 主机名
+   hostnamectl set-hostname 主机名
    ```
 
    使用命令 `hostname`可查看当前主机名
@@ -63,7 +65,7 @@
        ```
        192.168.64.129 bigdata111
        192.168.64.130 bigdata222
-       192.168.64.132 bigdata333
+       192.168.64.131 bigdata333
        ```
 
        注：修改为自己的虚拟机IP
@@ -75,7 +77,7 @@
        ```
        192.168.64.129 bigdata111
        192.168.64.130 bigdata222
-       192.168.64.132 bigdata333
+       192.168.64.131 bigdata333
        ```
 
        注：修改为自己的虚拟机IP
