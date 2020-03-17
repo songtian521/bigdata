@@ -791,6 +791,14 @@ public class CanalClient {
 
 5. 在kafka创建一个`canal`topic
 
+   启动kafka，集群启动
+
+   ```shell
+    nohup bin/kafka-server-start.sh config/server.properties 2>&1 &
+   ```
+
+   创建topic
+
    ```shell
    bin/kafka-topics.sh --create --zookeeper bigdata111:2181 --replication-factor 2 --partitions 3 --topic canal
    ```

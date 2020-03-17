@@ -441,7 +441,7 @@ delete.topic.enable=true
 然后执行以下命令进行删除topic
 
 ```
-kafka-topics.sh --zookeeper zkhost:port --delete --topic topicName
+bin/kafka-topics.sh --zookeeper bigdata111:2181 --delete --topic topicName
 ```
 
 # 8.kafka集群Java API操作
@@ -762,7 +762,7 @@ drwxrwxr-x. 2 itstar itstar  4096 8月   6 14:37 first-2
 
 ### 9.2.3  Zookeeper存储结构
 
-![](\img\kafka\Zookeeper存储结构.png)
+![](img\kafka\Zookeeper存储结构.png)
 
 注意：producer不在zk中注册，消费者在zk中注册。
 
