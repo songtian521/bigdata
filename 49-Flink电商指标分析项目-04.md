@@ -119,7 +119,7 @@
            <dependency>
                <groupId>org.apache.kafka</groupId>
                <artifactId>kafka_${scala.version}</artifactId>
-               <version>0.10.1.0</version>
+               <version>0.10.0.0</version>
            </dependency>
    
    
@@ -766,8 +766,8 @@ insert/update都转换为put操作）
 4. 启动 kafka 集群
 5. 启动 hdfs 集群
 6. 启动 hbase 集群
-7. 启动 Flink数据同步程序
-8. 启动 Canal数据同步程序
+7. 启动 Flink数据同步程序，sync-db包下的app.scala
+8. 启动 Canal数据同步程序，canal-kafka下的CanalClient.java
 9. 在mysql中执行insert、update、delete语句，查看 hbase 数据是否落地
 
 # 2. Flink离线分析系统开发
@@ -831,7 +831,7 @@ insert/update都转换为put操作）
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_${scala.version}</artifactId>
-            <version>0.10.1.0</version>
+            <version>0.10.0.0</version>
         </dependency>
 
 
@@ -1083,7 +1083,7 @@ create table orderRecord(
 	merchantId int(20), # 商家ID
 	orderAmount DOUBLE(16,2), #下单金额
 	payAmount DOUBLE(16,2),# 支付金额
-	payMethod int(10),# 支付方式
+	payMethod varchar(10),# 支付方式
 	payTime DATETIME, # 支付时间
 	benefitAmount double(16,2),# 红包金额
 	voucherAmount double(16,2) ,# 代金券金额
@@ -1091,7 +1091,8 @@ create table orderRecord(
 	activityNum varchar(20), # 活动编号（大于0代表有活动）
 	createTime DATETIME #创建时间
 );
-
+-- 插入订单表的数据
+insert into orderRecord(orderId,userId,merchantId,orderAmount,payAmount,payMethod,payTime,benefitAmount,voucherAmount,commodityId,activityNum,createTime) VALUES(1,1,1234,100.0,3.0,'支付宝','2018-11-29 00:00:00',8.0,9.0,1102,0,'2018-11-29 00:00:00');
 
 -- 活动表
 create table activityRecord(

@@ -479,6 +479,8 @@
    ssh-keygen -t rsa
    ```
 
+   
+
 2. 将公钥拷贝到要免密登录的目标机器上
 
    `ssh-copy-id 目标1`
