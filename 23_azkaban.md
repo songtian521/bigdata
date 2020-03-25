@@ -91,7 +91,7 @@ Azkaban由三个关键组件构成：
 ### 2.1 安装前准备
 
 1.  将Azkaban Web服务器、Azkaban执行服务器、Azkaban的sql执行脚本及MySQL安装包拷贝到bigdata111虚拟机/opt/software目录下
-2. 2) 选择**Mysql**作为Azkaban数据库，因为Azkaban建立了一些Mysql连接增强功能，以方便Azkaban设置，并增强服务可靠性。
+2.  选择**Mysql**作为Azkaban数据库，因为Azkaban建立了一些Mysql连接增强功能，以方便Azkaban设置，并增强服务可靠性。
 
 ### 2.2 安装azkaban
 
