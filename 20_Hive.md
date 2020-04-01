@@ -200,7 +200,12 @@ https://github.com/apache/hive
 1. 启动hive
 
    ```
+   直接启动
    hive
+   
+   启动hive的metastore 服务和hiveserver2服务，之后可以使用beeline连接
+   bin/hive --service metastore & hiveserver2 
+   !connect jdbc:hive2://bigdata111:10000
    ```
 
 2. 查看数据库
@@ -325,15 +330,24 @@ https://github.com/apache/hive
       	  <value>000000</value>
       	  <description>password to use against metastore database</description>
       	</property>
+          <property> 
+      	  <name>hive.mapred.mode</name> 
+   	  <value>nonstrict</value> 
+      	  <description>The mode in which the hive operations are being performed. In strict mode, some risky queries are not allowed to run</description> 
+   </property>
+      <property> 
+           <name>hive.strict.checks.cartesian.product</name> 
+              <value>false</value>
+   </property>
       </configuration>
       ```
-
+   
    3. 配置完毕以后，如果启动hive异常，可以重新启动虚拟机
-
+   
    4. 配置proflie
-
+   
       vim /etc/profile
-
+   
       ```
    #hive
       export HIVE_HOME=/opt/module/hive-2.1.1

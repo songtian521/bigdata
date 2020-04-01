@@ -503,6 +503,9 @@ Keytool是java数据证书的管理工具，使用户能够管理自己的公/�
 /opt/module/azkaban/executor
 
 [root@bigdata111 executor]$ bin/azkaban-executor-start.sh
+
+关
+bin/azkaban-executor-shutdown.sh 
 ```
 
 ### 2.7 启动web服务器
@@ -513,6 +516,9 @@ Keytool是java数据证书的管理工具，使用户能够管理自己的公/�
 [root@bigdata111 server]$ pwd
 /opt/module/azkaban/server
 [root@bigdata111 server]$ bin/azkaban-web-start.sh
+
+关
+bin/azkaban-web-shutdown.sh 
 ```
 
 **注意：**
@@ -529,6 +535,8 @@ jps查看进程
 ```
 
 启动完成后，在浏览器(建议使用谷歌浏览器)中输入**https://服务器IP地址:8443**，即可访问azkaban服务了。
+
+**注意：是https**，不然不能访问
 
 在登录中输入刚才在azkaban-users.xml文件中新添加的户用名及密码,**即admin和admin**，点击 login。
 
@@ -756,6 +764,8 @@ Azkaban3.x在安装前需要自己编译成二进制包。
 
    如果在azkaban-web-server-0.1.0-SNAPSHOT下没有conf目录，可以从azkaban-solo-server-0.1.0-SNAPSHOT下把conf目录拷贝过来。
 
+
+
 ### 3.7 solo-server模式部署
 
 #### 3.7.1 节点规划
@@ -801,6 +811,10 @@ Azkaban3.x在安装前需要自己编译成二进制包。
    访问Web Server=>http://bigdata222:8081/ 默认用户名密码azkaban
 
 注意：azkaban默认需要3G的内存，剩余内存不足则会报异常
+
+**关于此模式后续感悟：**
+
+在某次使用solo模式执行hive任务时，由于hive部署的节点不在azkaban相同的节点，出现了目录无法访问的情况。解决方式很简单，我在安装hive的节点另外安装了一个低版本的az，使用这个版本的az执行hive任务就成功了
 
 ### 3.8 two-server模式部署
 

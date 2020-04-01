@@ -2,6 +2,8 @@
 
 # 1.Apache Hue介绍
 
+注：之前已经在HBase章节做过一次了，本次是cdh版本
+
 **hue是什么？**
 
 HUE = Hadoop User Experience
@@ -469,9 +471,9 @@ hue提供了页面鼠标拖拽的方式配置oozie调度
 
    ```shell
    [impala]
-     server_host=node-3
-     server_port=21050
-     impala_conf_dir=/etc/impala/conf
+    server_host=node-3 # 注意自己的impala server服务位于什么位置
+    server_port=21050
+   impala_conf_dir=/etc/impala/conf
    ```
 
 2. 重启hue

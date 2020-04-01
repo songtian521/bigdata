@@ -340,7 +340,7 @@
    - `cdh01` 上和 `HDFS` 有关的服务有 `NameNode`, `SecondaryNameNode`, 使用如下命令启动这两个组件
 
      ```shell
-     service hadoop-hdfs-namenode start
+     service hadoop-hdfs-namenode restart
      service hadoop-hdfs-secondarynamenode start
      ```
 
