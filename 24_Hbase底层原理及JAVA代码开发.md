@@ -158,7 +158,7 @@
 
 一个RegionServer可以包含多个HRegion，每个RegionServer维护一个HLog，和多个HFiles以及相对应的MemStore。RegionServer运行于DataNode上，数量可以与DataNode数量一致
 
-![](img\Hbase架构.png)
+![](img/hbase/Hbase架构.png)
 
 1. client
 
@@ -188,7 +188,7 @@
 
 ## 1.4 Hbase 数据模型
 
-![](img\hbase表模型.png)
+![](img/hbase/hbase表模型.png)
 
 确定一个单元格的位置（cell），需要如下四个：
 
@@ -200,7 +200,7 @@ rowkey + Colume Family + Colume + timestamp(版本version)，数据有版本的�
 - Zookeeper中记录了-ROOT-表的location
 - Client访问用户数据之前需要首先访问zookeeper，然后访问-ROOT-，接着访问.META.，最后才能找到用户数据的位置去访问，中间需要多次网络操作，不过client端会做cache缓存，**注：在0.96版本后，Hbase移除了-ROOT-表**
 
-![](img\Hbase数据模型.png)
+![](img/hbase/Hbase数据模型.png)
 
 - Row Key：
 
@@ -477,7 +477,7 @@ HBase中的所有数据文件都存储在Hadoop HDFS文件系统上，主要包�
 
    数据插入后的数据模型
 
-   ![](img/hbase/添加数据后的数据模型.png)
+   ![](img/hbase/hbase/添加数据后的数据模型.png)
 
 ## 3.2 查询数据
 

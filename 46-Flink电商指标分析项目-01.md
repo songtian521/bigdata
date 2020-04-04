@@ -1006,12 +1006,12 @@ public class RoundRobinPartitioner implements Partitioner {
                    "channelID=" + channelID +
                    ", categoryID=" + categoryID +
                    ", produceID=" + produceID +
-                   ", country='" + country + '\'' +
-                   ", province='" + province + '\'' +
-                   ", city='" + city + '\'' +
-                   ", network='" + network + '\'' +
-                   ", source='" + source + '\'' +
-                   ", browserType='" + browserType + '\'' +
+                   ", country='" + country + '/'' +
+                   ", province='" + province + '/'' +
+                   ", city='" + city + '/'' +
+                   ", network='" + network + '/'' +
+                   ", source='" + source + '/'' +
+                   ", browserType='" + browserType + '/'' +
                    ", entryTime=" + entryTime +
                    ", leaveTime=" + leaveTime +
                    ", userID=" + userID +
@@ -1698,7 +1698,7 @@ object App {
 ```json
   {
       "count": 1,
-      "message": "{\"browserType\":\"谷歌浏览器\",\"categoryID\":6,\"channelID\":4,\"city\":\"America\",\"country\":\"china\",\"entryTime\":1544601660000,\"leaveTime\":1544634060000,\"network\":\"联通\",\"produceID\":4,\"province\":\"china\",\"source\":\"百度跳转\",\"userID\":13}",
+      "message": "{/"browserType/":/"谷歌浏览器/",/"categoryID/":6,/"channelID/":4,/"city/":/"America/",/"country/":/"china/",/"entryTime/":1544601660000,/"leaveTime/":1544634060000,/"network/":/"联通/",/"produceID/":4,/"province/":/"china/",/"source/":/"百度跳转/",/"userID/":13}",
       "timeStamp": 1553188417573
   }
 ```

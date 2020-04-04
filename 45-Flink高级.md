@@ -182,7 +182,7 @@ object ExampleCountWindowAverage extends App {
 
 - 举例来说，Flink中的kafka Connector，就使用了operator state。他会在每个connector实例中，保存该实例中消费topic的所有（partition，offset）映射
 
-  ![](img\flink\映射.png)
+  ![](img/flink/映射.png)
 
 **官网案例**
 
@@ -271,7 +271,7 @@ Checkpoint是Flink容错的核心机制。他可以定期地将各个Operator处
 
 每个需要Checkpoint的应用在启动时，Flink的JobManager为其创建一个`CheckpointCoordinator`（检查点协调器），CheckpointCoordinator全权负责本应用的快照制作
 
-![](img\flink\检查点.png)
+![](img/flink/检查点.png)
 
 1. `CheckpointCoordinator`周期性的向该流应用的所有`source`算子发送`barrier`。
 2. 当某个source算子收到一个barrier时，便暂停数据处理过程，然后将自己的当前状态制作成快照，并保存到指定的持久化存储中，最后向CheckpointCoordinator报告自己快照的制作情况，同时向自身所有下游算子广播该barrier，恢复数据处理
@@ -290,11 +290,11 @@ Flink分布式快照的核心概念之一就是 **数据栅栏（Barrier）**
 - Barrier不会干扰数据流处理，所以非常轻量
 - 多个不同快快照的多个barrier会在流中同时出现，即多个快照可能同时创建
 
-![](img\flink\stream_barriers.svg)
+![](img/flink/stream_barriers.svg)
 
 **并行Barrier**
 
-![](img\flink\stream_aligning.svg)
+![](img/flink/stream_aligning.svg)
 
 1. 当Operator从一个incoming Stream接收到Snapshot Barrier n ，然后暂停处理，直到其他的incoming Stream的Barrier n（（否则属于2个Snapshot的记录就混在一起了）到达该Operator
 2. 接收到Barrier n的Stream被临时搁置，来自这些Stream的记录不会被处理，而是被放在一个Buffer中。
@@ -644,7 +644,7 @@ Table API& SQL 是流处理和批处理统一的API层，如下
 - Table API & SQL就统一了flink的API层，批数据上的查询会随着输入数据的结束而结束并生成DataSet，流数据的查询会一直运行并生成结果流。
 - Table API & SQL做到了批与流上的查询具有同样的语法语义，因此不用改代码就能同时在批和流上执行。
 
-![](img\flink\table.png)
+![](img/flink/table.png)
 
 **Table API的特点**
 Table API和SQL都是Apache Flink中高等级的分析API，SQL所具备的特点Table API也都具有，如下：
@@ -1241,7 +1241,7 @@ object BatchTableDemo {
       .field("subjectId", Types.INT)
       .field("score", Types.DOUBLE)
       .fieldDelimiter(",")      // 属性间分隔符
-      .lineDelimiter("\n")      // 换行符
+      .lineDelimiter("/n")      // 换行符
 //      .ignoreFirstLine()              // 忽略第一行内容
       .ignoreParseErrors()              // 忽略解析错误
       .build()

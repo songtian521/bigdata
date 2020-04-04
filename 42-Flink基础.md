@@ -22,7 +22,7 @@
   - 1个Tez = MR(1) + MR(2) + ... + MR(n)
   - 相比于MR效率有所提升
 
-  ![](img\flink\Tez.png)
+  ![](img/flink/Tez.png)
 
 - 第三代（Spark）
 
@@ -47,7 +47,7 @@
 
 **官方介绍：**
 
-![](img\flink\官方介绍.png)
+![](img/flink/官方介绍.png)
 
 `Stateful Computations over Data Streams `，即数据流上的有状态的计算
 
@@ -80,7 +80,7 @@
 采用Hadoop的 YARN 做为资源管理调度，以 HDFS 作为数据存储。
 因此，Flink可以和开源大数据软件Hadoop无缝对接。
 
-![](img\flink\ali.png)
+![](img/flink/ali.png)
 
 **Flink在阿里巴巴的大规模应用，表现如何？**
 
@@ -107,7 +107,7 @@ Flink支持多种安装模式
 
 ## 2.1 伪分布式环境部署
 
-![](img\flink\伪分布.png)
+![](img/flink/伪分布.png)
 
 - Flink程序需要提交给Job Client
 - Job Client将作业提交给Job Manager
@@ -170,7 +170,7 @@ Flink支持多种安装模式
 
 Standalone集群架构
 
-![](img\flink\集群架构.png)
+![](img/flink/集群架构.png)
 
 - client客户端提交任务给JobManager
 - JobManager负责Flink集群计算资源管理，并分发任务给TaskManager来执行
@@ -310,7 +310,7 @@ Standalone集群架构
 
 **HA架构图**
 
-![](img\flink\HA架构图.png)
+![](img/flink/HA架构图.png)
 
 **部署情况：**
 
@@ -422,7 +422,7 @@ Standalone集群架构
 
 Flink运行在YARN上，可以使用 yarn-session 来快速提交作业到YARN集群。我们先来看下`Flink On Yarn`模式，Flink是如何和Yarn进行交互的。
 
-![](img\flink\yarn-session.svg)
+![](img/flink/yarn-session.svg)
 
 1. 上传jar包和配置文件到HDFS集群上
 2. 申请资源和请求AppMaster容器
@@ -435,7 +435,7 @@ Flink运行在YARN上，可以使用 yarn-session 来快速提交作业到YARN�
    - YARN所分配的所有端口都是临时端口，这允许用户并行执行多个Flink
 4. 申请worker资源，启动TaskManager
 
-![](img\flink\yarn.png)
+![](img/flink/yarn.png)
 
 yarn-session提供两种模式: **会话模式** 和 **分离模式**
 
@@ -446,7 +446,7 @@ yarn-session提供两种模式: **会话模式** 和 **分离模式**
 - yarn-session会一直启动，不停地接收客户端提交的作用
 - 有大量的小作业，适合使用这种方式
 
-![](img\flink\会话模式.png)
+![](img/flink/会话模式.png)
 
 **使用步骤：**
 
@@ -504,7 +504,7 @@ yarn-session提供两种模式: **会话模式** 和 **分离模式**
 - 直接提交任务给YARN
 - 大作业，适合使用这种方式
 
-![](img\flink\分离模式.png)
+![](img/flink/分离模式.png)
 
 **使用步骤：**
 
@@ -525,7 +525,7 @@ yarn-session提供两种模式: **会话模式** 和 **分离模式**
 
 Flink之所以能这么流行，离不开它最重要的四个基石： Checkpoint、State、Time、Windo
 
-![](img\flink\基石.png)
+![](img/flink/基石.png)
 
 首先是`Checkpoint`机制，这是Flink的一个重要特性，Flink基于`Chandy-Lamport`算法实现了一个分布式的一致性的快照，从而提供了**一致性的语义**。Chandy-Lamport算法是上在1985年的时候就已经被提出来，但并没有被很广泛的应用，而flink则把这个算法发扬光大了。Spark最近在实现Continue streaming，Continue streaming的目的是为了降低它处理的延时，其也需要提供这种一致性的语义，最终采用Chandy-Lamport这个算法，说明Chandy-Lamport算法在业界得到了一定的肯定
 
@@ -539,7 +539,7 @@ Flink之所以能这么流行，离不开它最重要的四个基石： Checkpoi
 
 Flink是一个分层架构的系统，每一层所包含的组件都提供了特定的抽象，用来服务于上层组件。Flink分层的组件栈如下图所示：
 
-![](img\flink\stack.png)
+![](img/flink/stack.png)
 
 从上至下：
 
@@ -563,7 +563,7 @@ Flink是一个分层架构的系统，每一层所包含的组件都提供了特
 
 Flink提供了不同的抽象级别以开发流式或批处理应用
 
-![](img\flink\数据流编程模型.svg)
+![](img/flink/数据流编程模型.svg)
 
 - 最底层提供了有状态流。它将通过过程函数（Process Function）嵌入到DataStream API中。它允许用户可以自由地处理来自一个或者多个流数据的事件，并使用一致、容错的状态。除此之外，用户可以注册事件时间和处理事件回调，从而使程序可以实现复杂的计算
 - DataStream/DataSet API 是Flink提供的核心API，DataSet处理有界的数据集，DataStream处理有界或者无界的数据流。用户可以通过各种方法（map / flatmap / window / keyby / sum / max / min / avg / join 等）将数据进行转换/计算
@@ -574,7 +574,7 @@ Flink提供了不同的抽象级别以开发流式或批处理应用
 
 Flink程序的基本构建块是**流**和**转换**（请注意。Flink的DataSet API中使用的DataSet也是内部流）。从概念上讲，流是（可能永无止境的）数据记录流，而转换是将一个或者多个流作为一个或多个流的操作。输入，并产生一个或者多个输出流
 
-![](img\flink\Flink程序结构.png)
+![](img/flink/Flink程序结构.png)
 
 Flink应用程序结构就是如上图所示：
 
@@ -588,7 +588,7 @@ Flink程序在执行的时候，会被映射成一个`Streaming Dataflow`，一�
 
 Flink程序本质上是 **并行的和分布式**的，在执行过程中，一个流（Stream）包含一个或多个流**分区**，而每一个operator包含一个或多个operator子任务。操作子任务间彼此独立，在不同的线程中执行，甚至是在不同的机器或者不同的容器上。operator子任务的数量是这一特定operator的 **并行度**。相同程序中的不同operator有不同级别的并行度
 
-![](img\flink\并行数据流.svg)
+![](img/flink/并行数据流.svg)
 
 一个Stream可以被分成多个Stream的分区，也就是 `Stream Partition` 。一个Operator也可以被分为 多个`Operator Subtask `。如上图中，Source被分成Source1和Source2，它们分别为Source的Operator Subtask。每Operator Subtask都是在 不同的线程 当中独立执行的。一个Operator的并行度，就等于Operator Subtask的个数。上图Source的并行度为2。而一个Stream的并行度就等于它生成的Operator的并行度。
 
@@ -601,11 +601,11 @@ Flink程序本质上是 **并行的和分布式**的，在执行过程中，一�
 
 Flink的所有操作都称之为Operator（转换），客户端在提交任务的时候会对Operator进行优化操作，能进行合并的Operator会被合并为一个Operator，合并后的Operator称为Operator chain，实际上就是一个执行链，每个执行链会在TaskManager上一个独立的线程中执行
 
-![](img\flink\tasks_chains.svg)
+![](img/flink/tasks_chains.svg)
 
 ## 3.7 任务调度与执行
 
-![](img\flink\任务调度.png)
+![](img/flink/任务调度.png)
 
 1. 当Flink执行Executor会自动根据程序 代码生成DAG数据流图
 2. ActorSystem创建Actor经数据流图发送给JobManager中的Actor
@@ -632,7 +632,7 @@ Flink的所有操作都称之为Operator（转换），客户端在提交任务�
 
 **任务槽**
 
-![](img\flink\tasks_slots.svg)
+![](img/flink/tasks_slots.svg)
 
 - 每个TaskManager是一个JVM的进程，可以在不同的线程中执行一个或者多个子任务
 
@@ -656,7 +656,7 @@ Flink的所有操作都称之为Operator（转换），客户端在提交任务�
 - 资源分配更加公平，如果有比较空闲的slot可以将更多的任务分配给它。图中若没有任务槽共享，负载不高的Source/Map等subtask将会占据许多资源，而负载较高的窗口subtask则会缺乏资源。
 - 有了任务槽共享，可以将基本并行度（base parallelism）从2提升到6.提高了分槽资源的利用率。同时它还可以保障TaskManager给subtask的分配的slot方案更加公平
 
-![](img\flink\slot_sharing.svg)
+![](img/flink/slot_sharing.svg)
 
 ## 3.9 Flink统一的流处理和批处理
 
@@ -684,11 +684,11 @@ Flink的执行引擎采用了一种十分灵活的方式，同时支持了这两
 - 如果缓存块的超时值为无限大，则Flink的数据传输方式类似上文所提到批处理系统的标准模型，此时系统可以获得最高的吞吐量
 - 同时缓存块的超时值也可以设置为0到无限大之间的任意值。缓存块的超时阈值越小，则Flink流处理执行引擎的数据处理延迟越低，但吞吐量也会降低，反之亦然。通过调整缓存块的超时阈值，用户可根据需求灵活地权衡系统延迟和吞吐量
 
-![](img\flink\统一.png)
+![](img/flink/统一.png)
 
 ## 3.10 Flink的应用场景
 
-![](img\flink\应用场景.jpg)
+![](img/flink/应用场景.jpg)
 
 阿里在Flink的应用主要包含四个模块：实时监控、实时报表、流数据分析和实时仓库
 
@@ -718,7 +718,7 @@ Flink的执行引擎采用了一种十分灵活的方式，同时支持了这两
 
 相反，事件驱动型应用是基于 **状态化流处理** 来完成。在该设计中， **数据和计算不会分离** ，应用只需访问本地（内存或磁盘）即可获取数据。系统 **容错性 **的实现依赖于定期向远程持久化存储写入**checkpoint** 。下图描述了传统应用和事件驱动型应用架构的区别。
 
-![](img\flink\事件驱动.png)
+![](img/flink/事件驱动.png)
 
 **典型的事件驱动类应用：**
 
@@ -734,7 +734,7 @@ Flink的执行引擎采用了一种十分灵活的方式，同时支持了这两
 
 如下图所示，Apache Flink 同时支持流式及批量分析应用
 
-![](img\flink\数据分析.png)
+![](img/flink/数据分析.png)
 
 Data Analytics Applications包含Batch analytics（批处理分析）和Streaming analytics（流处理分析）。
 
@@ -765,7 +765,7 @@ ETL 作业通常会周期性地触发，将数据从事务型数据库拷贝到�
 
 下图描述了周期性 ETL 作业和持续数据管道的
 
-![](img\flink\数据管道.png)
+![](img/flink/数据管道.png)
 
 Periodic ETL：比如每天凌晨周期性的启动一个Flink ETL Job，读取传统数据库中的数据，然后做ETL，最后写入数据库和文件系统。
 

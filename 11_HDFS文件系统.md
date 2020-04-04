@@ -18,7 +18,7 @@ HDFS，是一个文件系统，全称为：Hadoop Distributed File System。用�
 - 如果寻址时间约为10ms，而传输速率为100MB/s，为了是寻址时间占传输时间的1%，我们需要将块大小设置约为100MB。默认的块大小为128MB
 - 块的大小：10ms*100*100M/s = 100M
 
-![](C:\Users\宋天\Desktop\大数据\img\HDFS块大小.png)
+![](img/HDFS块大小.png)
 
 ### 1.3HDFS应用场景
 
@@ -61,7 +61,7 @@ HDFS由四部分组成。HDFSClient、NameNode、DataNode、Secondary NameNode�
 
 ### 3.1NameNode&Secondary NameNode工作机制
 
-![](C:\Users\宋天\Desktop\大数据\img\NameNode&Secondary NameNode工作机制.png)
+![](img/NameNode&Secondary NameNode工作机制.png)
 
 解读：
 
@@ -283,7 +283,7 @@ VERSION
 
 3. SecondaryNameNode工作原理
 
-   ![](C:\Users\宋天\Desktop\大数据\img\SecondaryNameNode工作原理.PNG)
+   ![](img/SecondaryNameNode工作原理.PNG)
 
    - SecondaryNameNode 通知 NameNode 切换 editlog
    - SecondaryNameNode 从 NameNode 中获得 fsimage 和 editlog(通过http方式)
@@ -525,7 +525,7 @@ SecondaryNameNode的namesecondary/current目录和主namenode的current目录的
 
 DataNode工作机制
 
-![](\img\DataNode工作机制.png)
+![](/img/DataNode工作机制.png)
 
 解读：
 
@@ -645,7 +645,7 @@ DataNode工作机制
 
 **HDFS写数据流程**
 
-![](C:\Users\宋天\Desktop\大数据\img\HDFS写数据流程.png)
+![](img/HDFS写数据流程.png)
 
 1. 客户端向NameNode请求上传文件，NameNode检查目标文件是否存在，父目录是否存在
 2. namenode返回是否可以上传。
@@ -658,7 +658,7 @@ DataNode工作机制
 
 **HDFS读数据流程**
 
-![](C:\Users\宋天\Desktop\大数据\img\HDFS读数据流程.png)
+![](img/HDFS读数据流程.png)
 
 1. 客户端向namenode请求下载文件，namenode通过查询元数据，找到文件块所在的datanode地址。
 2. 挑选一台datanode（就近原则，然后随机）服务器，请求读取数据。
@@ -681,7 +681,7 @@ Distance(/d1/r1/n1, /d1/r3/n2)=4（同一数据中心不同机架上的节点）
 
 Distance(/d1/r1/n1, /d2/r4/n2)=6（不同数据中心的节点）
 
-![](C:\Users\宋天\Desktop\大数据\img\机架感知.png)
+![](img/机架感知.png)
 
 
 
@@ -695,7 +695,7 @@ Distance(/d1/r1/n1, /d2/r4/n2)=6（不同数据中心的节点）
 
    第三个副本和第二个副本位于相同机架，节点随机。
 
-   ![](C:\Users\宋天\Desktop\大数据\img\低版本机架感知.png)
+   ![](img/低版本机架感知.png)
 
 2. Hadoop2.7.2副本节点选择
 
@@ -705,7 +705,7 @@ Distance(/d1/r1/n1, /d2/r4/n2)=6（不同数据中心的节点）
 
    ​	第三个副本位于不同机架，随机节点。
 
-   ![](C:\Users\宋天\Desktop\大数据\img\机架感知2.7.2.png)
+   ![](img/机架感知2.7.2.png)
 
 ### 5.3一致性模型
 
@@ -872,7 +872,7 @@ Distance(/d1/r1/n1, /d2/r4/n2)=6（不同数据中心的节点）
 
    要求fs.trash.checkpoint.interval<=fs.trash.interval。
 
-   ![](C:\Users\宋天\Desktop\大数据\img\HDFS回收站.png)
+   ![](img/HDFS回收站.png)
 
 2. 启用回收站
 

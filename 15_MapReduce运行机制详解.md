@@ -2,7 +2,7 @@
 
 MapReduce工作机制全流程图
 
-![](img\MapReduce\0-MapReduce工作机制-全流程.jpg)
+![](img/MapReduce/0-MapReduce工作机制-全流程.jpg)
 
 ## 1.MapTask工作机制
 
@@ -340,9 +340,9 @@ id 		 date 		pid 	amount
 
 ### 4.2ReduceJoin实现案例
 
-![](img\MapReduce\1-Reduce端join操作.bmp)
+![](img/MapReduce/1-Reduce端join操作.bmp)
 
-![](img\MapReduce\2-Reduce端join操作问题.bmp)
+![](img/MapReduce/2-Reduce端join操作问题.bmp)
 
 通过将关联的条件作为map输出的key，将两表满足join条件的数据并携带数据所来源的文件
 信息，发往同一个reduce task，在reduce中进行数据的串联（数据倾斜）
@@ -421,7 +421,7 @@ id 		 date 		pid 	amount
            }
    
            //2.k3和v3写入上下文
-           context.write(key,new Text(first+ "\t" +second));
+           context.write(key,new Text(first+ "/t" +second));
        }
    }
    
@@ -440,7 +440,7 @@ id 		 date 		pid 	amount
    
            //设置输入类和输入路径
            job.setInputFormatClass(TextInputFormat.class);
-           TextInputFormat.addInputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\reduce_join\\MyOutputformat.input"));
+           TextInputFormat.addInputPath(job,new Path("file:///G://学习//maven//src//main//java//reduce_join//MyOutputformat.input"));
            //设置map类和数据类型
            job.setMapperClass(joinMapper.class);
            job.setMapOutputKeyClass(Text.class);
@@ -452,7 +452,7 @@ id 		 date 		pid 	amount
            job.setOutputValueClass(Text.class);
            //设置输出类和输出的路径
            job.setOutputFormatClass(TextOutputFormat.class);
-           TextOutputFormat.setOutputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\reduce_join\\out"));
+           TextOutputFormat.setOutputPath(job,new Path("file:///G://学习//maven//src//main//java//reduce_join//out"));
    
            //3.等待job任务结束
            boolean b = job.waitForCompletion(true);
@@ -496,7 +496,7 @@ id 		 date 		pid 	amount
 
 ### 5.1 MapJoin实现案例
 
-![](img\MapReduce\3-Map端join操作.bmp)
+![](img/MapReduce/3-Map端join操作.bmp)
 
 先在mapper类中预定义好小表，进行join
 
@@ -544,7 +544,7 @@ id 		 date 		pid 	amount
            String productID = split[2];
            //2.在map集合中，将商品的ID作为键，获取值（商品的行文本数据），将value和值拼接，得到v2
            String productLine = hashMap.get(productID);
-           String valueLine = productLine + "\t"+ value.toString();
+           String valueLine = productLine + "/t"+ value.toString();
            //3.将k2和v2写入上下文中
            context.write(new Text(productID),new Text(valueLine));
    
@@ -569,7 +569,7 @@ id 		 date 		pid 	amount
    
            //设置输入类和输入路径
            job.setInputFormatClass(TextInputFormat.class);
-           TextInputFormat.addInputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\Map_join\\MyOutputformat.input"));
+           TextInputFormat.addInputPath(job,new Path("file:///G://学习//maven//src//main//java//Map_join//MyOutputformat.input"));
            //设置mapper
            job.setMapperClass(joinMapper.class);
            job.setMapOutputKeyClass(Text.class);
@@ -579,7 +579,7 @@ id 		 date 		pid 	amount
    
            //设置输出类和输出路径
            job.setOutputValueClass(TextOutputFormat.class);
-           TextOutputFormat.setOutputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\Map_join\\out"));
+           TextOutputFormat.setOutputPath(job,new Path("file:///G://学习//maven//src//main//java//Map_join//out"));
    
            //3.等待任务结束
            boolean b = job.waitForCompletion(true);
@@ -635,7 +635,7 @@ O:A,H,I,J
 
 ### 6.2实现步骤
 
-![](img\MapReduce\4-求共同好友.bmp)
+![](img/MapReduce/4-求共同好友.bmp)
 
 第一步：
 
@@ -687,7 +687,7 @@ O:A,H,I,J
    ```java
    public class oneFriendsDriver {
        public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\Friends\\friends.txt","G:\\学习\\maven\\src\\main\\java\\Friends\\out"};
+           args = new String[]{"G://学习//maven//src//main//java//Friends//friends.txt","G://学习//maven//src//main//java//Friends//out"};
            //配置文件对象
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
@@ -782,7 +782,7 @@ O:A,H,I,J
    ```java
    public class TwoFriendsDriver {
        public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\Friends\\out","G:\\学习\\maven\\src\\main\\java\\Friends\\out1"};
+           args = new String[]{"G://学习//maven//src//main//java//Friends//out","G://学习//maven//src//main//java//Friends//out1"};
            //配置文件对象
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
@@ -833,7 +833,7 @@ O:A,H,I,J
 ```java
 public class AllFriendsDriver {
     public static void main(String[] args) throws IOException {
-        args = new String[]{"G:\\学习\\maven\\src\\main\\java\\Friends\\friends.txt","G:\\学习\\maven\\src\\main\\java\\Friends\\out","G:\\学习\\maven\\src\\main\\java\\Friends\\out1"};
+        args = new String[]{"G://学习//maven//src//main//java//Friends//friends.txt","G://学习//maven//src//main//java//Friends//out","G://学习//maven//src//main//java//Friends//out1"};
 
         Configuration conf = new Configuration();
         //job1
@@ -1072,7 +1072,7 @@ MapReduce任务的输入文件一般是存储在HDFS里面。输入的文件格�
 
 3. NLineInputFormat(仅知道即可）
 
-   如果使用NlineInputFormat，代表每个map进程处理的InputSplit不再按block块去划分，而是按NlineInputFormat指定的行数N来划分。即输入文件的总行数/N=切片数，如果不整除，切片数=商+1。
+   如果使用NlineInputFormat，代表每个map进程处理的InputSplit不再按block块去划分，而是按NlineInputFormat指定的行数N来划分。即输入文件的总行数\n=切片数，如果不整除，切片数=商+1。
 
    以下是一个示例，仍然以上面的4行输入为例。
 
@@ -1248,7 +1248,7 @@ MapReduce任务的输入文件一般是存储在HDFS里面。输入的文件格�
            //2.设置job对象
                //1.设置输入类和输入路径
                job.setInputFormatClass(MyInputformat.class);
-               MyInputformat.addInputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\MyInputformat\\MyOutputformat.input"));
+               MyInputformat.addInputPath(job,new Path("file:///G://学习//maven//src//main//java//MyInputformat//MyOutputformat.input"));
                //2.设置mapper类和数据类型
                job.setMapperClass(SequenceFileMapper.class);
                job.setMapOutputKeyClass(Text.class);
@@ -1258,7 +1258,7 @@ MapReduce任务的输入文件一般是存储在HDFS里面。输入的文件格�
                job.setOutputValueClass(BytesWritable.class);
                //4.设置输出类和输出的路径
                job.setOutputFormatClass(SequenceFileOutputFormat.class);
-               SequenceFileOutputFormat.setOutputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\MyInputformat\\out"));
+               SequenceFileOutputFormat.setOutputPath(job,new Path("file:///G://学习//maven//src//main//java//MyInputformat//out"));
            //3.等到job任务执行结束
            boolean b = job.waitForCompletion(true);
            return b?0:1;
@@ -1329,8 +1329,8 @@ OutputFormat是MapReduce输出的基类，所有实现MapReduce输出都实现�
        public RecordWriter<Text, NullWritable> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
            //1.获取数据源目标文件的输出流（两个）
            FileSystem fileSystem = FileSystem.get(taskAttemptContext.getConfiguration());
-           FSDataOutputStream goodcommentsOutputStream = fileSystem.create(new Path("file:///G:\\学习\\maven\\src\\main\\java\\MyOutputformat\\out1\\good.txt"));
-           FSDataOutputStream badcommentsOutputStream = fileSystem.create(new Path("file:///G:\\学习\\maven\\src\\main\\java\\MyOutputformat\\out2\\bad.txt"));
+           FSDataOutputStream goodcommentsOutputStream = fileSystem.create(new Path("file:///G://学习//maven//src//main//java//MyOutputformat//out1//good.txt"));
+           FSDataOutputStream badcommentsOutputStream = fileSystem.create(new Path("file:///G://学习//maven//src//main//java//MyOutputformat//out2//bad.txt"));
            //2.将输出流传给MeRecordWrite
            MyRecordWrite myRecordWrite = new MyRecordWrite(goodcommentsOutputStream,badcommentsOutputStream);
            return myRecordWrite;
@@ -1371,11 +1371,11 @@ OutputFormat是MapReduce输出的基类，所有实现MapReduce输出都实现�
            if(Integer.parseInt(numStr) <= 1){
                //好评或中评
                goodcommentsOutputStream.write(text.toString().getBytes());
-               goodcommentsOutputStream.write("\r\n".getBytes());
+               goodcommentsOutputStream.write("/r\n".getBytes());
            }else{
                //差评
                badcommentsOutputStream.write(text.toString().getBytes());
-               badcommentsOutputStream.write("\r\n".getBytes());
+               badcommentsOutputStream.write("/r\n".getBytes());
            }
    
        }
@@ -1414,14 +1414,14 @@ OutputFormat是MapReduce输出的基类，所有实现MapReduce输出都实现�
            //2.设置job任务
            //1.设置输入类和输入的路径
            job.setInputFormatClass(TextInputFormat.class);
-           TextInputFormat.addInputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\MyOutputformat\\input"));
+           TextInputFormat.addInputPath(job,new Path("file:///G://学习//maven//src//main//java//MyOutputformat//input"));
            //2.设置mapper类和数据类型
            job.setMapperClass(MyOutputFormatMapper.class);
            job.setMapOutputKeyClass(Text.class);
            job.setMapOutputValueClass(NullWritable.class);
            //3.设置输出类和输出的路径
            job.setOutputFormatClass(MyOutputformat.class);
-           MyOutputformat.setOutputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\MyOutputformat\\out"));//校验文件存放目录
+           MyOutputformat.setOutputPath(job,new Path("file:///G://学习//maven//src//main//java//MyOutputformat//out"));//校验文件存放目录
            //3.等待任务结束
            boolean b = job.waitForCompletion(true);
            return b?0:1;
@@ -1623,7 +1623,7 @@ Order_0000003 	Pdt_01 		222.8
            //2.设置job任务
            //1.设置输入类和输入的路径
            job.setInputFormatClass(TextInputFormat.class);
-           TextInputFormat.addInputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\DemoTopN\\input"));
+           TextInputFormat.addInputPath(job,new Path("file:///G://学习//maven//src//main//java//DemoTopN//input"));
            //2.设置mapper类和数据类型
            job.setMapperClass(GroupMapper.class);
            job.setMapOutputKeyClass(OrderBean.class);
@@ -1640,7 +1640,7 @@ Order_0000003 	Pdt_01 		222.8
    
            //6.设置输出类和输出的路径
            job.setOutputFormatClass(TextOutputFormat.class);
-           MyOutputformat.setOutputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\DemoTopN\\out"));//校验文件存放目录
+           MyOutputformat.setOutputPath(job,new Path("file:///G://学习//maven//src//main//java//DemoTopN//out"));//校验文件存放目录
            //3.等待任务结束
            boolean b = job.waitForCompletion(true);
            return b?0:1;

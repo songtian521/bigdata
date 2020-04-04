@@ -19,7 +19,7 @@
 
 **为什么会有Spark：**
 
-![](img\spark\spark存在的必要.png)
+![](img/spark/spark存在的必要.png)
 
 - Spark在产生之前，已经有非常成熟的计算系统存在了，例如：MapReduce，这些计算系统提供了高层次的API，把计算运行在集群中，并提供容错能力，从而实现分布式计算
 - 虽然这些框架提供了大量的对访问利用计算机资源的抽象，但是他们缺少对分布式内存的抽象，这些框架多个计算之间的数据复用就是讲中间数据写到一个稳定的文件系统中（例如HDFS），所以产生数据的复制备份，磁盘的I/O以及数据的序列化，所以这些框架在遇到需要多个计算之间复用中间结果的操作时会非常的不高效
@@ -46,8 +46,8 @@
 
    ```scala
    df = spark.read.json("logs.json")
-   df.where("age > 21") \
-     .select("name.first") \
+   df.where("age > 21") /
+     .select("name.first") /
      .show()
    ```
 
@@ -132,7 +132,7 @@ Spark最核心的功能是RDDS，RDDS存在于spark-core这个包内，这个包
 
 ## 2.1 Spark集群结构
 
-![](img\spark\spark运行流程.png)
+![](img/spark/spark运行流程.png)
 
 **问题：**Spark 如何将程序运行在一个集群中?
 
@@ -175,12 +175,12 @@ Spark最核心的功能是RDDS，RDDS存在于spark-core这个包内，这个包
 
 **问题2: **Driver 和 Worker 什么时候被启动?
 
-![](img\spark\Driver.png)
+![](img/spark/Driver.png)
 
 - Standalone 集群中, 分为两个角色: Master 和 Slave, 而 Slave 就是 Worker, 所以在 Standalone 集群中, 启动之初就会创建固定数量的 Worker
 - Driver 的启动分为两种模式: Client 和 Cluster. 在 Client 模式下, Driver 运行在 Client 端, 在 Client 启动的时候被启动. 在 Cluster 模式下, Driver 运行在某个 Worker 中, 随着应用的提交而启动
 
-![](img\spark\client.png)
+![](img/spark/client.png)
 
 - 在 Yarn 集群模式下, 也依然分为 Client 模式和 Cluster 模式, 较新的版本中已经逐渐在废弃 Client 模式了, 所以上图所示为 Cluster 模式
 - 如果要在 Yarn 中运行 Spark 程序, 首先会和 RM 交互, 开启 ApplicationMaster, 其中运行了 Driver, Driver创建基础环境后, 会由 RM 提供对应的容器, 运行 Executor, Executor会反向向 Driver 反向注册自己, 并申请 Tasks 执行
@@ -419,7 +419,7 @@ Spark 官方提供了两种方式编写代码, 都比较重要, 分别如下
 
 4. 程序运行流程
 
-   ![](img\spark\wordcount运行流程.png)
+   ![](img/spark/wordcount运行流程.png)
 
    - `flatMap(_.split(" "))` 将数据转为数组的形式, 并展平为多个数据
    - `map_, 1` 将数据转换为元组的形式
@@ -628,10 +628,11 @@ Spark 官方提供了两种方式编写代码, 都比较重要, 分别如下
    
    ```
    
+
 注：和 Spark shell 中不同, 独立应用需要手动创建 SparkContext
-   
+
 **本地实际测试时，需要设置AppName，不然就会报错，而教程中并未设置也可以运行。**
-   
+
 3. 运行
 
    运行 Spark 独立应用大致有两种方式, 一种是直接在 IDEA 中调试, 另一种是可以在提交至 Spark 集群中运行, 而 Spark 又支持多种集群, 不同的集群有不同的运行方式
@@ -641,8 +642,8 @@ Spark 官方提供了两种方式编写代码, 都比较重要, 分别如下
    集群运行也可，采用IDEA的打包工具即可
 
    ```
-   spark-submit --master spark://bigdata111:7077 \
-   --class Rdds.WordCounts \
+   spark-submit --master spark://bigdata111:7077 /
+   --class Rdds.WordCounts /
    original-spark-0.1.0.jar
    ```
 
@@ -659,7 +660,7 @@ Spark 官方提供了两种方式编写代码, 都比较重要, 分别如下
 
 ## 3.4 spark任务调度过程
 
-![](img\spark\spark任务调度.jpg)
+![](img/spark/spark任务调度.jpg)
 
 1. 客户端（driver）通过sparkcontext对象，将请求交给master
 2. master将任务信息和资源分配给worker
@@ -729,7 +730,7 @@ object WordCounts {
 - `map` 是一对一
 - `reduceByKey` 是按照 Key 聚合, 类似 MapReduce 中的 Shuffled
 
-![](img\spark\算子初步解析.png)
+![](img/spark/算子初步解析.png)
 
 ## 4.2 RDD的概念
 
@@ -762,7 +763,7 @@ object WordCounts {
 
 **RDD分区**
 
-![](img\spark\RDD分区.png)
+![](img/spark/RDD分区.png)
 
 **整个 WordCount 案例的程序从结构上可以用上图表示, 分为两个大部分**
 
@@ -863,7 +864,7 @@ var rdd = sc.parallelize(Seq(1, 2, 3))
 rdd.foreach(item => println(item))
 ```
 
-![](img\spark\map算子.png)
+![](img/spark/map算子.png)
 
 **作用**
 
@@ -900,7 +901,7 @@ rdd.foreach(item=>println(item))
 sc.stop()
 ```
 
-![](img\spark\flatmap算子.png)
+![](img/spark/flatmap算子.png)
 
 **作用**
 
@@ -937,7 +938,7 @@ val rdd = sc.parallelize(Seq("Hello lily", "Hello lucy", "Hello tim"))
 sc.stop()
 ```
 
-![](img\spark\ReduceByKey 算子.png)
+![](img/spark/ReduceByKey 算子.png)
 
 **作用**
 
@@ -981,7 +982,7 @@ func → 执行数据处理的函数, 传入两个参数, 一个是当前值, �
 
   RDD和它依赖的父RDD（s）的关系有两种不同的类型，即窄依赖（narrow dependency）和宽依赖（wide dependency）。
 
-  ![](img\spark\RDD依赖关系.png)
+  ![](img/spark/RDD依赖关系.png)
 
   - 窄依赖指的是每一个父RDD的Partition最多被子RDD的一个Partition使用
 
@@ -995,7 +996,7 @@ func → 执行数据处理的函数, 传入两个参数, 一个是当前值, �
 
   DAG(Directed Acyclic Graph)叫做有向无环图，原始的RDD通过一系列的转换就就形成了DAG，根据RDD之间的依赖关系的不同将DAG划分成不同的Stage，对于窄依赖，partition的转换处理在Stage中完成计算。对于宽依赖，由于有Shuffle的存在，只能在parent RDD处理完成后，才能开始接下来的计算，因此**宽依赖是划分Stage的依据**。
 
-  ![](img\spark\Spark任务中的Stage.png)
+  ![](img/spark/Spark任务中的Stage.png)
 
 # 5.RDD高级算子初步练习
 
@@ -1047,7 +1048,7 @@ object scala {
 
 先对局部聚合，再对全局聚合
 
-![](img\spark\aggregate.png)
+![](img/spark/aggregate.png)
 
 示例1：
 
@@ -1292,11 +1293,11 @@ object scala {
 
       //读入数据，并切分数据:
       // 192.168.88.1 - - [30/Jul/2017:12:54:38 +0800] "GET /MyDemoWeb/hadoop.jsp HTTP/1.1" 200 242
-      val rdd1 = sc.textFile("C:\\Users\\宋天\\Desktop\\大数据\\file\\localhost_access_log.2017-07-30.txt").map(
+      val rdd1 = sc.textFile("C://Users//宋天//Desktop//大数据//file//localhost_access_log.2017-07-30.txt").map(
         line => {
           //得到 .jsp的位置
-          val index1 = line.indexOf("\"")
-          val index2 = line.lastIndexOf("\"")
+          val index1 = line.indexOf("/"")
+          val index2 = line.lastIndexOf("/"")
 
           //得到子串 :  GET /MyDemoWeb/hadoop.jsp HTTP/1.1
           val line1 = line.substring(index1 + 1, index2)
@@ -1348,11 +1349,11 @@ object scala {
 
     //读入数据，并切分数据:
     // 192.168.88.1 - - [30/Jul/2017:12:54:38 +0800] "GET /MyDemoWeb/hadoop.jsp HTTP/1.1" 200 242
-    val rdd1 = sc.textFile("C:\\Users\\宋天\\Desktop\\大数据\\file\\localhost_access_log.2017-07-30.txt").map(
+    val rdd1 = sc.textFile("C://Users//宋天//Desktop//大数据//file//localhost_access_log.2017-07-30.txt").map(
       line => {
         //得到 .jsp的位置
-        val index1 = line.indexOf("\"")
-        val index2 = line.lastIndexOf("\"")
+        val index1 = line.indexOf("/"")
+        val index2 = line.lastIndexOf("/"")
 
         //得到子串 :  GET /MyDemoWeb/hadoop.jsp HTTP/1.1
         val line1 = line.substring(index1+1,index2)
@@ -1380,7 +1381,7 @@ object scala {
     val rdd3 = rdd1.partitionBy(myPartitioner)
 
     //输出
-    rdd3.saveAsTextFile("C:\\Users\\宋天\\Desktop\\out")
+    rdd3.saveAsTextFile("C://Users//宋天//Desktop//out")
     //println(rdd3.collect.toBuffer)
     sc.stop()
 
@@ -1428,13 +1429,13 @@ object MyTomcatLogCountToMysql {
      * 192.168.88.1 - - [30/Jul/2017:12:54:40 +0800] "GET /MyDemoWeb/hadoop.jsp HTTP/1.1" 200 242
      * (hadoop.jsp,1)
      */
-    val rdd1 = sc.textFile("H:\\tmp_files\\localhost_access_log.txt")
+    val rdd1 = sc.textFile("H://tmp_files//localhost_access_log.txt")
       .map(
         line => {
           //解析字符串 找到jsp名字
           //得到两个双引号之间的东西  GET /MyDemoWeb/hadoop.jsp HTTP/1.1
-          val index1 = line.indexOf("\"")
-          val index2 = line.lastIndexOf("\"")
+          val index1 = line.indexOf("/"")
+          val index2 = line.lastIndexOf("/"")
           val line1 = line.substring(index1 + 1, index2)
           //得到两个空格之间的东西 /MyDemoWeb/hadoop.jsp
           val index3 = line1.indexOf(" ")

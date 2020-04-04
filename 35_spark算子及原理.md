@@ -30,7 +30,7 @@ class AccessLogAgg {
     val sc = new SparkContext(conf)
 
 //    2. 读取文件，生成数据集
-    val sourceRDD = sc.textFile("C:\\Users\\宋天\\Desktop\\大数据\\file\\localhost_access_log.2017-07-30.txt")
+    val sourceRDD = sc.textFile("C://Users//宋天//Desktop//大数据//file//localhost_access_log.2017-07-30.txt")
 //    3. 取出IP，赋予出现次数为1
     val IpRdd = sourceRDD.map(item=>(item.split(" ")(0),1))
 
@@ -61,7 +61,7 @@ class AccessLogAgg {
 
 2. 如何放在集群中运行?
 
-   ![](img\spark\RDD集群运行.png)
+   ![](img/spark/RDD集群运行.png)
 
    简单来讲，并行计算就是同时使用多个计算资源解决一个问题，有如下四个要点：
 
@@ -72,7 +72,7 @@ class AccessLogAgg {
 
 3. *如果放在集群中的话, 可能要对整个计算任务进行分解, 如何分解?*
 
-   ![](img\spark\RDD分解调度.png)
+   ![](img/spark/RDD分解调度.png)
 
    概述：
 
@@ -86,13 +86,13 @@ class AccessLogAgg {
 
 4. 移动数据不如移动计算是一个基础的优化, 如何做到?
 
-   ![](img\spark\移动数据不如移动计算.png)
+   ![](img/spark/移动数据不如移动计算.png)
 
    每一个计算单元需要记录其存储单元的位置，尽量调度过去。
 
 5. 在集群中运行, 需要很多节点之间配合, 出错的概率也更高, 出错了怎么办?
 
-   ![](img\spark\集群RDD.png)
+   ![](img/spark/集群RDD.png)
 
    RDD1 → RDD2 → RDD3 这个过程中, RDD2 出错了, 有两种办法可以解决
 
@@ -107,7 +107,7 @@ class AccessLogAgg {
 
 6. 假如任务特别负责，流程特别长，有很多RDD之间有依赖关系，如何优化？
 
-   ![](img\spark\RDD优化.png)
+   ![](img/spark/RDD优化.png)
 
    上面提到了可以使用依赖关系来进行容错, 但是如果依赖关系特别长的时候, 这种方式其实也比较低效, 这个时候就应该使用另外一种方式, 也就是记录数据集的状态
 
@@ -122,7 +122,7 @@ class AccessLogAgg {
 
 在 RDD 出现之前, 当时 MapReduce 是比较主流的, 而 MapReduce 如何执行迭代计算的任务呢?
 
-![](img\spark\MR执行迭代计算.png)
+![](img/spark/MR执行迭代计算.png)
 
 多个 MapReduce 任务之间没有基于内存的数据共享方式, 只能通过磁盘来进行共享
 
@@ -130,7 +130,7 @@ class AccessLogAgg {
 
 **RDD 如何解决迭代计算非常低效的问题呢?**
 
-![](img\spark\RDD解决迭代计算.png)
+![](img/spark/RDD解决迭代计算.png)
 
 在 Spark 中, 其实最终 Job3 从逻辑上的计算过程是: `Job3 = (Job1.map).filter`, 整个过程是共享内存的, 而不需要将中间结果存放在可靠的分布式文件系统中
 
@@ -157,7 +157,7 @@ for (i <- 1 to 10000) {
 
 RDD 即是一种数据结构, 同时也提供了上层 API, 同时 RDD 的 API 和 Scala 中对集合运算的 API 非常类似, 同样也都是各种算子
 
-![](img\spark\数据结构.png)
+![](img/spark/数据结构.png)
 
 **RDD的算子大致分为两类：**
 
@@ -168,7 +168,7 @@ RDD 即是一种数据结构, 同时也提供了上层 API, 同时 RDD 的 API �
 
 ### 2.2.2 RDD 可以分区
 
-![](img\spark\RDD集群分区.png)
+![](img/spark/RDD集群分区.png)
 
 RDD是一个分布式的计算框架，所以，一定是能够进行分区计算的，只有分区了，才能利用集群的并行计算能力。
 
@@ -176,7 +176,7 @@ RDD是一个分布式的计算框架，所以，一定是能够进行分区计�
 
 ### 2.2.3 RDD是只读的
 
-![](img\spark\只读RDD.png)
+![](img/spark/只读RDD.png)
 
 RDD是只读的，不允许任何形式的修改，虽说不能因为RDD和HDFS是只读的，就认为分布式存储系统必须设计为只读的，但是设计为只读的，会显著降低问题的复杂度，因为RDD需要可以容错的，可以惰性求值，可以移动计算，所以很难支持修改。
 
@@ -320,7 +320,7 @@ flatMap(T ⇒ List[U])
   }
 ```
 
-![](img\spark\flatMap.png)
+![](img/spark/flatMap.png)
 
 **作用：**
 
@@ -368,7 +368,7 @@ filter(T ⇒ Boolean)
   }
 ```
 
-![](img\spark\filter.png)
+![](img/spark/filter.png)
 
 作用
 
@@ -514,7 +514,7 @@ sample(withReplacement, fraction, seed)
   }
 ```
 
-![](img\spark\sample.png)
+![](img/spark/sample.png)
 
 作用
 
@@ -553,7 +553,7 @@ sample(withReplacement, fraction, seed)
   }
 ```
 
-![](img\spark\union.png)
+![](img/spark/union.png)
 
 ### 3.1.9 intersection
 
@@ -579,7 +579,7 @@ sample(withReplacement, fraction, seed)
 }
 ```
 
-![](img\spark\intersection.png)
+![](img/spark/intersection.png)
 
 作用
 
@@ -635,7 +635,7 @@ sample(withReplacement, fraction, seed)
   }
 ```
 
-![](img\spark\disinct.png)
+![](img/spark/disinct.png)
 
 作用
 
@@ -710,7 +710,7 @@ def reduceByKey(func: (V, V) ⇒ V): RDD[(K, V)]
   }
 ```
 
-![](img\spark\groupByKey.png)
+![](img/spark/groupByKey.png)
 
 作用
 
@@ -757,7 +757,7 @@ def reduceByKey(func: (V, V) ⇒ V): RDD[(K, V)]
   }
 ```
 
-<img src="img\spark\combineByKey.png" style="zoom:;" />
+<img src="img/spark/combineByKey.png" style="zoom:;" />
 
 作用
 
@@ -847,7 +847,7 @@ def reduceByKey(func: (V, V) ⇒ V): RDD[(K, V)]
   }
 ```
 
-![](img\spark\foldByKey.png)
+![](img/spark/foldByKey.png)
 
 作用
 
@@ -895,7 +895,7 @@ foldByKey(zeroValue)(func)
   }
 ```
 
-![](img\spark\join.png)
+![](img/spark/join.png)
 
 作用
 
@@ -951,7 +951,7 @@ join(other, [partitioner or numPartitions])
   }
 ```
 
-![](img\spark\cogroup.png)
+![](img/spark/cogroup.png)
 
 作用
 
@@ -1328,7 +1328,7 @@ println(rdd6.first())
 
 通过上述代码可以看到，其实RDD的整体使用步骤如下所示：
 
-![](img\spark\RDD使用步骤.png)
+![](img/spark/RDD使用步骤.png)
 
 
 
@@ -1360,13 +1360,13 @@ scala> sc.parallelize(1 to 100).count
 res0: Long = 100
 ```
 
-![](img\spark\UI查看分区.png)
+![](img/spark/UI查看分区.png)
 
 注：之所以会有8个Tasks，是因为在启动的时候指定的命令是`spark-shell --master local[8]`，这样会生成一个Executors，这个Executors有8个cores，所以会默认与8个Tasks，每个Cores对应一个分区，每个分区对应一个Tasks，可以通过`rdd.partitions.size`来查看分区数量
 
 同时也可以通过 spark-shell 的 WebUI 来查看 Executors 的情况
 
-![](img\spark\WEBui.png)
+![](img/spark/WEBui.png)
 
 默认的分区数量是和 Cores 的数量有关的, 也可以通过下面三种方式修改或者重新指定分区数量
 
@@ -1480,7 +1480,7 @@ res9: Int = 1
 
 `repartition` 算子无论是增加还是减少分区都是有效的, 因为本质上 `repartition` 会通过 `shuffle` 操作把数据分发给新的 RDD 的不同的分区, 只有 `shuffle` 操作才可能做到增大分区数, 默认情况下, 分区函数是 `RoundRobin`, 如果希望改变分区函数, 也就是数据分布的方式, 可以通过自定义分区函数来实现
 
-![](img\spark\repartition分区.png)
+![](img/spark/repartition分区.png)
 
 ## 4.2 RDD的shuffle是什么
 
@@ -1493,9 +1493,9 @@ val aggCountRdd = flattenCountRdd.reduceByKey(_ + _)
 val result = aggCountRdd.collect
 ```
 
-![](img\spark\RDDshuffle.png)
+![](img/spark/RDDshuffle.png)
 
-![](img\spark\RDDshuffle2.png)
+![](img/spark/RDDshuffle2.png)
 
 分析：
 
@@ -1509,7 +1509,7 @@ Spark 的 Shuffle 发展大致有两个阶段: `Hash base shuffle` 和 `Sort bas
 
 ### 4.3.1 Hash base shuffle
 
-![](img\spark\Hash base shuffle.png)
+![](img/spark/Hash base shuffle.png)
 
 - 大致的原理是分桶, 假设 Reducer 的个数为 R, 那么每个 Mapper 有 R 个桶, 按照 Key 的 Hash 将数据映射到不同的桶中, Reduce 找到每一个 Mapper 中对应自己的桶拉取数据.
 - 假设 Mapper 的个数为 M, 整个集群的文件数量是 `M * R`, 如果有 1,000 个 Mapper 和 Reducer, 则会生成 1,000,000 个文件, 这个量非常大了.
@@ -1517,7 +1517,7 @@ Spark 的 Shuffle 发展大致有两个阶段: `Hash base shuffle` 和 `Sort bas
 
 ### 4.3.2 Sort base shuffle
 
-![](img\spark\Sort base shuffle.png)
+![](img/spark/Sort base shuffle.png)
 
 对于 Sort base shuffle 来说, 每个 Map 侧的分区只有一个输出文件, Reduce 侧的 Task 来拉取, 大致流程如下
 
@@ -1545,11 +1545,11 @@ RDD通过persist方法或cache方法可以将前面的计算结果缓存，但�
 
 **简要示例:**
 
-![](img\spark\RDD缓存机制.png)
+![](img/spark/RDD缓存机制.png)
 
 **通过UI监控**
 
-![](img\spark\UI监控RDD缓存.png)
+![](img/spark/UI监控RDD缓存.png)
 
 ## 5.1 缓存的意义
 
@@ -1580,7 +1580,7 @@ sc.stop()
 
 使用缓存的原因 2 ：**容错**
 
-![](img\spark\RDD缓存.png)
+![](img/spark/RDD缓存.png)
 
 当在计算 RDD3 的时候如果出错了, 会怎么进行容错?
 
@@ -1861,7 +1861,7 @@ interimRDD.collect().foreach(println(_))
 
 **部署情况：**
 
-![](img\spark\Spark部署情况.png)
+![](img/spark/Spark部署情况.png)
 
 针对上图，可以看到整体上在集群中运行的角色有如下几个：
 
@@ -1944,7 +1944,7 @@ val sc = ...
 
 根据这段内容, 大致能得到这样的一张逻辑执行图
 
-![](img\spark\wordcount逻辑执行图.png)
+![](img/spark/wordcount逻辑执行图.png)
 
 - 其实 RDD 并没有什么严格的逻辑执行图和物理执行图的概念, 这里也只是借用这个概念, 从而让整个 RDD 的原理可以解释, 好理解.
 - 对于 RDD 的逻辑执行图, 起始于第一个入口 RDD 的创建, 结束于 Action 算子执行之前, 主要的过程就是生成一组互相有依赖关系的 RDD, 其并不会真的执行, 只是表示 RDD 之间的关系, 数据的流转过程.
@@ -1955,7 +1955,7 @@ val sc = ...
 - 因为大部分 RDD 是不真正存放数据的, 只是数据从中流转, 所以, 不能直接在集群中运行 RDD, 要有一种 Pipeline 的思想, 需要将这组 RDD 转为 Stage 和 Task, 从而运行 Task, 优化整体执行速度.
 - 以上的逻辑执行图会生成如下的物理执行图, 这一切发生在 Action 操作被执行时.
 
-![](img\spark\wordcount物理执行图.png)
+![](img/spark/wordcount物理执行图.png)
 
 从上图可以总结如下几个点
 
@@ -1990,15 +1990,15 @@ strRDD.collect.foreach(item => println(item))
 
 1. `textFile`生成的是`HadoopRDD`
 
-   ![](img\spark\textFile.png)
+   ![](img/spark/textFile.png)
 
-   ![](img\spark\hadoopFile.png)
+   ![](img/spark/hadoopFile.png)
 
    除了上面这一个步骤以外, 后续步骤将不再直接基于代码进行讲解, 因为从代码的角度着手容易迷失逻辑, 这个章节的初心有两个, 一个是希望大家了解 Spark 的内部逻辑和原理, 另外一个是希望大家能够通过本章学习具有代码分析的能力
 
 2. HadoopRDD 的 Partitions 对应了 HDFS 的 Blocks
 
-   ![](img\spark\hadoopTextFile.png)
+   ![](img/spark/hadoopTextFile.png)
 
    其实本质上每个 `HadoopRDD` 的 `Partition` 都是对应了一个 `Hadoop` 的 `Block`, 通过 `InputFormat` 来确定 `Hadoop` 中的 `Block` 的位置和边界, 从而可以供一些算子使用
 
@@ -2014,7 +2014,7 @@ strRDD.collect.foreach(item => println(item))
 
 ### 7.1.2 map算子的背后
 
-![](img\spark\map算子的背后.png)
+![](img/spark/map算子的背后.png)
 
 1. `map` 算子生成了 `MapPartitionsRDD`
 
@@ -2026,13 +2026,13 @@ strRDD.collect.foreach(item => println(item))
 
 3. 传入 `map` 算子的函数会被清理
 
-   ![](img\spark\map算子的清理.png)
+   ![](img/spark/map算子的清理.png)
 
    这个清理主要是处理闭包中的依赖, 使得这个闭包可以被序列化发往不同的集群节点运行
 
 ### 7.1.3 flatMap算子的背后
 
-![](img\spark\flatMap算子的背后.png)
+![](img/spark/flatMap算子的背后.png)
 
 `flatMap` 和 `map` 算子其实本质上是一样的, 其步骤和生成的 `RDD` 都是一样, 只是对于传入函数的处理不同, `map` 是 `collect.map( function )` 而 `flatMap` 是 `collect.flatMap( function )`
 
@@ -2042,7 +2042,7 @@ strRDD.collect.foreach(item => println(item))
 
 由 `textRDD` 到 `splitRDD` 再到 `tupleRDD` 的过程, 其实就是调用 `map` 和 `flatMap` 算子生成新的 `RDD` 的过程, 所以如下图所示, 就是这个阶段所生成的逻辑计划
 
-![](img\spark\逻辑计划.png)
+![](img/spark/逻辑计划.png)
 
 ### 7.1.5 总结
 
@@ -2078,7 +2078,7 @@ strRDD.collect.foreach(item => println(item))
 
  **什么是 `RDD` 之间的依赖关系?**
 
-![](img\spark\RDD依赖.png)
+![](img/spark/RDD依赖.png)
 
 - 什么是关系(依赖关系) ?
 
@@ -2098,11 +2098,11 @@ strRDD.collect.foreach(item => println(item))
 
 `reduceByKey` 是由算子 `combineByKey` 来实现的, `combineByKey` 内部会创建 `ShuffledRDD` 返回, 具体的代码请大家通过 `IDEA` 来进行查看, 此处不再截图, 而整个 `reduceByKey` 操作大致如下过程
 
-![](img\spark\reduceByKey.png)
+![](img/spark/reduceByKey.png)
 
 去掉两个 `reducer` 端的分区, 只留下一个的话, 如下
 
-![](img\spark\reduceByKey2.png)
+![](img/spark/reduceByKey2.png)
 
 所以, 对于 `reduceByKey` 这个 `Shuffle` 操作来说, `reducer` 端的一个分区, 会从多个 `mapper` 端的分区拿取数据, 是一个多对一的关系
 
@@ -2110,7 +2110,7 @@ strRDD.collect.foreach(item => println(item))
 
 **整体上的流程图**
 
-![](img\spark\整体上的流程图.png)
+![](img/spark/整体上的流程图.png)
 
 ## 7.3 RDD 之间的依赖关系详解
 
@@ -2125,7 +2125,7 @@ strRDD.collect.foreach(item => println(item))
 
 换句话说, 子 RDD 的每个分区依赖父 RDD 的少量个数的分区, 这种依赖关系称之为窄依赖
 
-![](img\spark\窄依赖.png)
+![](img/spark/窄依赖.png)
 
 示例：
 
@@ -2147,7 +2147,7 @@ rddA.cartesian(rddB).collect().foreach(println(_))
 
 对于 `cartesian` 来说, 依赖关系如下
 
-![](img\spark\cartesian 依赖关系.png)
+![](img/spark/cartesian 依赖关系.png)
 
 上述图形中清晰展示如下现象
 
@@ -2178,7 +2178,7 @@ Represents a dependency on the output of a shuffle stage.
 
 举个 `reduceByKey` 的例子, `rddB = rddA.reduceByKey( (curr, agg) ⇒ curr + agg )` 会产生如下的依赖关系
 
-![](img\spark\宽依赖.png)
+![](img/spark/宽依赖.png)
 
 - `rddB` 的每个分区都几乎依赖 `rddA` 的所有分区
 - 对于 `rddA` 中的一个分区来说, 其将一部分分发给 `rddB` 的 `p1`, 另外一部分分发给 `rddB` 的 `p2`, 这不是数据流动, 而是分发
@@ -2194,11 +2194,11 @@ Represents a dependency on the output of a shuffle stage.
 
 1. 查看 `map` 算子生成的 `RDD`
 
-   ![](img\spark\分辨依赖1.png)
+   ![](img/spark/分辨依赖1.png)
 
 2. 进去 `RDD` 查看 `getDependence` 方法
 
-   ![](img\spark\分辨依赖2.png)
+   ![](img/spark/分辨依赖2.png)
 
 总结：
 
@@ -2211,7 +2211,7 @@ Represents a dependency on the output of a shuffle stage.
 
 其实 `RDD` 中默认的是 `OneToOneDependency`, 后被不同的 `RDD` 子类指定为其它的依赖类型, 常见的一对一依赖是 `map` 算子所产生的依赖, 例如 `rddB = rddA.map(…)`
 
-![](img\spark\一对一窄依赖.png)
+![](img/spark/一对一窄依赖.png)
 
 **每个分区之间一一对应, 所以叫做一对一窄依赖**
 
@@ -2219,7 +2219,7 @@ Represents a dependency on the output of a shuffle stage.
 
 `Range` 窄依赖其实也是一对一窄依赖, 但是保留了中间的分隔信息, 可以通过某个分区获取其父分区, 目前只有一个算子生成这种窄依赖, 就是 `union` 算子, 例如 `rddC = rddA.union(rddB)`
 
-![](img\spark\Range 窄依赖.png)
+![](img/spark/Range 窄依赖.png)
 
 - `rddC` 其实就是 `rddA` 拼接 `rddB` 生成的, 所以 `rddC` 的 `p5` 和 `p6` 就是 `rddB` 的 `p1` 和 `p2`
 - 所以需要有方式获取到 `rddC` 的 `p5` 其父分区是谁, 于是就需要记录一下边界, 其它部分和一对一窄依赖一样
@@ -2228,7 +2228,7 @@ Represents a dependency on the output of a shuffle stage.
 
 多对一窄依赖其图形和 `Shuffle` 依赖非常相似, 所以在遇到的时候, 要注意其 `RDD` 之间是否有 `Shuffle` 过程, 比较容易让人困惑, 常见的多对一依赖就是重分区算子 `coalesce`, 例如 `rddB = rddA.coalesce(2, shuffle = false)`, 但同时也要注意, 如果 `shuffle = true` 那就是完全不同的情况了
 
-![](img\spark\多对一窄依赖.png)
+![](img/spark/多对一窄依赖.png)
 
 **因为没有 `Shuffle`, 所以这是一个窄依赖**
 
@@ -2245,7 +2245,7 @@ Represents a dependency on the output of a shuffle stage.
 
 物理图解决的其实就是 `RDD` 流程生成以后, 如何计算和运行的问题, 也就是如何把 RDD 放在集群中执行的问题
 
-![](img\spark\物理图的意义.png)
+![](img/spark/物理图的意义.png)
 
 **问题二: 如果要确定如何运行的问题, 则需要先确定集群中有什么组件**
 
@@ -2287,13 +2287,13 @@ Represents a dependency on the output of a shuffle stage.
 
 - 和 `Driver` 保持交互从而认领属于自己的任务
 
-  ![](img\spark\和 Driver 保持交互.png)
+  ![](img/spark/和 Driver 保持交互.png)
 
 - 接受任务后, 运行任务
 
   
 
-![](img\spark\接受任务后, 运行任务.png)
+![](img/spark/接受任务后, 运行任务.png)
 
 **问题三: Task 该如何设计 ?**
 
@@ -2301,7 +2301,7 @@ Represents a dependency on the output of a shuffle stage.
 
 - 第一个想法: 为每个 RDD 的分区设置一组 Task
 
-  ![](img\spark\每个 RDD 的分区设置一组 Task.png)
+  ![](img/spark/每个 RDD 的分区设置一组 Task.png)
 
   大概就是每个 `RDD` 都有三个 `Task`, 每个 `Task` 对应一个 `RDD` 的分区, 执行一个分区的数据的计算
 
@@ -2315,11 +2315,11 @@ Represents a dependency on the output of a shuffle stage.
 
   第一个要解决的问题就是, 要为数据创建管道(`Pipeline`), 有了管道, 就可以流动
 
-  ![](img\spark\让数据流动1.png)
+  ![](img/spark/让数据流动1.png)
 
   简单来说, 就是为所有的 `RDD` 有关联的分区使用同一个 `Task`, 但是就没问题了吗? 请关注红框部分
 
-  ![](img\spark\让数据流动2.png)
+  ![](img/spark/让数据流动2.png)
 
   这两个 `RDD` 之间是 `Shuffle` 关系, 也就是说, 右边的 `RDD` 的一个分区可能依赖左边 `RDD` 的所有分区, 这样的话, 数据在这个地方流不动了, 怎么办?
 
@@ -2331,13 +2331,13 @@ Represents a dependency on the output of a shuffle stage.
 
 为了减少执行任务, 减少数据暂存和交换的机会, 所以需要创建管道, 让数据沿着管道流动, 其实也就是原先每个 `RDD` 都有一组 `Task`, 现在改为所有的 `RDD` 共用一组 `Task`, 但是也有问题, 问题如下
 
-![](img\spark\划分阶段 1.png)
+![](img/spark/划分阶段 1.png)
 
 就是说, 在 `Shuffle` 处, 必须断开管道, 进行数据交换, 交换过后, 继续流动, 所以整个流程可以变为如下样子
 
-![](img\spark\划分阶段 2.png)
+![](img/spark/划分阶段 2.png)
 
-![](img\spark\划分阶段3.png)
+![](img/spark/划分阶段3.png)
 
 所以划分阶段的本身就是设置断开点的规则, 那么该如何划分阶段呢?
 
@@ -2369,11 +2369,11 @@ strRDD.collect.foreach(item => println(item))
 
 上述代码是这个章节我们一直使用的代码流程, 如下是其完整的逻辑执行图
 
-![](img\spark\完整逻辑执行图.png)
+![](img/spark/完整逻辑执行图.png)
 
 如果放在集群中运行, 通过 `WebUI` 可以查看到如下 `DAG` 结构
 
-![](img\spark\DGA结构.png)
+![](img/spark/DGA结构.png)
 
 说明：
 
@@ -2389,7 +2389,7 @@ strRDD.collect.foreach(item => println(item))
 
    简单来说, 从产生 `Result` 的地方开始计算, 但是其 `RDD` 中是没数据的, 所以会找到父 `RDD` 来要数据, 父 `RDD` 也没有数据, 继续向上要, 所以, 计算从 `Result` 处调用, 但是从整个逻辑图中的最左边 `RDD` 开始, 类似一个递归的过程
 
-   ![](img\spark\RDD关联.png)
+   ![](img/spark/RDD关联.png)
 
 ## 7.6 调度过程
 
@@ -2413,7 +2413,7 @@ val strRDD = reduceRDD.map(item => s"${item._1}, ${item._2}")
 
 例如 `rdd2 = rdd1.map(…)` 中, 其实本质上 `rdd2` 是一个类型为 `MapPartitionsRDD` 的对象, 而创建这个对象的时候, 会通过构造函数传入当前 `RDD` 对象, 也就是父 `RDD`, 也就是调用 `map` 算子的 `rdd1`, `rdd1` 是 `rdd2` 的父 `RDD`
 
-![](img\spark\逻辑图生成.png)
+![](img/spark/逻辑图生成.png)
 
 一个 `RDD` 依赖另外一个 `RDD`, 这个 `RDD` 又依赖另外的 `RDD`, 一个 `RDD` 可以通过 `getDependency` 获得其父 `RDD`, 这种环环相扣的关系, 最终从最后一个 `RDD` 就可以推演出前面所有的 `RDD`
 
@@ -2461,7 +2461,7 @@ strRDD.collect.foreach(item => println(item))
 
 - 为什么 `Job` 需要切分 ?
 
-  ![](img\spark\job切分.png)
+  ![](img/spark/job切分.png)
 
   - 因为 `Job` 的含义是对整个 `RDD` 血统求值, 但是 `RDD` 之间可能会有一些宽依赖
 
@@ -2497,7 +2497,7 @@ strRDD.collect.foreach(item => println(item))
 
 **`Stage` 和 `Task` 的关系**
 
-![](img\spark\Stage 和 Task 的关系.png)
+![](img/spark/Stage 和 Task 的关系.png)
 
 前面我们说到 `Job` 无法直接执行, 需要先划分为多个 `Stage`, 去执行 `Stage`, 那么 `Stage` 可以直接执行吗?
 
@@ -2534,7 +2534,7 @@ strRDD.collect.foreach(item => println(item))
 - 一个 `Stage` 有一个 `TaskSet`
 - `TaskSet` 中 `Task` 的个数由 `Stage` 中的最大分区数决定
 
-![](img\spark\整体执行流程.png)
+![](img/spark/整体执行流程.png)
 
 ## 7.7 shuffle过程
 
@@ -2542,27 +2542,27 @@ strRDD.collect.foreach(item => println(item))
 
 从整体视角上来看, `Shuffle` 发生在两个 `Stage` 之间, 一个 `Stage` 把数据计算好, 整理好, 等待另外一个 `Stage` 来拉取
 
-![](img\spark\Stage拉取.png)
+![](img/spark/Stage拉取.png)
 
 放大视角, 会发现, 其实 `Shuffle` 发生在 `Task` 之间, 一个 `Task` 把数据整理好, 等待 `Reducer` 端的 `Task` 来拉取
 
-![](img\spark\Stage拉取2.png)
+![](img/spark/Stage拉取2.png)
 
 如果更细化一下, `Task` 之间如何进行数据拷贝的呢? 其实就是一方 `Task` 把文件生成好, 然后另一方 `Task` 来拉取
 
-![](img\spark\Stage拉取3.png)
+![](img/spark/Stage拉取3.png)
 
 现在是一个 `Reducer` 的情况, 如果有多个 `Reducer` 呢? 如果有多个 `Reducer` 的话, 就可以在每个 `Mapper` 为所有的 `Reducer` 生成各一个文件, 这种叫做 `Hash base shuffle`, 这种 `Shuffle` 的方式问题大家也知道, 就是生成中间文件过多, 而且生成文件的话需要缓冲区, 占用内存过大
 
-![](img\spark\Stage拉取4.png)
+![](img/spark/Stage拉取4.png)
 
 那么可以把这些文件合并起来, 生成一个文件返回, 这种 `Shuffle` 方式叫做 `Sort base shuffle`, 每个 `Reducer` 去文件的不同位置拿取数据
 
-![](img\spark\Stage拉取5.png)
+![](img/spark/Stage拉取5.png)
 
 如果再细化一下, 把参与这件事的组件也放置进去, 就会是如下这样
 
-![](img\spark\Stage拉取6.png)
+![](img/spark/Stage拉取6.png)
 
 ### 7.7.2 ShuffleWriter 
 
@@ -2596,7 +2596,7 @@ strRDD.collect.foreach(item => println(item))
 
 **`SortShuffleWriter` 的执行过程**
 
-![](img\spark\SortShuffleWriter的执行过程.png)
+![](img/spark/SortShuffleWriter的执行过程.png)
 
 整个 `SortShuffleWriter` 如上述所说, 大致有如下几步
 
@@ -2682,7 +2682,7 @@ sc.textFile("dataset/access_log_sample.txt")
 
 上述这段代码中, `flatMap` 中传入的是另外一个函数, 传入的这个函数就是一个闭包, 这个闭包会被序列化运行在不同的 Executor 中
 
-![](img\spark\分发闭包.png)
+![](img/spark/分发闭包.png)
 
 ```scala
 class MyClass {
@@ -2696,7 +2696,7 @@ class MyClass {
 
 这段代码中的闭包就有了一个依赖, 依赖于外部的一个类, 因为传递给算子的函数最终要在 Executor 中运行, 所以需要 **序列化** `MyClass` 发给每一个 `Executor`, 从而在 `Executor` 访问 `MyClass` 对象的属性
 
-![](img\spark\分发闭包2.png)
+![](img/spark/分发闭包2.png)
 
 **总结：**
 
@@ -2751,7 +2751,7 @@ println(counter.value)
 
 在 WebUI 中关于 Job 部分也可以看到 Accumulator 的信息, 以及其运行的情况
 
-![](img\spark\Accumulator.png)
+![](img/spark/Accumulator.png)
 
 累计器件还有两个小特性, 第一, 累加器能保证在 Spark 任务出现问题被重启的时候不会出现重复计算. 第二, 累加器只有在 Action 执行的时候才会被触发.
 
@@ -2843,5 +2843,5 @@ def accumulator2(): Unit = {
 
 所以在需要跨多个 Stage 的多个 Task 中使用相同数据的情况下, 广播特别的有用
 
-![](img\spark\广播变量.png)
+![](img/spark/广播变量.png)
 

@@ -1,5 +1,3 @@
-
-
 # 20_Hive
 
 ## 1.基本概念
@@ -31,7 +29,7 @@
 
 ### 1.3Hive架构原理
 
-![](img\hive\hive架构.png)
+![](img/hive/hive架构.png)
 
 如图所示，hive通过给用户提供一系列交互接口，接收到用户的指令（SQL），使用自己的Driver，结合元数据（MetaStore），将这些指令翻译为MapReduce，提交到Hadoop中执行，最后将执行的返回结果输出到用户交互接口
 
@@ -362,11 +360,11 @@ https://github.com/apache/hive
    
       1.2.1版本
    
-      ![](img\hive\1.2.1版本hive.png)
+      ![](img/hive/1.2.1版本hive.png)
       
       2.3.4版本
       
-      ![](img\hive\2.3.0版本hive.png)
+      ![](img/hive/2.3.0版本hive.png)
 
 ### 2.3 Hive常见属性配置
 
@@ -412,11 +410,11 @@ https://github.com/apache/hive
 
       1. 配置前
 
-         ![](img\hive\hive配置头信息前.png)
+         ![](img/hive/hive配置头信息前.png)
 
       2. 配置后
 
-         ![](img\hive\hive配置头信息后.png)
+         ![](img/hive/hive配置头信息后.png)
 
 3. Hive运行日志信息配置
 
@@ -690,13 +688,13 @@ col_name data_type [comment '字段描述信息'])
 2. 创建表并指定字段之间的分隔符
 
    ```sql
-   create table if not exists stu2(id int,name string) row format delimited fields terminated by '\t';
+   create table if not exists stu2(id int,name string) row format delimited fields terminated by '/t';
    ```
 
 3. 创建表并指定表文件的存放路径
 
    ```sql
-   create table if not exists stu2(id int,name string) row format delimited fields terminated by '\t';
+   create table if not exists stu2(id int,name string) row format delimited fields terminated by '/t';
    ```
 
 4. 根据查询结果创建表
@@ -740,13 +738,13 @@ col_name data_type [comment '字段描述信息'])
 1. 创建老师表
 
    ```sql
-   create external table teacher(t_id string, t_name string) row format delimited fields terminated by '\t';
+   create external table teacher(t_id string, t_name string) row format delimited fields terminated by '/t';
    ```
 
 2. 创建学生表
 
    ```sql
-   create external table student(s_id string ,s_name string,s_birth string,s_sex string) row format delimited fields terminated by '\t';
+   create external table student(s_id string ,s_name string,s_birth string,s_sex string) row format delimited fields terminated by '/t';
    ```
 
 3. 加载数据
@@ -782,13 +780,13 @@ col_name data_type [comment '字段描述信息'])
 1. 创建分区表的语法
 
    ```sql
-   create table score(s_id string,c_id string,s_score int) partitioned by (month string) row format delimited fields terminated by '\t';
+   create table score(s_id string,c_id string,s_score int) partitioned by (month string) row format delimited fields terminated by '/t';
    ```
 
 2. 创建一个表带多个分区
 
    ```sql
-   create table score2(s_id string,c_id string,s_score int) partitioned by (year string ,month string,day string) row format delimited fields terminated by '\t';
+   create table score2(s_id string,c_id string,s_score int) partitioned by (year string ,month string,day string) row format delimited fields terminated by '/t';
    ```
 
 3. 加载数据到分区表中
@@ -859,7 +857,7 @@ col_name data_type [comment '字段描述信息'])
 2. 创建外部分区表，并指定文件数据存放目录
 
    ```sql
-   create external table score4(s_id string,c_id string,s_score int) partitioned by(month string) row format delimited fields terminated by '\t' loaction '/scoredatas';
+   create external table score4(s_id string,c_id string,s_score int) partitioned by(month string) row format delimited fields terminated by '/t' loaction '/scoredatas';
    ```
 
 3. 进行表的修复（建立表与数据文件之间的一个关系映射）
@@ -901,7 +899,7 @@ set mapreduce.job.reduces=3;
 **创建分桶表**
 
 ```sql
-create table course(c_id string,c_name string,t_id string)clustered by(c_id)into 3 buckets row format delimited fields terminated by '\t';
+create table course(c_id string,c_name string,t_id string)clustered by(c_id)into 3 buckets row format delimited fields terminated by '/t';
 ```
 
 分桶表的数据加载，由于通标的数据加载通过hdfs dfs -put 文件或者通过load data均不好使，只能通过insert overwrite
@@ -911,7 +909,7 @@ create table course(c_id string,c_name string,t_id string)clustered by(c_id)into
 1. 创建普通表
 
    ```sql
-   create table course_common(c_id string,c_name string,t_id string)row format delimited fields terminated by '\t';
+   create table course_common(c_id string,c_name string,t_id string)row format delimited fields terminated by '/t';
    ```
 
 2. 普通表中加载数据
@@ -1068,7 +1066,7 @@ as select id, name from student;
    create table if not exists student5(
                  id int, name string
                  )
-                 row format delimited fields terminated by '\t'
+                 row format delimited fields terminated by '/t'
                  location '/user/hive/warehouse/student5';
    ```
 
@@ -1107,18 +1105,18 @@ import table student2 partition(month='201809') from '/user/hive/warehouse/expor
                select * from student;
    ```
 
-2. 将查询的结果格式化导出到本地,数据之间"\t"间隔
+2. 将查询的结果格式化导出到本地,数据之间"/t"间隔
 
    ```sql
     insert overwrite local directory '/opt/module/datas/export/student1'
-                ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'             select * from student;
+                ROW FORMAT DELIMITED FIELDS TERMINATED BY '/t'             select * from student;
    ```
 
 3. 将查询的结果导出到HDFS上(没有local)
 
    ```sql
    insert overwrite directory '/user/itstar/student2'
-                ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t' 
+                ROW FORMAT DELIMITED FIELDS TERMINATED BY '/t' 
                 select * from student;
    ```
 
@@ -1662,7 +1660,7 @@ Hive有三种复杂数据类型ARRAY、MAP 和 STRUCT。ARRAY和MAP与Java中的
    row format delimited fields terminated by ','
    collection items terminated by '_'
    map keys terminated by ':'
-   lines terminated by '\n';
+   lines terminated by '/n';
    ```
 
    字段解释：
@@ -1673,7 +1671,7 @@ Hive有三种复杂数据类型ARRAY、MAP 和 STRUCT。ARRAY和MAP与Java中的
 
    - map keys terminated by ':'				-- MAP中的key与value的分隔符
 
-   - lines terminated by '\n';					-- 行分隔符
+   - lines terminated by '/n';					-- 行分隔符
 
 4. 导入文本数据到测试表
 
@@ -2100,7 +2098,7 @@ hive支持的存储数据的格式主要有：TEXTFILE（行式存储） 、SEQU
 
 ### 10.1列式存储和行式存储
 
-![](img\hive\wps1.jpg)
+![](img/hive/wps1.jpg)
 
 上图左边为逻辑表，右边第一个为行式存储，第二个为列式存储。
 
@@ -2131,7 +2129,7 @@ hive支持的存储数据的格式主要有：TEXTFILE（行式存储） 、SEQU
 - rowData：存的是具体的数据，先取部分行，然后对这些行按列进行存储。对每个列进行了编码，分成多个Stream来存储。
 - stripFooter：存的是各个Stream的类型，长度等信息。
 
-![](img\hive\wps2.jpg)
+![](img/hive/wps2.jpg)
 
 每个文件有一个File Footer，这里面存的是每个Stripe的行数，每个Column的数据类型信息等；每个文件的尾部是一个PostScript，这里面记录了整个文件的压缩类型以及FileFooter的长度信息等。在读取文件时，会seek到文件尾部读PostScript，从里面解析到File Footer长度，再读FileFooter，从里面解析到各个Stripe信息，再读各个Stripe，即从后往前读。
 
@@ -2145,7 +2143,7 @@ parquet文件是以二进制方式存储的，所以是不可以直接读取的�
 
 parquet文件的格式如下图所示：
 
-![](img\hive\wps3.jpg)
+![](img/hive/wps3.jpg)
 
 上图展示了一个Parquet文件的内容，一个文件中可以存储多个行组，文件的首位都是该文件的Magic Code，用于校验它是否是一个Parquet文件，Footer length记录了文件元数据的大小，通过该值和文件长度可以计算出元数据的偏移量，文件的元数据中包括每一个行组的元数据信息和该文件存储数据的Schema信息。除了文件中每一个行组的元数据，每一页的开始都会存储该页的元数据，在Parquet中，有三种类型的页：数据页、字典页和索引页。数据页用于存储当前行组中该列的值，字典页存储该列值的编码字典，每一个列块中最多包含一个字典页，索引页用来存储当前行组下该列的索引，目前Parquet中还不支持索引页。
 
@@ -2167,7 +2165,7 @@ parquet文件的格式如下图所示：
    end_user_id string,
    city_id string
    )
-   ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+   ROW FORMAT DELIMITED FIELDS TERMINATED BY '/t'
    STORED AS TEXTFILE ;
    ```
 
@@ -2209,7 +2207,7 @@ parquet文件的格式如下图所示：
    end_user_id string,
    city_id string
    )
-   ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+   ROW FORMAT DELIMITED FIELDS TERMINATED BY '/t'
    STORED AS orc ;
    ```
 
@@ -2249,7 +2247,7 @@ parquet文件的格式如下图所示：
    end_user_id string,
    city_id string
    )
-   ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+   ROW FORMAT DELIMITED FIELDS TERMINATED BY '/t'
    STORED AS PARQUET ;
    ```
 
@@ -2337,7 +2335,7 @@ ORC存储方式的压缩：
       end_user_id string,
       city_id string
       )
-      ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+      ROW FORMAT DELIMITED FIELDS TERMINATED BY '/t'
       STORED AS orc tblproperties ("orc.compress"="NONE");
       ```
 
@@ -2374,7 +2372,7 @@ ORC存储方式的压缩：
       end_user_id string,
       city_id string
       )
-      ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+      ROW FORMAT DELIMITED FIELDS TERMINATED BY '/t'
       STORED AS orc tblproperties ("orc.compress"="SNAPPY");
       ```
 
@@ -2535,11 +2533,11 @@ Fetch抓取是指，**hive中对某些情况的 查询可以不必使用MapReduc
 
    ```sql
    // 创建大表
-   create table bigtable(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) row format delimited fields terminated by '\t';
+   create table bigtable(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) row format delimited fields terminated by '/t';
    // 创建小表
-   create table smalltable(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) row format delimited fields terminated by '\t';
+   create table smalltable(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) row format delimited fields terminated by '/t';
    // 创建join后表的语句
-   create table jointable(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) row format delimited fields terminated by '\t';
+   create table jointable(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) row format delimited fields terminated by '/t';
    ```
 
 2. 分别向大表和小表中导入数据
@@ -2612,11 +2610,11 @@ Fetch抓取是指，**hive中对某些情况的 查询可以不必使用MapReduc
 
    ```sql
    // 创建原始表
-   create table ori(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) row format delimited fields terminated by '\t';
+   create table ori(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) row format delimited fields terminated by '/t';
    // 创建空id表
-   create table nullidtable(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) row format delimited fields terminated by '\t';
+   create table nullidtable(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) row format delimited fields terminated by '/t';
    // 创建join后表的语句
-   create table jointable(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) row format delimited fields terminated by '\t';
+   create table jointable(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) row format delimited fields terminated by '/t';
    ```
 
 3. 分别加载原始数据和空id数据到对应表中
@@ -2666,7 +2664,7 @@ Fetch抓取是指，**hive中对某些情况的 查询可以不必使用MapReduc
 
    结果：可以看出来，出现了数据倾斜，某些reducer的资源消耗远大于其他reducer。
 
-   ![](img\hive\join.png)
+   ![](img/hive/join.png)
 
 **随机分布空null值**
 
@@ -2686,7 +2684,7 @@ Fetch抓取是指，**hive中对某些情况的 查询可以不必使用MapReduc
 
    结果：可以看出来，消除了数据倾斜，负载均衡reducer的资源消耗
 
-   ![](img\hive\join2.png)
+   ![](img/hive/join2.png)
 
 ### 12.4Group By
 
@@ -2829,7 +2827,7 @@ hive的动态分区是以第一个表的分区规则，来对应第二个表的�
    create table ori_partitioned(id bigint, time bigint, uid string, keyword 
    string, url_rank int, click_num int, click_url string) 
    PARTITIONED BY (p_time bigint) 
-   row format delimited fields terminated by '\t';
+   row format delimited fields terminated by '/t';
    
    load data local inpath '/export/servers/hivedatas/small_data' into  table
    ori_partitioned partition (p_time='20111230000010');
@@ -2841,7 +2839,7 @@ hive的动态分区是以第一个表的分区规则，来对应第二个表的�
 2. 创建目标分区表
 
    ```sql
-   create table ori_partitioned_target(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) PARTITIONED BY (p_time STRING) row format delimited fields terminated by '\t'
+   create table ori_partitioned_target(id bigint, time bigint, uid string, keyword string, url_rank int, click_num int, click_url string) PARTITIONED BY (p_time STRING) row format delimited fields terminated by '/t'
    ```
 
 3. 向目标分区表中加载数据

@@ -58,7 +58,7 @@
 
   map和mapPartitions以及transform都是转换，**map和mapPartitions是针对数据**，**而transform是针对数据集**，这种方式最大的区别就是transform可以直接拿到Dataset进行操作
 
-  ![](img\spark\transform.png)
+  ![](img/spark/transform.png)
 
   ```scala
   @Test
@@ -88,8 +88,8 @@
       )
       val sourceDF = spark.read
       .schema(structType)
-      .option("delimiter","\t")
-      .csv("C:\\Users\\宋天\\Desktop\\大数据\\file\\studenttab10k")
+      .option("delimiter","/t")
+      .csv("C://Users//宋天//Desktop//大数据//file//studenttab10k")
   
       sourceDF.as[Student].show()
   
@@ -238,7 +238,7 @@ def groupByKey():Unit = {
 
   dropDuplicates方法还有一个别名，叫做distinct
 
-  ![](img\spark\distinct.png)
+  ![](img/spark/distinct.png)
 
   所以distinct也可以去重，并且只能根据所有列去重
 
@@ -552,13 +552,13 @@ withColumn
 
   一个值本身的含义是这个值不存在则称之为缺省值，也就是说这个值本身代表着缺失，或者这个值本身无意义，比如说`null`，或者空字符串
 
-  ![](img\spark\缺省值1.png)
+  ![](img/spark/缺省值1.png)
 
   关于数据的分析其实就是统计分析的概念, 如果这样的话, 当数据集中存在缺失值, 则无法进行统计和分析, 对很多操作都有影响
 
 - 缺省值是如何产生的
 
-  ![](img\spark\缺省值2.png)
+  ![](img/spark/缺省值2.png)
 
   Spark 大多时候处理的数据来自于业务系统中, 业务系统中可能会因为各种原因, 产生一些异常的数据
 
@@ -1134,7 +1134,7 @@ val groupedDF: RelationalGroupedDataset = pmDF.groupBy('year)
     */
   ```
 
-  ![](img\spark\join2.png)
+  ![](img/spark/join2.png)
 
 ## 4.2 连接类型
 
@@ -1165,7 +1165,7 @@ cities.createOrReplaceTempView("cities")
 
 交叉连接是一个非常重的操作，在生产中，尽量不要将两个大数据集交叉连接，如果一定要交叉连接，也需要在交叉连接后进行过滤，优化器会进行优化
 
-![](img\spark\笛卡尔积.png)
+![](img/spark/笛卡尔积.png)
 
 SQL语句：
 
@@ -1194,7 +1194,7 @@ def crossJoin(): Unit = {
 
 说明：内连接就是按照条件找到两个数据集关联的数据，并且在生成的结果集中只存在能关联到的数据
 
-![](img\spark\inner.png)
+![](img/spark/inner.png)
 
 SQL语句：
 
@@ -1224,7 +1224,7 @@ def inner(): Unit = {
 
 说明：内连接和外连接的最大区别，就是内连接的结果集中只有可以连接上的数据，而外连接可以包含没有连接上的数据，根据情况的不同，外连接又可以分为很多种，比如所有的没连接上的数据都放入结果集，就叫做全外连接
 
-![](img\spark\全外链接.png)
+![](img/spark/全外链接.png)
 
 SQL语句：
 
@@ -1258,7 +1258,7 @@ Dataset操作
 
 说明：左外连接就是全外连接的一个子集，全外连接中包含左右两边数据集中没有连接上的数据，而左外连接只包含左边数据集中没有连接上的数据
 
-![](img\spark\左外连接.png)
+![](img/spark/左外连接.png)
 
 SQL语句
 
@@ -1291,7 +1291,7 @@ Dataset操作
 
 说明：LeftAnit是一种特殊的连接形式，和左外连接类似，但是其结果集中没有右侧的数据，只包含左边集合中没有连接上的数据
 
-![](img\spark\leftanit.png)
+![](img/spark/leftanit.png)
 
 SQL语句：
 
@@ -1323,7 +1323,7 @@ Dataset操作：
 
 说明：和leftanti恰好相反，leftsemi的结果集也没有右侧集合的数据，但是只包含左侧集合中连接上的数据
 
-![](img\spark\leftsemi.png)
+![](img/spark/leftsemi.png)
 
 SQL语句：
 
@@ -1355,7 +1355,7 @@ Dataset操作：
 
 说明：右外连接和左外连接刚好相反，左外是包含左侧未连接的数据，和两个数据集中连接上的数据，而右外是包含右侧未连接的数据，和两个数据集中连接上的数据
 
-![](img\spark\右外连接.png)
+![](img/spark/右外连接.png)
 
 SQL语句：
 
@@ -1386,7 +1386,7 @@ def leftRight(): Unit = {
 
 - 正常情况下的join过程
 
-  ![](img\spark\join过程.png)
+  ![](img/spark/join过程.png)
 
   join会在集群中分发两个数据集，两个数据集都要复制到Reducer端，是一个非常复杂和标准的ShuffleDependency，那么，有什么优化效率么？
 
@@ -1396,7 +1396,7 @@ def leftRight(): Unit = {
 
   那么，如果能够只分发一个较小的数据集呢?
 
-  ![](img\spark\map-join.png)
+  ![](img/spark/map-join.png)
 
   可以将小数据集收集起来, 分发给每一个 `Executor`, 然后在需要 `Join` 的时候, 让较大的数据集在 `Map` 端直接获取小数据集, 从而进行 `Join`, 这种方式是不需要进行 `Shuffle` 的, 所以称之为 `Map` 端 `Join`
 
@@ -1476,7 +1476,7 @@ def leftRight(): Unit = {
 
 1. 数据集
 
-   ![](img\spark\product.png)
+   ![](img/spark/product.png)
 
    - `product` : 商品名称
    - `categroy` : 类别
@@ -1601,15 +1601,15 @@ dense_rank() OVER (PARTITION BY category ORDER BY revenue DESC) as rank
 
 1. 根据 `PARTITION BY category`, 对数据进行分组
 
-   ![](img\spark\窗口函数1.png)
+   ![](img/spark/窗口函数1.png)
 
 2. 分组后, 根据 `ORDER BY revenue DESC` 对每一组数据进行排序
 
-   ![](img\spark\窗口函数2.png)
+   ![](img/spark/窗口函数2.png)
 
 3. 在 **每一条数据** 到达窗口函数时, 套入窗口内进行计算
 
-   ![](img\spark\窗口函数3.png)
+   ![](img/spark/窗口函数3.png)
 
 从语法的角度上讲，窗口函数大致分为两个部分
 
@@ -1636,13 +1636,13 @@ dense_rank() OVER (PARTITION BY category ORDER BY revenue DESC) as rank
 
    控制哪些行会被放在一起, 同时这个定义也类似于 `Shuffle`, 会将同一个分组的数据放在同一台机器中处理
 
-   ![](img\spark\partition.png)
+   ![](img/spark/partition.png)
 
 2. order定义
 
    在一个分组内进行排序, 因为很多操作, 如 `rank`, 需要进行排序
 
-   ![](img\spark\order.png)
+   ![](img/spark/order.png)
 
 3. frame定义
 
@@ -1662,23 +1662,23 @@ dense_rank() OVER (PARTITION BY category ORDER BY revenue DESC) as rank
 
       通过**行号**来表示
 
-      ![](img\spark\Row Frame.png)
+      ![](img/spark/Row Frame.png)
 
    2. Range Frame
 
       通过某一个列的差值来表示
 
-      ![](img\spark\Range Frame1.png)
+      ![](img/spark/Range Frame1.png)
 
-   ![](img\spark\Range Frame2.png)
+   ![](img/spark/Range Frame2.png)
 
-   ![](img\spark\Range Frame3.png)
+   ![](img/spark/Range Frame3.png)
 
-   ![](img\spark\Range Frame4.png)
+   ![](img/spark/Range Frame4.png)
 
    
 
-   ![](img\spark\Range Frame5.png)
+   ![](img/spark/Range Frame5.png)
 
 ## 5.3 函数部分
 
@@ -1697,19 +1697,19 @@ dense_rank() OVER (PARTITION BY category ORDER BY revenue DESC) as rank
   - 排名函数, 计算当前数据在其 `Frame` 中的位置
   - 如果有重复, 则重复项后面的行号会有空挡
 
-  ![](img\spark\rank.png)
+  ![](img/spark/rank.png)
 
 - dense_rank
 
   解释：和 rank 一样, 但是结果中没有空挡
 
-  ![](img\spark\dense_rank.png)
+  ![](img/spark/dense_rank.png)
 
 - row_number
 
   解释： 和 rank 一样, 也是排名, 但是不同点是即使有重复想, 排名依然增长
 
-  ![](img\spark\row_number.png)
+  ![](img/spark/row_number.png)
 
 ### 5.3.2 分析函数
 
@@ -1746,13 +1746,13 @@ dense_rank() OVER (PARTITION BY category ORDER BY revenue DESC) as rank
 
 - 需求介绍
 
-  ![](img\spark\product.png)
+  ![](img/spark/product.png)
 
 - 需求：统计每个商品和此品类最贵商品之间的差值
 
 - 目标数据集
 
-  ![](img\spark\目标数据集.png)
+  ![](img/spark/目标数据集.png)
 
 - 代码实现
 
@@ -2223,7 +2223,7 @@ class RichRow(row: Row) {...}
 
 思路：
 
-![](img\spark\练习.png)
+![](img/spark/练习.png)
 
 `parse` 方法应该做的事情应该有两件
 
@@ -2368,7 +2368,7 @@ object TaxiAnalysisRunner {
 
 观察数据分布常用手段是直方图, 直方图反应的是数据的 `"数量"` 分布
 
-![](img\spark\直方图.png)
+![](img/spark/直方图.png)
 
 通过这个图可以看到其实就是乘客年龄的分布, 横轴是乘客的年龄, 纵轴是乘客年龄的频数分布
 
@@ -2484,11 +2484,11 @@ object TaxiAnalysisRunner {
 
 - 源数据集
 
-  ![](img\spark\源数据集.png)
+  ![](img/spark/源数据集.png)
 
 - 目标数据集
 
-  ![](img\spark\目标数据集1.png)
+  ![](img/spark/目标数据集1.png)
 
 **目标数据集分析**
 
@@ -2524,7 +2524,7 @@ object TaxiAnalysisRunner {
 
 - 这是提供的纽约的各个行政区范围的数据集, 叫做 `nyc-borough-boundaries-polygon.geojson`
 
-  ![](img\spark\行政区.png)
+  ![](img/spark/行政区.png)
 
 - 使用步骤
 
@@ -2553,7 +2553,7 @@ object TaxiAnalysisRunner {
 
 **什么是 `JSON` 解析**
 
-![](img\spark\json解析.png)
+![](img/spark/json解析.png)
 
 - 读取 `JSON` 数据的时候, 读出来的是一个有格式的字符串, 将这个字符串转换为对象的过程就叫做解析
 - 可以使用 `JSON4S` 来解析 `JSON`, `JSON4S` 是一个其它解析工具的 `Scala` 封装以适应 `Scala` 的对象转换
@@ -2669,7 +2669,7 @@ GeometryEngine.contains(geometry, other, csr)
         "properties": {
           "boroughCode": 5,
           "borough": "Staten Island",
-          "@id": "http:\/\/nyc.pediacities.com\/Resource\/Borough\/Staten_Island"
+          "@id": "http:////nyc.pediacities.com//Resource//Borough//Staten_Island"
         },
         "geometry": {
           "type": "Polygon",
@@ -2737,7 +2737,7 @@ GeometryEngine.contains(geometry, other, csr)
         "properties": {
           "boroughCode": 5,
           "borough": "Staten Island",
-          "@id": "http:\/\/nyc.pediacities.com\/Resource\/Borough\/Staten_Island"
+          "@id": "http:////nyc.pediacities.com//Resource//Borough//Staten_Island"
         },
           // geometry 段即是 Geometry 对象的 JSON 表示
   
@@ -2861,7 +2861,7 @@ GeometryEngine.contains(geometry, other, csr)
 
   2. 计算分区中连续两条数据的时间差
 
-     ![](img\spark\会话统计.png)
+     ![](img/spark/会话统计.png)
 
   上述的计算存在一个问题, 一个分组会有多个司机的数据, 如何划分每个司机的数据边界? 其实可以先过滤一下, 计算时只保留同一个司机的数据
 

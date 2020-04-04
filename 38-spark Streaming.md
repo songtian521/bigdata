@@ -29,7 +29,7 @@
 
 - 批量计算
 
-  ![](img\spark\批量计算.png)
+  ![](img/spark/批量计算.png)
 
   数据已经存在, 一次性读取所有的数据进行批量处理
 
@@ -38,7 +38,7 @@
 
 - 流计算
 
-  ![](img\spark\流计算.png)
+  ![](img/spark/流计算.png)
 
   数据源源不断的进来, 经过处理后落地
   
@@ -51,7 +51,7 @@
 
 **混合架构：**
 
-![](img\spark\混合架构.png)
+![](img/spark/混合架构.png)
 
 **混合架构说明：**
 
@@ -76,7 +76,7 @@
 
 **流式架构**
 
-![](img\spark\流架构.png)
+![](img/spark/流架构.png)
 
 - 流式架构说明
 
@@ -121,7 +121,7 @@ Spark Streaming将连续的数据流抽象为discretizedstream或**DStream**。�
 
 **socket回顾：**
 
-![](img\spark\socket.png)
+![](img/spark/socket.png)
 
 - socket是java中为了支持基于`TCP/UDP`协议的通信所提供的编程模型
 
@@ -223,7 +223,7 @@ Spark Streaming将连续的数据流抽象为discretizedstream或**DStream**。�
 
 - `Spark Streaming` 并不是真正的来一条数据处理一条
 
-  ![](img\spark\Spark Streaming.png)
+  ![](img/spark/Spark Streaming.png)
 
   - `Spark Streaming` 的处理机制叫做小批量, 英文叫做 `mini-batch`, 是收集了一定时间的数据后生成 `RDD`, 后针对 `RDD` 进行各种转换操作, 这个原理提现在如下两个地方
     - 控制台中打印的结果是一个批次一个批次的, 统计单词数量也是按照一个批次一个批次的统计
@@ -422,7 +422,7 @@ object FileStreaming {
     val ssc = new StreamingContext(conf,Seconds(2))
 
     //从本地目录中读取数据：如果有新文件产生，就会读取进来
-    val lines = ssc.textFileStream("d:\\dowload\\spark123")
+    val lines = ssc.textFileStream("d://dowload//spark123")
 
     //打印结果
     lines.print()
@@ -1295,15 +1295,15 @@ Spark性能优化手段：
 
   `Spark Streaming` 中的编程模型叫做 `DStream`, 所有的 `API` 都从 `DStream` 开始, 其作用就类似于 `RDD` 之于 `Spark Core`
 
-  ![](img\spark\小批量.png)
+  ![](img/spark/小批量.png)
 
   可以理解为 `DStream` 是一个管道, 数据源源不断的从这个管道进去, 被处理, 再出去
 
-  ![](img\spark\DStream.png)
+  ![](img/spark/DStream.png)
 
   但是需要注意的是, `DStream` 并不是严格意义上的实时流, 事实上, `DStream` 并不处理数据, 而是处理 `RDD`
 
-  ![](img\spark\DStream2.png)
+  ![](img/spark/DStream2.png)
 
   - 以上, 可以整理出如下道理
 
@@ -1375,7 +1375,7 @@ val reduceRDD = tupleRDD.reduceByKey(_ + _)
 
 用图形表示如下
 
-![](img\spark\RDDWordCount.png)
+![](img/spark/RDDWordCount.png)
 
 同样, `DStream` 的代码大致如下
 
@@ -1387,13 +1387,13 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
 同理, `DStream` 也可以形成 `DAG` 如下
 
-![](img\spark\DSRDD.png)
+![](img/spark/DSRDD.png)
 
 看起来 `DStream` 和 `RDD` 好像, 确实如此
 
 `RDD` **和** `DStream` **的区别**
 
-![](img\spark\RDD 和 DStream 的区别.png)
+![](img/spark/RDD 和 DStream 的区别.png)
 
 - 每个 `DStream` 都有一个关联的 `DStreamGraph` 对象
 - `DStreamGraph` 负责表示 `DStream` 之间的的依赖关系和运行步骤
@@ -1414,7 +1414,7 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
   - 后根据这张 `DAG` 生成对应的 `TaskSet` 调度到集群中运行, 如下
 
-    ![](img\spark\DAG对应的TaskSet.png)
+    ![](img/spark/DAG对应的TaskSet.png)
 
     但是在 `DStream` 中则不能这么简单的划分, 因为 `DStream` 中有一个非常重要的逻辑, 需要按照时间片划分小批量
 
@@ -1423,7 +1423,7 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
     上述两点, 其实描述的是静态的一张 `DAG`, 数据处理过程, 但是 `Streaming` 是动态的, 数据是源源不断的来的
 
-    ![](img\spark\ds.png)
+    ![](img/spark/ds.png)
 
 - 所以, 在 `DStream` 中, 静态和动态是两个概念, 有不同的流程
 
@@ -1445,11 +1445,11 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
   在 `Spark Streaming` 中一个非常大的挑战是, 很多外部的队列和存储系统都是分块的, `RDD` 是分区的, 在读取外部数据源的时候, 会用不同的分区对照外部系统的分片, 例如
 
-  ![](img\spark\Receiver.png)
+  ![](img/spark/Receiver.png)
 
   不仅 `RDD`, `DStream` 中也面临这种挑战
 
-  ![](img\spark\Receiver2.png)
+  ![](img/spark/Receiver2.png)
 
   那么此处就有一个小问题
 
@@ -1459,7 +1459,7 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
 - `Receiver` **的结构**
 
-  ![](img\spark\Receiver 的结构.png)
+  ![](img/spark/Receiver 的结构.png)
 
   为了保证并行获取数据, 对应每一个外部数据源的分区, 所以 `Receiver` 也要是分布式的, 主要分为三个部分
 
@@ -1469,7 +1469,7 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
 - `Receiver` **的执行过程**
 
-  ![](img\spark\Receiver 的执行过程.png)
+  ![](img/spark/Receiver 的执行过程.png)
 
   1. 在 `Spark Streaming` 程序开启时候, `Receiver Tracker` 使用 `JobScheduler` 分发 `Job` 到不同的节点, 每个 `Job` 包含一个 `Task` , 这个 `Task` 就是 `Receiver Supervisor`, 这个部分的源码还挺精彩的, 其实是复用了通用的调度逻辑
   2. `ReceiverSupervisor` 启动后运行 `Receiver` 实例
@@ -1483,7 +1483,7 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
   - **热备**
 
-    ![](img\spark\容错.png)
+    ![](img/spark/容错.png)
 
     这行代码中的 `StorageLevel.MEMORY_AND_DISK_SER` 的作用是什么? 其实就是热备份
 
@@ -1491,7 +1491,7 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
     - 如果设置了 `StorageLevel.MEMORY_AND_DISK_SER`, 则意味着 `BlockManager` 不仅会在本机存储, 也会发往其它的主机进行存储, 本质就是冗余备份
     - 如果某一个计算失败了, 通过冗余的备份, 再次进行计算即可
 
-    ![](img\spark\容错2.png)
+    ![](img/spark/容错2.png)
 
     这是默认的容错手段
 
@@ -1606,7 +1606,7 @@ ssc.awaitTermination()
 
 ## 7.2 窗口时间
 
-![](img\spark\窗口.png)
+![](img/spark/窗口.png)
 
 - 在 `window` 函数中, 接收两个参数
 

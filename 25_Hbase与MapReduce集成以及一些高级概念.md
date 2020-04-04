@@ -371,7 +371,7 @@ vim user.txt
 0009    wangwu  20
 ```
 
-注：自行检查分隔符是否为`\t`
+注：自行检查分隔符是否为`/t`
 
 上传
 
@@ -436,7 +436,7 @@ public class HDFSReducer extends TableReducer<Text, NullWritable, ImmutableBytes
     @Override
     protected void reduce(Text key, Iterable<NullWritable> values, Context context) throws IOException, InterruptedException {
 
-        String[] split = key.toString().split("\t");
+        String[] split = key.toString().split("/t");
         Put put = new Put(split[0].getBytes());
         put.addColumn("f1".getBytes(),"name".getBytes(),split[1].getBytes());
         put.addColumn("f1".getBytes(),"age".getBytes(),split[2].getBytes());
@@ -523,11 +523,11 @@ public class HDFSMain extends Configured implements Tool {
 2. 能快速导入海量数据
 3. 节省内存
 
-![](img\HBase数据读写流程.png)
+![](img/hbase/HBase数据读写流程.png)
 
 使用bulkload的方式将我们的数据直接生成HFile格式，然后直接加载到HBase的表当中去
 
-![](img\bulkload方式加载数据到Hbase.png)
+![](img/hbase/bulkload方式加载数据到Hbase.png)
 
 **需求：**将我们hdfs上面的这个路径/hbase_input/user.txt的数据文件，转换成HFile格式，然后load到myuser2这张表里面去
 
@@ -555,7 +555,7 @@ public class HDFSReadMapper extends Mapper<LongWritable, Text, ImmutableBytesWri
     @Override
     protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 
-        String[] split = value.toString().split("\t");
+        String[] split = value.toString().split("/t");
         Put put = new Put(split[0].getBytes());
         put.addColumn("f1".getBytes(),"name".getBytes(),split[1].getBytes());
         put.addColumn("f1".getBytes(),"age".getBytes(),split[2].getBytes());
@@ -802,7 +802,7 @@ hive与我们的hbase各有千秋，各自有着不同的功能，但是归根�
    ```sql
    create database course;
    use course;
-   create external table if not exists course.score(id int,cname string,score int) row format delimited fields terminated by '\t' stored as textfile ;
+   create external table if not exists course.score(id int,cname string,score int) row format delimited fields terminated by '/t' stored as textfile ;
    ```
 
    准备数据如下：
@@ -819,7 +819,7 @@ hive与我们的hbase各有千秋，各自有着不同的功能，但是归根�
    4       zhaoliu 70
    ```
 
-   注：以`\t`分割
+   注：以`/t`分割
 
    进行加载数据
 
@@ -1029,7 +1029,7 @@ Observer 类似于传统数据库中的触发器，当发生某些事件的时�
 
 下图是以 RegionObserver 为例子讲解 Observer 这种协处理器的原理：
 
-![](img\hbase协处理器.png)
+![](img/hbase/hbase协处理器.png)
 
 **Endpoint **
 
@@ -1040,7 +1040,7 @@ HBase 将利用底层 cluster 的多个节点并发执行求最大值的操作�
 这样整体的执行效率就会提高很多
 下图是 EndPoint 的工作原理：
 
-![](img\EndPoint 的工作原理.png)
+![](img/hbase/EndPoint 的工作原理.png)
 
 **总结**
 
@@ -1083,7 +1083,7 @@ HBase 将利用底层 cluster 的多个节点并发执行求最大值的操作�
 
 3. 协处理器卸载
 
-   ![](img\卸载协处理器.png)
+   ![](img/hbase/卸载协处理器.png)
 
 ## 8.4 协处理器Observer应用实战
 

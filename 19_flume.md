@@ -6,7 +6,7 @@
 2. Flume基于流式架构，容错性强，也很灵活简单。
 3. Flume、kafka用来实时进行数据收集，Spark、Storm用来实时处理数据，impala用来实时查询
 
-![](img\Flume\flume角色.png)
+![](img/Flume/flume角色.png)
 
 ## 2.Flume角色
 
@@ -109,10 +109,10 @@ source监控某个文件或数据流，数据源产生新的数据，拿到该�
    4. 启动fume配置文件
 
       ```
-      /opt/module/flume-1.8.0/bin/flume-ng agent \
-      --conf /opt/module/flume1.8.0/conf/ \
-      --name a1 \
-      --conf-file /opt/module/flume-1.8.0/jobconf/flume-telnet.conf \
+      /opt/module/flume-1.8.0/bin/flume-ng agent /
+      --conf /opt/module/flume1.8.0/conf/ /
+      --name a1 /
+      --conf-file /opt/module/flume-1.8.0/jobconf/flume-telnet.conf /
       -Dflume.root.logger==INFO,console
       ```
 
@@ -175,9 +175,9 @@ source监控某个文件或数据流，数据源产生新的数据，拿到该�
 2. 执行监控配置
 
    ```java
-   /opt/module/flume1.8.0/bin/flume-ng agent \
-   --conf /opt/module/flume1.8.0/conf/ \
-   --name a2 \
+   /opt/module/flume1.8.0/bin/flume-ng agent /
+   --conf /opt/module/flume1.8.0/conf/ /
+   --name a2 /
    --conf-file /opt/module/flume1.8.0/jobconf/flume-hdfs.conf
    ```
 
@@ -200,7 +200,7 @@ source监控某个文件或数据流，数据源产生新的数据，拿到该�
       a3.sources.r3.fileSuffix = .COMPLETED
       a3.sources.r3.fileHeader = true
       #忽略所有以.tmp结尾的文件，不上传
-      a3.sources.r3.ignorePattern = ([^ ]*\.tmp)
+      a3.sources.r3.ignorePattern = ([^ ]*/.tmp)
       
       # Describe the sink
       a3.sinks.k3.type = hdfs
@@ -241,9 +241,9 @@ source监控某个文件或数据流，数据源产生新的数据，拿到该�
    2. 执行测试：测试如下脚本后，请向upload文件夹中添加文件试试
 
       ```
-      /opt/module/flume1.8.0/bin/flume-ng agent \
-      --conf /opt/module/flume1.8.0/conf/ \
-      --name a3 \
+      /opt/module/flume1.8.0/bin/flume-ng agent /
+      --conf /opt/module/flume1.8.0/conf/ /
+      --name a3 /
       --conf-file /opt/module/flume1.8.0/jobconf/flume-dir.conf
       ```
 
@@ -255,7 +255,7 @@ source监控某个文件或数据流，数据源产生新的数据，拿到该�
 
 ### 5.4 案例四：flum与flume之间数据传递：单flume多channel、sink
 
-![](img\Flume\单对多.png)
+![](img/Flume/单对多.png)
 
 
 
@@ -396,7 +396,7 @@ source监控某个文件或数据流，数据源产生新的数据，拿到该�
 
 ### 5.5 案例五：Flume与Flume之间数据传递，多Flume汇总数据到单Flume
 
-![](img\Flume\多对单.png)
+![](img/Flume/多对单.png)
 
 1. 目标：flume11监控文件hive.log，flume-22监控某一个端口的数据流，flume11与flume-22将数据发送给flume-33，flume33将最终数据写入到HDFS。
 
@@ -567,9 +567,9 @@ a4.sinks.k1.channel = c1
 启动命令
 
 ```
-/opt/module/flume-1.8.0/bin/flume-ng agent -n a4 \
--f /opt/module/flume-1.8.0/jobconf/flume-interceptors.conf \
--c /opt/module/flume-1.8.0/conf \
+/opt/module/flume-1.8.0/bin/flume-ng agent -n a4 /
+-f /opt/module/flume-1.8.0/jobconf/flume-interceptors.conf /
+-c /opt/module/flume-1.8.0/conf /
 -Dflume.root.logger=INFO,console
 ```
 

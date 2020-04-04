@@ -4,7 +4,7 @@
 
 ## 1.1 spark编程模型的进化过程
 
-![](img\spark\spark编程模型的进化过程.png)
+![](img/spark/spark编程模型的进化过程.png)
 
 **编程模型：**
 
@@ -114,7 +114,7 @@ public static void main(String[] args) throws IOException {
 
 - Task分发
 
-  ![](img\spark\Task分发.png)
+  ![](img/spark/Task分发.png)
 
   Task是一个对象，想在网络中传输对象就必须要先序列化
 
@@ -136,13 +136,13 @@ public static void main(String[] args) throws IOException {
 
 - 广播变量
 
-  ![](img\spark\广播变量1.png)
+  ![](img/spark/广播变量1.png)
 
   广播变量会分发到不同的机器上，这个过程中需要使用网络，对象在网络中传输就必须要先被序列化
 
 - Shuffle过程
 
-  ![](img\spark\Shuffle过程.png)
+  ![](img/spark/Shuffle过程.png)
 
   - Shuffle过程是由Reducer从Mapper中拉取数据，这里面涉及到两个需要序列化对象的原因
     - RDD中的数据对象需要在Mapper端落盘缓存，等待拉取
@@ -150,7 +150,7 @@ public static void main(String[] args) throws IOException {
 
 - Spark Streaming的Receiver
 
-  ![](img\spark\Receiver1.png)
+  ![](img/spark/Receiver1.png)
 
   - Spark Streaming中获取数据的组件叫做Receiver，获取到的数据也是对象形式，在获取到以后需要落盘缓存，这就需要对数据对象进行序列化
 
@@ -172,7 +172,7 @@ public static void main(String[] args) throws IOException {
 
 **RDD的序列化**
 
-![](img\spark\RDD的序列化.png)
+![](img/spark/RDD的序列化.png)
 
 - RDD的序列化
 
@@ -229,7 +229,7 @@ public static void main(String[] args) throws IOException {
 
   - DataFrame中没有数据对象这个概念，所有的数据都以行的形式存在于Row对象中，Row中记录了每行数据的结构，包括列名，类型等
 
-    ![](img\spark\da.png)
+    ![](img/spark/da.png)
 
   - Dataset中上层可以提供有类型的API，用以操作数据，但是在内部，无论是什么类型的数据对象Dataset都是用一个叫做InternalRow的尅性的对象存储数据
 
@@ -245,15 +245,15 @@ public static void main(String[] args) throws IOException {
 
 - DataFrame和Dataset中保存了数据的元信息，所以可以把元信息独立出来分开保存
 
-  ![](img\spark\元信息独立1.png)
+  ![](img/spark/元信息独立1.png)
 
 - 一个DataFrame或者一个Dataset中，元信息只需要保存一份，序列化的时候，元信息不需要参与
 
-  ![](img\spark\元信息独立2.png)
+  ![](img/spark/元信息独立2.png)
 
 - 在反序列化( `InternalRow → Object` ) 时加入 `Schema` 信息即可
 
-  ![](img\spark\元信息独立3.png)
+  ![](img/spark/元信息独立3.png)
 
 元信息不在参与序列化，意味着数据存储量的减少，和效率的增加
 
@@ -278,13 +278,13 @@ public static void main(String[] args) throws IOException {
 
 **`Spark Streaming` 时代**
 
-![](img\spark\Spark Streaming 时代.png)
+![](img/spark/Spark Streaming 时代.png)
 
 `Spark Streaming` 其实就是 `RDD` 的 `API` 的流式工具, 其本质还是 `RDD`, 存储和执行过程依然类似 `RDD`
 
 **`Structured Streaming` 时代**
 
-![](img\spark\Structured Streaming 时代.png)
+![](img/spark/Structured Streaming 时代.png)
 
 `Structured Streaming` 其实就是 `Dataset` 的 `API` 的流式工具, `API` 和 `Dataset` 保持高度一致
 
@@ -299,7 +299,7 @@ public static void main(String[] args) throws IOException {
 
 需求：
 
-![](img\spark\Structured 案例.png)
+![](img/spark/Structured 案例.png)
 
 - 编写一个流式计算的应用，不断接受外部系统的消息
 - 对消息中的单词进行词频统计
@@ -384,7 +384,7 @@ Batch: 4
 
 **如何使用** `Dataset` **这个编程模型表示流式计算?**
 
-![](img\spark\流式计算.png)
+![](img/spark/流式计算.png)
 
 - 可以把流式的数据想象成一个不断增长, 无限无界的表
 - 无论是否有界, 全都使用 `Dataset` 这一套 `API`
@@ -392,7 +392,7 @@ Batch: 4
 
 `WordCount` **的原理**
 
-![](img\spark\WordCount 的原理.png)
+![](img/spark/WordCount 的原理.png)
 
 - 整个计算过程大致上分为如下三个部分
   1. `Source`, 读取数据源
@@ -414,13 +414,13 @@ Batch: 4
 
 在 `Structured Streaming` 中负责整体流程和执行的驱动引擎叫做 `StreamExecution`
 
-![](img\spark\StreamExecution.png)
+![](img/spark/StreamExecution.png)
 
 - `StreamExecution` 在流上进行基于 `Dataset` 的查询, 也就是说, `Dataset` 之所以能够在流上进行查询, 是因为 `StreamExecution` 的调度和管理
 
 - `StreamExecution` 如何工作?
 
-  ![](img\spark\StreamExecution 如何工作?.png)
+  ![](img/spark/StreamExecution 如何工作?.png)
 
   `StreamExecution` 分为三个重要的部分
 
@@ -430,7 +430,7 @@ Batch: 4
 
 `StreamExecution` **的执行顺序**
 
-![](img\spark\StreamExecution 的执行顺序.png)
+![](img/spark/StreamExecution 的执行顺序.png)
 
 1. 根据进度标记, 从 `Source` 获取到一个由 `DataFrame` 表示的批次, 这个 `DataFrame` 表示数据的源头
 
@@ -458,7 +458,7 @@ Batch: 4
 
 3. 优化逻辑计划最终生成物理计划
 
-   ![](img\spark\逻辑.png)
+   ![](img/spark/逻辑.png)
 
    这一步其实就是使用 `Catalyst` 对执行计划进行优化, 经历基于规则的优化和基于成本模型的优化
 
@@ -474,13 +474,13 @@ Batch: 4
 
 核心问题：
 
-![](img\spark\WordCount 的原理.png)
+![](img/spark/WordCount 的原理.png)
 
 上图中清晰的展示了最终的结果生成是全局的结果, 而不是一个批次的结果, 但是从 `StreamExecution` 中可以看到, 针对流的处理是按照一个批次一个批次来处理的
 
 那么, 最终是如何生成全局的结果集呢?
 
-![](img\spark\状态记录.png)
+![](img/spark/状态记录.png)
 
 在 `Structured Streaming` 中有一个全局范围的高可用 `StateStore`, 这个时候针对增量的查询变为如下步骤
 
@@ -488,7 +488,7 @@ Batch: 4
 2. 把上次执行的结果加入本批次, 再进行计算, 得出全局结果
 3. 将当前批次的结果放入 `StateStore` 中, 留待下次使用
 
-![](img\spark\状态记录2.png)
+![](img/spark/状态记录2.png)
 
 **总结**
 
@@ -504,11 +504,11 @@ Batch: 4
 
 - 在数据处理的时候，经常会遇到这样的场景
 
-  ![](img\spark\数据处理1.png)
+  ![](img/spark/数据处理1.png)
 
 - 有时候也会遇到这样的
 
-  ![](img\spark\数据处理2.png)
+  ![](img/spark/数据处理2.png)
 
 - 以上两种场景有两个共同的特点
 
@@ -523,7 +523,7 @@ Batch: 4
 
 **案例流程：**
 
-![](img\spark\案例流程.png)
+![](img/spark/案例流程.png)
 
 1. 编写 `Python` 小程序, 在某个目录生成大量小文件
    - `Python` 是解释型语言, 其程序可以直接使用命令运行无需编译, 所以适合编写快速使用的程序, 很多时候也使用 `Python` 代替 `Shell`
@@ -616,7 +616,7 @@ result.writeStream
 
 **总结：**
 
-![](img\spark\案例流程.png)
+![](img/spark/案例流程.png)
 
 1. `Python` 生成文件到 `HDFS`, 这一步在真实环境下, 可能是由 `Flume` 和 `Sqoop` 收集并上传至 `HDFS`
 2. `Structured Streaming` 从 `HDFS` 中读取数据并处理
@@ -630,19 +630,19 @@ result.writeStream
 
   - `Pub / Sub` 是 `Publisher / Subscriber` 的简写, 中文称作为发布订阅系统
 
-    ![](img\spark\kafka1.png)
+    ![](img/spark/kafka1.png)
 
   - 发布订阅系统可以有多个 `Publisher` 对应一个 `Subscriber`, 例如多个系统都会产生日志, 通过这样的方式, 一个日志处理器可以简单的获取所有系统产生的日志
 
-    ![](img\spark\kafka2.png)
+    ![](img/spark/kafka2.png)
 
   - 发布订阅系统也可以一个 `Publisher` 对应多个 `Subscriber`, 这样就类似于广播了, 例如通过这样的方式可以非常轻易的将一个订单的请求分发给所有感兴趣的系统, 减少耦合性
 
-    ![](img\spark\kafka3.png)
+    ![](img/spark/kafka3.png)
 
   - 当然, 在大数据系统中, 这样的消息系统往往可以作为整个数据平台的入口, 左边对接业务系统各个模块, 右边对接数据系统各个计算工具
 
-    ![](img\spark\kafka4.png)
+    ![](img/spark/kafka4.png)
 
 - kafka的特点
 
@@ -655,15 +655,15 @@ result.writeStream
 
   - 消息和事件经常是不同类型的, 例如用户注册是一种消息, 订单创建也是一种消息
 
-    ![](img\spark\Topic1.png)
+    ![](img/spark/Topic1.png)
 
   - `Kafka` 中使用 `Topic` 来组织不同类型的消息
 
-    ![](img\spark\Topic2.png)
+    ![](img/spark/Topic2.png)
 
   - `Kafka` 中的 `Topic` 要承受非常大的吞吐量, 所以 `Topic` 应该是可以分片的, 应该是分布式的
 
-    ![](img\spark\Topic3.png)
+    ![](img/spark/Topic3.png)
 
 - 总结：
 
@@ -681,21 +681,21 @@ result.writeStream
 
 `Topic` 是分区的, 每一个 `Topic` 的分区分布在不同的 `Broker` 上
 
-![](img\spark\Topic分区.png)
+![](img/spark/Topic分区.png)
 
 每个分区都对应一系列的 `Log` 文件, 消息存在于 `Log` 中, 消息的 `ID` 就是这条消息在本分区的 `Offset` 偏移量
 
-![](img\spark\Topic3.png)
+![](img/spark/Topic3.png)
 
 `Offset` 又称作为偏移量, 其实就是一个东西距离另外一个东西的距离
 
-![](img\spark\偏移量.png)
+![](img/spark/偏移量.png)
 
 `Kafka` 中使用 `Offset` 命名消息, 而不是指定 `ID` 的原因是想表示永远自增, `ID` 是可以指定的, 但是 `Offset` 只能是一个距离值, 它只会越来越大, 所以, 叫做 `Offset` 而不叫 `ID` 也是这个考虑, 消息只能追加到 `Log` 末尾, 只能增长不能减少
 
 **Kafka 和 Structured Streaming 整合的结构**
 
-![](img\spark\Kafka 和 Structured Streaming 整合的结构.png)
+![](img/spark/Kafka 和 Structured Streaming 整合的结构.png)
 
 分析
 
@@ -708,7 +708,7 @@ result.writeStream
 
 **Structured Streaming 读取 Kafka 消息的三种方式**
 
-![](img\spark\Structured Streaming 读取 Kafka 消息的三种方式.png)
+![](img/spark/Structured Streaming 读取 Kafka 消息的三种方式.png)
 
 - `Earliest` 从每个 `Kafka` 分区最开始处开始获取
 - `Assign` 手动指定每个 `Kafka` 分区中的 `Offset`
@@ -839,13 +839,13 @@ result.writeStream
 
    - 业务系统有很多种类型, 有可能是 `Web` 程序, 有可能是物联网
 
-     ![](img\spark\思考1.png)
+     ![](img/spark/思考1.png)
 
      前端大多数情况下使用 `JSON` 做数据交互
 
    - 问题1: 业务系统如何把数据给 `Kafka` ?
 
-     ![](img\spark\思考2.png)
+     ![](img/spark/思考2.png)
 
      可以主动或者被动的把数据交给 `Kafka`, 但是无论使用什么方式, 都在使用 `Kafka` 的 `Client` 类库来完成这件事, `Kafka` 的类库调用方式如下
 
@@ -1085,7 +1085,7 @@ result.writeStream
 - 数据系统一般由批量处理和流式处理两个部分组成
 - 在 `Kafka` 作为整个数据平台入口的场景下, 需要使用 `StructuredStreaming` 接收 `Kafka` 的数据并放置于 `HDFS` 上, 后续才可以进行批量处理
 
-![](img\spark\HDFS Sink.png)
+![](img/spark/HDFS Sink.png)
 
 **案例需求**
 
@@ -1125,7 +1125,7 @@ val source = spark
 
 val result = source.map {
   item =>
-    val arr = item.replace("\"", "").split(";")
+    val arr = item.replace("/"", "").split(";")
     (arr(0).toInt, arr(1).toInt, arr(5).toInt)
 }
 .as[(Int, Int, Int)]
@@ -1144,7 +1144,7 @@ result.writeStream
 - 有很多时候, `ETL` 过后的数据, 需要再次放入 `Kafka`
 - 在 `Kafka` 后, 可能会有流式程序统一将数据落地到 `HDFS` 或者 `HBase`
 
-![](img\spark\Kafka Sink.png)
+![](img/spark/Kafka Sink.png)
 
 **案例需求**
 
@@ -1184,7 +1184,7 @@ val source = spark
 
 val result = source.map {
   item =>
-    val arr = item.replace("\"", "").split(";")
+    val arr = item.replace("/"", "").split(";")
     (arr(0).toInt, arr(1).toInt, arr(5).toInt)
 }
 .as[(Int, Int, Int)]
@@ -1210,7 +1210,7 @@ result.writeStream
   4. 外部通过 `ECharts` 获取并处理数据
 - 这个场景下, `StructuredStreaming` 就需要处理数据并放入 `MySQL` 或者 `MongoDB`, `HBase` 中以供 `Web` 程序可以获取数据, 图表的形式展示在前端
 
-![](img\spark\Foreach Writer.png)
+![](img/spark/Foreach Writer.png)
 
 Foreach 模式::
 
@@ -1222,7 +1222,7 @@ Foreach 模式::
 
 - 解决方案
 
-  ![](img\spark\Foreach.png)
+  ![](img/spark/Foreach.png)
 
   - 既然无法满足所有的整合需求, `StructuredStreaming` 提供了 `Foreach`, 可以拿到每一个批次的数据
   - 通过 `Foreach` 拿到数据后, 可以通过自定义写入方式, 从而将数据落地到其它的系统
@@ -1231,7 +1231,7 @@ Foreach 模式::
 
 从 `Kafka` 中获取数据, 处理后放入 `MySQL`
 
-![](img\spark\Foreach Writer2.png)
+![](img/spark/Foreach Writer2.png)
 
 **步骤**
 
@@ -1264,7 +1264,7 @@ val source = spark
 
 val result = source.map {
   item =>
-    val arr = item.replace("\"", "").split(";")
+    val arr = item.replace("/"", "").split(";")
     (arr(0).toInt, arr(1).toInt, arr(5).toInt)
 }
 .as[(Int, Int, Int)]
@@ -1422,7 +1422,7 @@ result.writeStream
   
   val result = source.map {
     item =>
-      val arr = item.replace("\"", "").split(";")
+      val arr = item.replace("/"", "").split(";")
       (arr(0).toInt, arr(1).toInt, arr(5).toInt)
   }
     .as[(Int, Int, Int)]
@@ -1472,7 +1472,7 @@ result.writeStream
 
 - 什么是微批次
 
-  ![](img\spark\微批次.png)
+  ![](img/spark/微批次.png)
 
   并不是真正的流, 而是缓存一个批次周期的数据, 后处理这一批次的数据
 
@@ -1608,7 +1608,7 @@ result.writeStream
 
 **从 Source 到 Sink 的流程**
 
-![](img\spark\从 Source 到 Sink 的流程.png)
+![](img/spark/从 Source 到 Sink 的流程.png)
 
 1. 在每个 `StreamExecution` 的批次最开始, `StreamExecution` 会向 `Source` 询问当前 `Source` 的最新进度, 即最新的 `offset`
 2. `StreamExecution` 将 `Offset` 放到 `WAL` 里
@@ -1623,7 +1623,7 @@ result.writeStream
 
 **端到端**
 
-![](img\spark\端到端.png)
+![](img/spark/端到端.png)
 
 - `Source` 可能是 `Kafka`, `HDFS`
 - `Sink` 也可能是 `Kafka`, `HDFS`, `MySQL` 等存储服务
@@ -1633,28 +1633,28 @@ result.writeStream
 
 - `at-most-once`
 
-  ![](img\spark\at-most-once.png)
+  ![](img/spark/at-most-once.png)
 
   - 在数据从 `Source` 到 `Sink` 的过程中, 出错了, `Sink` 可能没收到数据, 但是不会收到两次, 叫做 `at-most-once`
   - 一般错误恢复的时候, 不重复计算, 则是 `at-most-once`
 
 - `at-least-once`
 
-  ![](img\spark\at-least-once.png)
+  ![](img/spark/at-least-once.png)
 
   - 在数据从 `Source` 到 `Sink` 的过程中, 出错了, `Sink` 一定会收到数据, 但是可能收到两次, 叫做 `at-least-once`
   - 一般错误恢复的时候, 重复计算可能完成也可能未完成的计算, 则是 `at-least-once`
 
 - `exactly-once`
 
-  ![](img\spark\exactly-once.png)
+  ![](img/spark/exactly-once.png)
 
   - 在数据从 `Source` 到 `Sink` 的过程中, 虽然出错了, `Sink` 一定恰好收到应该收到的数据, 一条不重复也一条都不少, 即是 `exactly-once`
   - 想做到 `exactly-once` 是非常困难的
 
 **Sink 的容错**
 
-![](img\spark\Sink 的容错.png)
+![](img/spark/Sink 的容错.png)
 
 - 故障恢复一般分为 `Driver` 的容错和 `Task` 的容错
 
@@ -1740,13 +1740,13 @@ result.writeStream
 
 - 无状态算子
 
-  ![](img\spark\无状态算子.png)
+  ![](img/spark/无状态算子.png)
 
   无状态
 
 - 有状态算子
 
-  ![](img\spark\有状态算子.png)
+  ![](img/spark/有状态算子.png)
 
   - 有中间状态需要保存
   - 增量查询
@@ -1830,7 +1830,7 @@ result.writeStream
     .textFile("dataset/movies")
     .map(line => {
       val columns = line.split("::")
-      (columns(0).toInt, columns(1).toString, columns(2).toString.split("\\|"))
+      (columns(0).toInt, columns(1).toString, columns(2).toString.split("//|"))
     })
     .toDF("MovieID", "Title", "Genres")
   

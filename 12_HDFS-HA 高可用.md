@@ -63,7 +63,7 @@ ZKFC是自动故障转移中的另一个新组件，是zookeeper的客户端，�
 
 
 
-![](C:\Users\宋天\Desktop\大数据\img\HDFS-HA故障自动转移机制.png)
+![](img/HDFS-HA故障自动转移机制.png)
 
 ## 2.搭建
 
@@ -254,9 +254,9 @@ NodeManager				NodeManager				NodeManager
 
 5. 查看web页面（暂未配置自动故障转移，所以都为standby）
 
-   ![](C:\Users\宋天\Desktop\大数据\img\bigdata111节点HA状态.PNG)
+   ![](C:/Users/宋天/Desktop/大数据/img/bigdata111节点HA状态.PNG)
 
-   ![](C:\Users\宋天\Desktop\大数据\img\bigdata222节点HA状态.PNG)
+   ![](C:/Users/宋天/Desktop/大数据/img/bigdata222节点HA状态.PNG)
 
 6. 在[nn1]上，启动所有的datanode
 
@@ -434,7 +434,7 @@ NodeManager				NodeManager				NodeManager
 
 1. YARN-HA 工作机制
 
-   ![](C:\Users\宋天\Desktop\大数据\img\yarn-ha工作机制.png)
+   ![](C:/Users/宋天/Desktop/大数据/img/yarn-ha工作机制.png)
 
 2. 规划集群
 
@@ -632,7 +632,7 @@ NodeManager				NodeManager				NodeManager
 
 11. 打开页面查看状况
 
-    ![](C:\Users\宋天\Desktop\大数据\img\yarn-ha节点1.png)
+    ![](C:/Users/宋天/Desktop/大数据/img/yarn-ha节点1.png)
 
     注：打开节点2界面的时候，因为节点1是active状态，所以会自动跳转至节点1的页面
 

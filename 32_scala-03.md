@@ -1046,7 +1046,7 @@ else {
 val emlList =
 List("38123845@qq.com", "a1da88123f@gmail.com", "zhansan@163.com", "123afadff.com")
 
-val regex = """.+@.+\..+""".r
+val regex = """.+@.+/..+""".r
 
 val invalidEmlList = emlList.filter {
     x =>
@@ -1062,7 +1062,7 @@ println(invalidEmlList)
 
 ```scala
 // 使用括号表示一个分组
-val regex = """.+@(.+)\..+""".r
+val regex = """.+@(.+)/..+""".r
 
 val emlList =
 List("38123845@qq.com", "a1da88123f@gmail.com", "zhansan@163.com", "123afadff.com")
@@ -1160,9 +1160,9 @@ def main(args: Array[String]): Unit = {
 
 之前我们学习过了，实现一个类的伴生对象中的apply方法，可以用类名来快速构建一个对象。伴生对象中，还有一个unapply方法。与apply相反，unapply是将该类的对象，拆解为一个个的元素。
 
-![](img\scala\构造.png)
+![](img/scala/构造.png)
 
-![](img\scala\解构.png)
+![](img/scala/解构.png)
 
 ```scala
 def unapply(stu:Student):Option[(类型1, 类型2, 类型3...)] = {
@@ -1358,7 +1358,7 @@ class Pair[T]{}
 * 类型B是A的子类型，Pair[A]和Pair[B]没有任何从属关系
 * Java是一样的
 
-![](img\scala\协变、逆变、非变.png)
+![](img/scala/协变、逆变、非变.png)
 
 ## 13.6 协变
 

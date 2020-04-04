@@ -10,7 +10,7 @@ sqoop工作机制是将导入或导出命令翻译成mapreduce程序来实现。
 - RDBMS体系包括：Mysql、Oracle、DB2等
 - sqoop可以理解为：SQL到hadoop和hadoop到SQL
 
-![](img\sqoop原理.png)
+![](img/sqoop原理.png)
 
 站在Apache立场看待数据流转问题，可以分为数据的导入导出：
 
@@ -147,9 +147,9 @@ See 'sqoop help COMMAND' for information on a specific command.
 ### 2.5 测试sqoop会否能成功连接数据库
 
 ```
-[root@bigdata111 lib]# sqoop list-databases \
-> --connect jdbc:mysql://bigdata111:3306 \
-> --username root \
+[root@bigdata111 lib]# sqoop list-databases /
+> --connect jdbc:mysql://bigdata111:3306 /
+> --username root /
 > --password 000000
 19/12/27 13:28:55 INFO sqoop.Sqoop: Running Sqoop version: 1.4.7
 19/12/27 13:28:55 WARN tool.BaseSqoopTool: Setting your password on the command-line is insecure. Consider using -P instead.
@@ -184,13 +184,13 @@ mysql> insert into company.staff(name, sex) values('Catalina', 'FeMale');
 下面命令用于从mysql数据库服务器中的staff表导入HDFS
 
 ```sql
-[root@bigdata111 ~]# sqoop import \
---connect jdbc:mysql://bigdata111:3306/company \
---username root \
---password 000000 \
---delete-target-dir \
---target-dir /company \
---table staff \
+[root@bigdata111 ~]# sqoop import /
+--connect jdbc:mysql://bigdata111:3306/company /
+--username root /
+--password 000000 /
+--delete-target-dir /
+--target-dir /company /
+--table staff /
 --m 1;
 ```
 
@@ -220,10 +220,10 @@ hdfs dfs -cat /company/part-m-00000
 
       ```sql
       sqoop create-hive-table 
-      --connect jdbc:mysql://bigdata111:3306/company \
-      --table staff \
-      --username root \ 
-      --password 000000 \ 
+      --connect jdbc:mysql://bigdata111:3306/company /
+      --table staff /
+      --username root / 
+      --password 000000 / 
       --hive-table myhive.staff_hive;
       ```
 
@@ -236,26 +236,26 @@ hdfs dfs -cat /company/part-m-00000
    2. 从关系数据库导入文件到hive中
 
       ```sql
-      sqoop import  \
-      --connect jdbc:mysql://bigdata111:3306/company \
-      --username root \
-      --password 000000 \ 
-      --table staff \
-      --hive-table myhive.staff_hive \
-      --hive-import \
+      sqoop import  /
+      --connect jdbc:mysql://bigdata111:3306/company /
+      --username root /
+      --password 000000 / 
+      --table staff /
+      --hive-table myhive.staff_hive /
+      --hive-import /
       --m 1;
       ```
 
 2. 方式2：直接复制表结构数据到hive中
 
    ```sql
-   sqoop import \
-   --connect jdbc:mysql://bigdata111:3306/company \ 
-   --username root \
-   --password 000000 \ 
-   --table staff \
-   --hive-import \
-   --m 1 \
+   sqoop import /
+   --connect jdbc:mysql://bigdata111:3306/company / 
+   --username root /
+   --password 000000 / 
+   --table staff /
+   --hive-import /
+   --m 1 /
    --hive-database myhive;
    ```
 
@@ -264,13 +264,13 @@ hdfs dfs -cat /company/part-m-00000
 `--where` 可以指定从关系数据库导入数据时的查询条件。它执行在数据库服务器相应的SQL查询，并将结果存储在HSFS的目标目录
 
 ```
-sqoop import \
-> --connect jdbc:mysql://bigdata111:3306/company \
-> --username root \
-> --password 000000 \
-> --where 'id>1' \
-> --target-dir /company1 \
-> --table staff \
+sqoop import /
+> --connect jdbc:mysql://bigdata111:3306/company /
+> --username root /
+> --password 000000 /
+> --where 'id>1' /
+> --target-dir /company1 /
+> --table staff /
 > --m 1;
 ```
 
@@ -291,14 +291,14 @@ sqoop import \
 4. 并且这个sql语句必须使用单引号，不能用双引号
 
 ```sql
-sqoop import \
---connect jdbc:mysql://bigdata111:3306/company \
---username root \
---password 000000 \
---target-dir /company2 \
---query 'select id,name from staff where id < 3 and $CONDITIONS' \
---split-by id  \
---fields-terminated-by '\t' \
+sqoop import /
+--connect jdbc:mysql://bigdata111:3306/company /
+--username root /
+--password 000000 /
+--target-dir /company2 /
+--query 'select id,name from staff where id < 3 and $CONDITIONS' /
+--split-by id  /
+--fields-terminated-by '\t' /
 --m 2;
 ```
 
@@ -331,11 +331,11 @@ sqoop命令中，`--split-by id`通常配合--m 10参数使用。用于指定根
 执行以下指令先将之前的数据导入：
 
 ```sql
-sqoop import \
---connect jdbc:mysql://bigdata111:3306/company \
---username root --password 000000 \
---target-dir /company4 \
---table staff \
+sqoop import /
+--connect jdbc:mysql://bigdata111:3306/company /
+--username root --password 000000 /
+--target-dir /company4 /
+--table staff /
 --m 1;
 ```
 
@@ -360,14 +360,14 @@ Query OK, 1 row affected (0.00 sec)
 执行如下指令，实现增量的导入：
 
 ```sql
-sqoop import \
---connect jdbc:mysql://bigdata111:3306/company \
---username root \
---password 000000 \
---table staff \
---target-dir /company4 \
---incremental append \
---check-column id \
+sqoop import /
+--connect jdbc:mysql://bigdata111:3306/company /
+--username root /
+--password 000000 /
+--table staff /
+--target-dir /company4 /
+--incremental append /
+--check-column id /
 --last-value 5;
 ```
 
@@ -407,12 +407,12 @@ insert into customertest(id,name) values(5,'eric');
 执行sqoop指令将数据全部导入hdfs中：
 
 ```sql
-sqoop import \
---connect jdbc:mysql://bigdata111:3306/company \
---username root \
---password 000000 \
---target-dir /lastmodifiedresult \
---table customertest \
+sqoop import /
+--connect jdbc:mysql://bigdata111:3306/company /
+--username root /
+--password 000000 /
+--target-dir /lastmodifiedresult /
+--table customertest /
 --m 1;
 ```
 
@@ -436,14 +436,14 @@ insert into customertest(id,name) values(6,'james');
 使用incremental方式进行增量的导入：
 
 ```sql
-sqoop import \
---connect jdbc:mysql://bigdata111:3306/company \
---username root --password 000000 \
---table customertest --target-dir /lastmodifiedresult \
---check-column last_mod \
---incremental lastmodified \
---last-value '2019-12-29 19:36:40' \
---m 1 \
+sqoop import /
+--connect jdbc:mysql://bigdata111:3306/company /
+--username root --password 000000 /
+--table customertest --target-dir /lastmodifiedresult /
+--check-column last_mod /
+--incremental lastmodified /
+--last-value '2019-12-29 19:36:40' /
+--m 1 /
 --append ;
 ```
 
@@ -483,16 +483,16 @@ update customertest set name = 'Neil' where id = 1
 执行如下指令，把id字段作为merge-key：
 
 ```sql
-sqoop import \
---connect jdbc:mysql://bigdata111:3306/company \
---username root \
---password 000000 \
---table customertest \
---target-dir /lastmodifiedresult \
---check-column last_mod \
---incremental lastmodified \
---last-value '2019-12-29 19:36:40' \
---m 1 \
+sqoop import /
+--connect jdbc:mysql://bigdata111:3306/company /
+--username root /
+--password 000000 /
+--table customertest /
+--target-dir /lastmodifiedresult /
+--check-column last_mod /
+--incremental lastmodified /
+--last-value '2019-12-29 19:36:40' /
+--m 1 /
 --merge-key id ;
 ```
 
@@ -511,15 +511,15 @@ sqoop import \
 ### 3.6 RDBMS到hive
 
 ```sql
-sqoop import \
---connect jdbc:mysql://bigdata111:3306/company \
---username root \
---password 000000 \
---table staff \
---num-mappers 1 \
---hive-import \
---fields-terminated-by "\t" \
---hive-overwrite \
+sqoop import /
+--connect jdbc:mysql://bigdata111:3306/company /
+--username root /
+--password 000000 /
+--table staff /
+--num-mappers 1 /
+--hive-import /
+--fields-terminated-by "\t" /
+--hive-overwrite /
 --hive-table staff_hive
 ```
 
@@ -580,11 +580,11 @@ $ sqoop export (generic-args) (export-args)
 3. 执行导出命令
 
    ```sql
-   sqoop export \
-   > --connect jdbc:mysql://bigdata111:3306/company \
-   > --username root \
-   > --password 000000 \
-   > --table employee \
+   sqoop export /
+   > --connect jdbc:mysql://bigdata111:3306/company /
+   > --username root /
+   > --password 000000 /
+   > --table employee /
    > --export-dir /emp/emp_data.txt;
    ```
 
@@ -607,7 +607,7 @@ $ sqoop export (generic-args) (export-args)
      如果没有指定第一个参数，对于字符串类型的列表来说，null这个字符串就会被翻译成空值，如果没有使用第二个参数，无论是null字符串还是说空字符串也好，对于非字符串类型的字段拉说，这两个类型的空串都会被翻译成空值。比如：
 
      ```
-     --input-null-string "\\N" --input-null-non-string "\\N"
+     --input-null-string "//N" --input-null-non-string "//N"
      ```
 
 ### 4.2 更新导出（updateonly模式）
@@ -641,11 +641,11 @@ $ sqoop export (generic-args) (export-args)
 4. 先执行全部导出操作
 
    ```sql
-   sqoop export \
-   --connect jdbc:mysql://bigdata111:3306/company \
-   --username root  \
-   --password 000000 \
-   --table updateonly \
+   sqoop export /
+   --connect jdbc:mysql://bigdata111:3306/company /
+   --username root  /
+   --password 000000 /
+   --table updateonly /
    --export-dir /updateonly_1;
    ```
 
@@ -679,13 +679,13 @@ $ sqoop export (generic-args) (export-args)
 7. 执行更新导出
 
    ```sql
-   sqoop export \
-   --connect jdbc:mysql://bigdata111/company \
-   --username root \
-   --password 000000 \
-   --table updateonly \
-   --export-dir /updateonly_2 \
-   --update-key id \
+   sqoop export /
+   --connect jdbc:mysql://bigdata111/company /
+   --username root /
+   --password 000000 /
+   --table updateonly /
+   --export-dir /updateonly_2 /
+   --update-key id /
    --update-mode updateonly;
    ```
 
@@ -745,11 +745,11 @@ $ sqoop export (generic-args) (export-args)
 4. 先执行全部导出操作
 
    ```sql
-   sqoop export \
-   --connect jdbc:mysql://bigdata111:3306/company \
-   --username root \
-   --password 000000 \
-   --table allowinsert \
+   sqoop export /
+   --connect jdbc:mysql://bigdata111:3306/company /
+   --username root /
+   --password 000000 /
+   --table allowinsert /
    --export-dir /allowinsert_1;
    ```
 
@@ -785,13 +785,13 @@ $ sqoop export (generic-args) (export-args)
 7. 执行更新导出
 
    ```sql
-   sqoop export \
-   --connect jdbc:mysql://bigdata111:3306/company \
-   --username root \
-   --password 000000 \
-   --table allowinsert \
-   --export-dir /allowinsert_2 \
-   --update-key id \
+   sqoop export /
+   --connect jdbc:mysql://bigdata111:3306/company /
+   --username root /
+   --password 000000 /
+   --table allowinsert /
+   --export-dir /allowinsert_2 /
+   --update-key id /
    --update-mode allowinsert ;
    ```
 
@@ -898,12 +898,12 @@ $ sqoop-job (generic-args)
 下面的命令用于创建一个从DB数据库的emp表导入到HDFS文件的作业
 
 ```
-sqoop job --create songjob -- import \
---connect jdbc:mysql://bigdata111:3306/company \
---username root \
---password 000000 \
---target-dir /emp \
---table updateonly \
+sqoop job --create songjob -- import /
+--connect jdbc:mysql://bigdata111:3306/company /
+--username root /
+--password 000000 /
+--target-dir /emp /
+--table updateonly /
 --m 1;
 ```
 
@@ -989,13 +989,13 @@ hadoop fs -chmod 400 /sqooppassword/password.pwd
 在创建job时，使用--password-file参数
 
 ```sql
-sqoop job --create songjob \
--- import \
---connect jdbc:mysql://bigdata111:3306/company \
---username root \
---password-file /sqooppassword/password.pwd \
---target-dir /emp \
---table staff \
+sqoop job --create songjob /
+-- import /
+--connect jdbc:mysql://bigdata111:3306/company /
+--username root /
+--password-file /sqooppassword/password.pwd /
+--target-dir /emp /
+--table staff /
 --m 1;
 ```
 
@@ -1093,12 +1093,12 @@ sqoop job -exec songjob
    如：导入数据到hive中
 
    ```
-   $ bin/sqoop import \
-   --connect jdbc:mysql://bigdata113:3306/Andy \
-   --username root \
-   --password 000000 \
-   --table access \
-   --hive-import \
+   $ bin/sqoop import /
+   --connect jdbc:mysql://bigdata113:3306/Andy /
+   --username root /
+   --password 000000 /
+   --table access /
+   --hive-import /
    --fields-terminated-by "\t"
    ```
 
@@ -1106,16 +1106,16 @@ sqoop job -exec songjob
 
    ```
    append导入：
-   $ bin/sqoop import \
-   --connect jdbc:mysql://bigdata113:3306/Andy \
-   --username root \
-   --password 000000 \
-   --table aca \
-   --num-mappers 1 \
-   --fields-terminated-by "\t" \
-   --target-dir /user/hive/warehouse/staff_hive \
-   --check-column id \
-   --incremental append \
+   $ bin/sqoop import /
+   --connect jdbc:mysql://bigdata113:3306/Andy /
+   --username root /
+   --password 000000 /
+   --table aca /
+   --num-mappers 1 /
+   --fields-terminated-by "\t" /
+   --target-dir /user/hive/warehouse/staff_hive /
+   --check-column id /
+   --incremental append /
    --last-value 10
    ```
 
@@ -1135,29 +1135,29 @@ sqoop job -exec songjob
    mysql> insert into company.staff_timestamp (id, name, sex) values(1, 'AAA', 'female');
    mysql> insert into company.staff_timestamp (id, name, sex) values(2, 'BBB', 'female');
    先导入一部分数据：
-   $ bin/sqoop import \
-   --connect jdbc:mysql://bigdata113:3306/company \
-   --username root \
-   --password 000000 \
-   --table staff_timestamp \
-   --delete-target-dir \
-   --hive-import \
-   --fields-terminated-by "\t" \
+   $ bin/sqoop import /
+   --connect jdbc:mysql://bigdata113:3306/company /
+   --username root /
+   --password 000000 /
+   --table staff_timestamp /
+   --delete-target-dir /
+   --hive-import /
+   --fields-terminated-by "\t" /
    --m 1
    再增量导入一部分数据:
    mysql> insert into company.staff_timestamp (id, name, sex) values(3, 'CCC', 'female');
-   $ bin/sqoop import \
-   --connect jdbc:mysql://bigdata113:3306/company \
-   --username root \
-   --password 000000 \
-   --table staff_timestamp \
-   --check-column last_modified \
-   --incremental lastmodified \
-   --m 1 \
-   --last-value "2019-05-17 09:50:12" \
+   $ bin/sqoop import /
+   --connect jdbc:mysql://bigdata113:3306/company /
+   --username root /
+   --password 000000 /
+   --table staff_timestamp /
+   --check-column last_modified /
+   --incremental lastmodified /
+   --m 1 /
+   --last-value "2019-05-17 09:50:12" /
    --append
    
-   --last-value "2019-05-17 07:08:53" \
+   --last-value "2019-05-17 07:08:53" /
    ```
 
    **尖叫提示：**使用lastmodified方式导入数据要指定增量数据是要--append（追加）还是要--merge-key（合并）
@@ -1224,13 +1224,13 @@ sqoop job -exec songjob
    如：
 
    ```
-   bin/sqoop export \
-   --connect jdbc:mysql://bigdata113:3306/Andy \
-   --username root \
-   --password 000000 \
-   --export-dir /user/hive/warehouse/staff_hive \
-   --table aca \
-   --num-mappers 1 \
+   bin/sqoop export /
+   --connect jdbc:mysql://bigdata113:3306/Andy /
+   --username root /
+   --password 000000 /
+   --export-dir /user/hive/warehouse/staff_hive /
+   --table aca /
+   --num-mappers 1 /
    --input-fields-terminated-by "\t"
    
    ```
@@ -1257,13 +1257,13 @@ sqoop job -exec songjob
 如：
 
 ```
-$ bin/sqoop codegen \
---connect jdbc:mysql://bigdata113:3306/company \
---username root \
---password 000000 \
---table staff \
---bindir /opt/Desktop/staff \
---class-name Staff \
+$ bin/sqoop codegen /
+--connect jdbc:mysql://bigdata113:3306/company /
+--username root /
+--password 000000 /
+--table staff /
+--bindir /opt/Desktop/staff /
+--class-name Staff /
 --fields-terminated-by "\t"
 ```
 
@@ -1289,11 +1289,11 @@ $ bin/sqoop codegen \
 如：仅建表
 
 ```
-$ bin/sqoop create-hive-table \
---connect jdbc:mysql://bigdata113:3306/company \
---username root \
---password 000000 \
---table staff \
+$ bin/sqoop create-hive-table /
+--connect jdbc:mysql://bigdata113:3306/company /
+--username root /
+--password 000000 /
+--table staff /
 --hive-table hive_staff1
 ```
 
@@ -1314,10 +1314,10 @@ $ bin/sqoop create-hive-table \
 **命令：**
 
 ```
-$ bin/sqoop eval \
---connect jdbc:mysql://bigdata113:3306/company \
---username root \
---password 000000 \
+$ bin/sqoop eval /
+--connect jdbc:mysql://bigdata113:3306/company /
+--username root /
+--password 000000 /
 --query "SELECT * FROM staff"
 ```
 
@@ -1336,11 +1336,11 @@ $ bin/sqoop eval \
 如：注意：(卡住)
 
 ```
-$ bin/sqoop import-all-tables \
---connect jdbc:mysql://bigdata113:3306/company \
---username root \
---password 000000 \
---hive-import \
+$ bin/sqoop import-all-tables /
+--connect jdbc:mysql://bigdata113:3306/company /
+--username root /
+--password 000000 /
+--hive-import /
 --fields-terminated-by "\t"
 ```
 
@@ -1368,14 +1368,14 @@ $ bin/sqoop import-all-tables \
 如：
 
 ```
-$ bin/sqoop job \
- --create myjob -- import-all-tables \
- --connect jdbc:mysql://bigdata111:3306/company \
- --username root \
+$ bin/sqoop job /
+ --create myjob -- import-all-tables /
+ --connect jdbc:mysql://bigdata111:3306/company /
+ --username root /
  --password 000000
-$ bin/sqoop job \
+$ bin/sqoop job /
 --list
-$ bin/sqoop job \
+$ bin/sqoop job /
 --exec myjob
 ```
 
@@ -1415,9 +1415,9 @@ $ bin/sqoop job \
 如：
 
 ```
-$ bin/sqoop list-databases \
---connect jdbc:mysql://bigdata113:3306/ \
---username root \
+$ bin/sqoop list-databases /
+--connect jdbc:mysql://bigdata113:3306/ /
+--username root /
 --password 000000
 ```
 
@@ -1430,9 +1430,9 @@ $ bin/sqoop list-databases \
 如：
 
 ```
-$ bin/sqoop list-tables \
---connect jdbc:mysql://bigdata113:3306/company \
---username root \
+$ bin/sqoop list-tables /
+--connect jdbc:mysql://bigdata113:3306/company /
+--username root /
 --password 000000
 ```
 
@@ -1458,7 +1458,7 @@ old_staff
 6	DDD	female
 ```
 
-**尖叫提示：**上边数据的列之间的分隔符应该为\t，行与行之间的分割符为\n，如果直接复制，请检查之。
+**尖叫提示：**上边数据的列之间的分隔符应该为\t，行与行之间的分割符为/n，如果直接复制，请检查之。
 
 **命令：**
 
@@ -1466,22 +1466,22 @@ old_staff
 
 ```
 创建JavaBean：
-$ bin/sqoop codegen \
---connect jdbc:mysql://bigdata113:3306/company \
---username root \
---password 000000 \
---table staff \
---bindir /opt/Desktop/staff \
---class-name Staff \
+$ bin/sqoop codegen /
+--connect jdbc:mysql://bigdata113:3306/company /
+--username root /
+--password 000000 /
+--table staff /
+--bindir /opt/Desktop/staff /
+--class-name Staff /
 --fields-terminated-by "\t"
 
 开始合并：注：是hdfs路径
-$ bin/sqoop merge \
---new-data /test/new/ \
---onto /test/old/ \
---target-dir /test/merged \
---jar-file /opt/Desktop/staff/Staff.jar \
---class-name Staff \
+$ bin/sqoop merge /
+--new-data \test/new/ /
+--onto \test/old/ /
+--target-dir \test/merged /
+--jar-file /opt/Desktop/staff/Staff.jar /
+--class-name Staff /
 --merge-key id
 结果：
 1	AAA	MALE

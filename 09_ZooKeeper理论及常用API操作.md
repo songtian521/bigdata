@@ -19,7 +19,7 @@ zookeeper是一个开源的分布式的，为分布式应用提供协调服务�
 
    Zookeeper数据模型的结构与unix文件系统类似，整体可以看作是一颗树，每个节点称作一个ZNode。每一个ZNode默认能够存储1MB的元数据，每个ZNode都可以通过其路径唯一标识
 
-   ![](C:\Users\宋天\Desktop\大数据\img\zookeeper数据结构图.png)
+   ![](img/zookeeper数据结构图.png)
 
 3. 应用场景
 
@@ -27,7 +27,7 @@ zookeeper是一个开源的分布式的，为分布式应用提供协调服务�
 
    1. 统一命名服务
 
-      ![](C:\Users\宋天\Desktop\大数据\img\zookeepeer统一命名服务.png)
+      ![](img/zookeepeer统一命名服务.png)
 
    2. 统一配置管理
 
@@ -42,7 +42,7 @@ zookeeper是一个开源的分布式的，为分布式应用提供协调服务�
          - 各个节点监听这个Znode
          - 一旦znode中的数据被修改，ZK将会通知各个节点
 
-         ![](C:\Users\宋天\Desktop\大数据\img\zookeeper统一配置管理.png)
+         ![](img/zookeeper统一配置管理.png)
 
       3. 统一集群管理
 
@@ -59,15 +59,15 @@ zookeeper是一个开源的分布式的，为分布式应用提供协调服务�
 
             HBase中Master状态监控与选举
 
-            ![](C:\Users\宋天\Desktop\大数据\img\zookeeper统一集群管理.png)
+            ![](img/zookeeper统一集群管理.png)
 
       4. 服务器节点动态上下线
 
-         ![](C:\Users\宋天\Desktop\大数据\img\zookeeper服务器节点动态上下线.png)
+         ![](img/zookeeper服务器节点动态上下线.png)
 
       5. 软负载均衡
 
-         ![](C:\Users\宋天\Desktop\大数据\img\zookeeper软负载均衡.png)
+         ![](img/zookeeper软负载均衡.png)
 
 ## 2.Zookeeper内部原理
 
@@ -81,7 +81,7 @@ zookeeper是一个开源的分布式的，为分布式应用提供协调服务�
 
    假设有五台服务器组成zookeeper集群，他们的id从1-5，同时他们都是最新启动的，也就是没有历史数据，在存放数据量这一点上，都是一样的。假设这些服务依序启动，我们可以看看会发生什么
 
-   ![](C:\Users\宋天\Desktop\大数据\img\zookeeper选举机制.png)
+   ![](img/zookeeper选举机制.png)
 
    - 服务1启动，此时只有它一台服务器启动了，它发出去的信号没有任何响应，所以它的选举状态一直都是LOOKING状态
    - 服务2启动，他与最开始启动的服务1进行通信，互相交换了自己的选举结果，由于两者都没有历史数据，所以id值较大的服务器2胜利，但是由于没有达到半数以上的服务器都同意选举它（本例中的半数以上是3），所以服务器1、2之间还是继续保持LOOKING状态
@@ -157,7 +157,7 @@ zookeeper是一个开源的分布式的，为分布式应用提供协调服务�
 
    
 
-![](C:\Users\宋天\Desktop\大数据\img\zookeeper监听器原理.png)
+![](img/zookeeper监听器原理.png)
 
 3. zookeeper的watch机制
 
@@ -180,7 +180,7 @@ zookeeper是一个开源的分布式的，为分布式应用提供协调服务�
 
 ### 2.5 写数据流程
 
-![](C:\Users\宋天\Desktop\大数据\img\zookeeper写数据流程.png)
+![](img/zookeeper写数据流程.png)
 
 读是局部性的，即client只需要从与它相连的server上读取数据即可；而client有写请求的话，与之相连的server会通知leader，然后leader会把写操作分发给所有server。所以定要比读慢很多。
 

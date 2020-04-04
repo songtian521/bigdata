@@ -30,7 +30,7 @@ Github: https://github.com/cloudera/hue
 
 Reviews: [https://review.cloudera.org](https://review.cloudera.org/)
 
-![](img\hbase\hue的架构.png)
+![](img/hbase/hue的架构.png)
 
 **核心功能**
 
@@ -76,7 +76,7 @@ hue的编译需要使用maven进行下载一些其他jar包
 ```
 wget http://repos.fedorapeople.org/repos/dchen/apache-maven/epel-apache-maven.repo -O /etc/yum.repos.d/epel-apache-maven.repo
 
-sed -i s/\$releasever/6/g /etc/yum.repos.d/epel-apache-maven.repo
+sed -i s//$releasever/6/g /etc/yum.repos.d/epel-apache-maven.repo
 
 yum install -y apache-maven
 

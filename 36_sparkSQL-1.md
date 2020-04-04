@@ -57,7 +57,7 @@
 
  `SQL` 是数据分析领域一个非常重要的范式, 所以 `Spark` 一直想要支持这种范式, 而伴随着一些决策失误, 出现的过程其实还是非常曲折的
 
-![](img\spark\spark出现的过程.png)
+![](img/spark/spark出现的过程.png)
 
 1. hive
 
@@ -260,7 +260,7 @@ class SqlDemo {
 
 ### 2.2.2 DataFrame & Dataset
 
-![](img\spark\DataFrame & Dataset.png)
+![](img/spark/DataFrame & Dataset.png)
 
  `SparkSQL` 最大的特点就是它针对于结构化数据设计, 所以 `SparkSQL` 应该是能支持针对某一个字段的访问的, 而这种访问方式有一个前提, 就是 `SparkSQL` 的数据集中, 要 **包含结构化信息**, 也就是俗称的Schema
 
@@ -317,7 +317,7 @@ teenagers.show()
 
 `RDD` **的运行流程**
 
-![](img\spark\RDD 的运行流程.png)
+![](img/spark/RDD 的运行流程.png)
 
 **运行步骤：**先将 `RDD` 解析为由 `Stage` 组成的 `DAG`, 后将 `Stage` 转为 `Task` 直接运行
 
@@ -332,7 +332,7 @@ teenagers.show()
 
 `SparkSQL` **运行流程**
 
-![](img\spark\Catalyst .png)
+![](img/spark/Catalyst .png)
 
 和 `RDD` 不同, `SparkSQL` 的 `Dataset` 和 `SQL` 并不是直接生成计划交给集群执行, 而是经过了一个叫做 `Catalyst` 的优化器, 这个优化器能够自动帮助开发者优化代码
 
@@ -346,22 +346,22 @@ teenagers.show()
 
 为了解决过多依赖 `Hive` 的问题, `SparkSQL` 使用了一个新的 `SQL` 优化器替代 `Hive` 中的优化器, 这个优化器就是 `Catalyst`, 整个 `SparkSQL` 的架构大致如下
 
-![](img\spark\Catalyst 架构.png)
+![](img/spark/Catalyst 架构.png)
 
 1. `API` 层简单的说就是 `Spark` 会通过一些 `API` 接受 `SQL` 语句
 2. 收到 `SQL` 语句以后, 将其交给 `Catalyst`, `Catalyst` 负责解析 `SQL`, 生成执行计划等
 3. `Catalyst` 的输出应该是 `RDD` 的执行计划
 4. 最终交由集群运行
 
-![](img\spark\Catalyst1.png)
+![](img/spark/Catalyst1.png)
 
 **解析** `SQL`**, 并且生成** `AST` **(抽象语法树)****
 
-![](img\spark\解析 SQL.png)
+![](img/spark/解析 SQL.png)
 
 **在** `AST` **中加入元数据信息, 做这一步主要是为了一些优化, 例如** `col = col` **这样的条件, 下图是一个简略图, 便于理解**
 
-![](img\spark\解析 SQL 优化.png)
+![](img/spark/解析 SQL 优化.png)
 
 - `score.id → id#1#L` 为 `score.id` 生成 `id` 为 1, 类型是 `Long`
 - `score.math_score → math_score#2#L` 为 `score.math_score` 生成 `id` 为 2, 类型为 `Long`
@@ -370,11 +370,11 @@ teenagers.show()
 
 **对已经加入元数据的** `AST`**, 输入优化器, 进行优化, 从两种常见的优化开始, 简单介绍**
 
-![](img\spark\解析器.png)
+![](img/spark/解析器.png)
 
 谓词下推 `Predicate Pushdown`, 将 `Filter` 这种可以减小数据集的操作下推, 放在 `Scan` 的位置, 这样可以减少操作时候的数据量
 
-![](img\spark\谓词下推.png)
+![](img/spark/谓词下推.png)
 
 - 列值裁剪 `Column Pruning`, 在谓词下推后, `people` 表之上的操作只用到了 `id` 列, 所以可以把其它列裁剪掉, 这样可以减少处理的数据量, 从而优化处理速度
 
@@ -387,13 +387,13 @@ teenagers.show()
 
 **可以使用** `queryExecution` **方法查看逻辑执行计划, 使用** `explain` **方法查看物理执行计划**
 
-![](img\spark\queryExecution 1.png)
+![](img/spark/queryExecution 1.png)
 
-![](img\spark\queryExecution 2.png)
+![](img/spark/queryExecution 2.png)
 
 **也可以使用** `Spark WebUI` **进行查看**
 
-![](img\spark\queryExecution 3.png)
+![](img/spark/queryExecution 3.png)
 
 **总结：**
 
@@ -459,7 +459,7 @@ val internalRDD: RDD[InternalRow] = dataset.queryExecution.toRdd
 
 所以, `Dataset` 的范型对象在执行之前, 需要通过 `Encoder` 转换为 `InternalRow`, 在输入之前, 需要把 `InternalRow` 通过 `Decoder` 转换为范型对象
 
-![](img\spark\Dataset 的底层.png)
+![](img/spark/Dataset 的底层.png)
 
 **可以获取 `Dataset` 对应的 `RDD` 表示**
 
@@ -499,11 +499,11 @@ println(dataset.queryExecution.toRdd.toDebugString)
 
 `DataFrame` 是 `SparkSQL` 中一个表示关系型数据库中 **表** 的函数式抽象, 其作用是让 `Spark` 处理大规模结构化数据的时候更加容易. 一般 `DataFrame` 可以处理结构化的数据, 或者是半结构化的数据, 因为这两类数据中都可以获取到 `Schema` 信息. 也就是说 `DataFrame` 中有 `Schema` 信息, 可以像操作表一样操作 `DataFrame`.
 
-![](img\spark\DataFrame1.png)
+![](img/spark/DataFrame1.png)
 
 `DataFrame` 由两部分构成, 一是 `row` 的集合, 每个 `row` 对象表示一个行, 二是描述 `DataFrame` 结构的 `Schema`.
 
-![](img\spark\DataFrame2.png)
+![](img/spark/DataFrame2.png)
 
 `DataFrame` 支持 `SQL` 中常见的操作, 例如: `select`, `filter`, `join`, `group`, `sort`, `join` 等
 
@@ -550,7 +550,7 @@ import spark.implicits._
 val peopleDF: DataFrame = Seq(People("zhangsan", 15), People("lisi", 15)).toDF()
 ```
 
-![](img\spark\创建DataFrame的方式1.png)
+![](img/spark/创建DataFrame的方式1.png)
 
 根据源码可以知道, `toDF` 方法可以在 `RDD` 和 `Seq` 中使用
 
@@ -624,7 +624,7 @@ df.printSchema()
 //    读取数据
     val sourceDF = spark.read
       .option("header",true)
-      .csv("C:\\Users\\宋天\\Desktop\\大数据\\file\\BeijingPM20100101_20151231.csv")
+      .csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
 
 //    sourceDF.show()
 //    查看dataframe的schema信息，需要注意的是dataframe是有结构信息的叫做schema
@@ -660,7 +660,7 @@ df.printSchema()
 //    读取数据
     val sourceDF = spark.read
       .option("header",true)
-      .csv("C:\\Users\\宋天\\Desktop\\大数据\\file\\BeijingPM20100101_20151231.csv")
+      .csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
 
     
 //    能否直接使用SQL语句进行查询
@@ -695,7 +695,7 @@ df.printSchema()
 
 所以这件事就比较蹊跷了, 两个这么相近的东西为什么会同时出现在 `SparkSQL` 中呢?
 
-![](img\spark\Dataset和DataFrame.png)
+![](img/spark/Dataset和DataFrame.png)
 
 确实, 这两个组件是同一个东西, `DataFrame` 是 `Dataset` 的一种特殊情况, 也就是说 `DataFrame` 是 `Dataset[Row]` 的别名
 
@@ -841,21 +841,21 @@ val reader: DataFrameReader = spark.read
       .format("csv")
       .option("header",true)
       .option("inferSchema",true)
-      .load("C:\\Users\\宋天\\Desktop\\大数据\\file\\BeijingPM20100101_20151231.csv")
+      .load("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
       .show(10)
 
 //    第二种形式
     spark.read
       .option("header",true)
       .option("inferSchema",true)
-      .csv("C:\\Users\\宋天\\Desktop\\大数据\\file\\BeijingPM20100101_20151231.csv")
+      .csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
       .show()
   }
 ```
 
 但是其实这两种方式本质上一样, 因为类似 `csv` 这样的方式只是 `load` 的封装
 
-![](img\spark\load.png)
+![](img/spark/load.png)
 
 **注意：**如果使用 `load` 方法加载数据, 但是没有指定 `format` 的话, 默认是按照 `Parquet` 文件格式读取
 
@@ -914,12 +914,12 @@ def c():Unit = {
     .getOrCreate()
 
 //  2. 读取数据集
-  val df = spark.read.option("header",true).csv("C:\\Users\\宋天\\Desktop\\大数据\\file\\BeijingPM20100101_20151231.csv")
+  val df = spark.read.option("header",true).csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
 //  3. 写入数据集
     //使用 json 保存, 因为方法是 json, 所以隐含的 format 是 json
-  df.write.json("C:\\Users\\宋天\\Desktop\\aaa.json")
+  df.write.json("C://Users//宋天//Desktop//aaa.json")
     // 使用 save 保存, 使用 format 设置文件格式
-  df.write.format("json").save("C:\\Users\\宋天\\Desktop\\bbb.json")
+  df.write.format("json").save("C://Users//宋天//Desktop//bbb.json")
 
   }
 
@@ -937,7 +937,7 @@ def c():Unit = {
 
 **什么时候会用到 `Parquet` ?**
 
-![](img\spark\Parquet2.png)
+![](img/spark/Parquet2.png)
 
 1. 在 `ETL` 中, `Spark` 经常扮演 `T` 的职务, 也就是进行数据清洗和数据转换.
 2. 为了能够保存比较复杂的数据, 并且保证性能和压缩率, 通常使用 `Parquet` 是一个比较不错的选择.
@@ -959,16 +959,16 @@ def d():Unit = {
     .getOrCreate()
 
 //  读取csv文件的数据
-  val df = spark.read.option("header",true).csv("C:\\Users\\宋天\\Desktop\\大数据\\file\\BeijingPM20100101_20151231.csv")
+  val df = spark.read.option("header",true).csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
 
 //  把数据写为parquet格式文件 mode中的Overwrite表示可以往往文件中进行覆盖 Append表示追加
 //  写入的默认格式就是parquet
-//  df.write.format("parquet").mode(SaveMode.Append).save("C:\\Users\\宋天\\Desktop\\ccc")
+//  df.write.format("parquet").mode(SaveMode.Append).save("C://Users//宋天//Desktop//ccc")
 
 //  读取parquet格式文件
 //  默认读取格式为parquet格式,可以读取文件夹
   spark.read
-    .load("C:\\Users\\宋天\\Desktop\\ccc")
+    .load("C://Users//宋天//Desktop//ccc")
     .show()
 
 }
@@ -997,18 +997,18 @@ def d():Unit = {
 //  读取数据
     val df = spark.read
       .option("header",true)
-      .csv("C:\\Users\\宋天\\Desktop\\大数据\\file\\BeijingPM20100101_20151231.csv")
+      .csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
 
 //  写文件，表分区
 //  df.write
 //    .partitionBy("year","month")
-//    .save("C:\\Users\\宋天\\Desktop\\ddd")
+//    .save("C://Users//宋天//Desktop//ddd")
 
 //  读文件，自动发现分区
 //  写分区表的时候，分区列不会包含在生成的文件中
 //  直接通过具体的一个文件来进行读取的话,分区信息会丢失,所以需要制定最外层的目录
   spark.read
-    .parquet("C:\\Users\\宋天\\Desktop\\ddd")
+    .parquet("C://Users//宋天//Desktop//ddd")
     .printSchema()
 }
 ```
@@ -1028,7 +1028,7 @@ partDF.printSchema()
 
 把分区的数据集中的某一个区单做一整个数据集读取, 没有分区信息, 自然也不会进行分区发现
 
-![](img\spark\分区1.png)
+![](img/spark/分区1.png)
 
 ```scala
 val df = spark.read.load("dataset/beijing_pm") //读取整个目录
@@ -1037,7 +1037,7 @@ df.printSchema()
 
 此处读取的是整个数据集, 会进行分区发现, DataFrame 中会包含分去列
 
-![](img\spark\分区2.png)
+![](img/spark/分区2.png)
 
  **`SparkSession` 中有关 `Parquet` 的配置**
 
@@ -1060,7 +1060,7 @@ df.printSchema()
 
 **什么时候会用到** `JSON` **?**
 
-![](img\spark\读写json.png)
+![](img/spark/读写json.png)
 
 在 `ETL` 中, `Spark` 经常扮演 `T` 的职务, 也就是进行数据清洗和数据转换.
 
@@ -1121,7 +1121,7 @@ val dfFromJSON = spark.read.json("dataset/beijing_pm_json")
 dfFromJSON.printSchema()
 ```
 
-![](img\spark\json.png)
+![](img/spark/json.png)
 
 ### 7.4.1 JSON转为DataFrame
 
@@ -1129,7 +1129,7 @@ Spark 可以从一个保存了 JSON 格式字符串的 Dataset[String] 中读取
 
 这种情况其实还是比较常见的, 例如如下的流程
 
-![](img\spark\JSON转为DataFrame.png)
+![](img/spark/JSON转为DataFrame.png)
 
 假设业务系统通过 `Kafka` 将数据流转进入大数据平台, 这个时候可能需要使用 `RDD` 或者 `Dataset` 来读取其中的内容, 这个时候一条数据就是一个 `JSON` 格式的字符串, 如何将其转为 `DataFrame` 或者 `Dataset[Object]` 这样具有 `Schema` 的数据集呢? 使用如下代码就可以
 
@@ -1162,7 +1162,7 @@ spark.read.json(peopleDataset).show()
 
     val df = spark.read
       .option("header",true)
-      .csv("C:\\Users\\宋天\\Desktop\\大数据\\file\\BeijingPM20100101_20151231.csv")
+      .csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
 
     df.toJSON.show()
   }
@@ -1180,7 +1180,7 @@ spark.read.json(peopleDataset).show()
 
     val df = spark.read
       .option("header",true)
-      .csv("C:\\Users\\宋天\\Desktop\\大数据\\file\\BeijingPM20100101_20151231.csv")
+      .csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
 
     val jsonRDD = df.toJSON.rdd
     spark.read.json(jsonRDD).show()
@@ -1217,7 +1217,7 @@ spark.read.json(peopleDataset).show()
 
 `Hive` 的 `MetaStore` 是一个 `Hive` 的组件, 一个 `Hive` 提供的程序, 用以保存和访问表的元数据, 整个 `Hive` 的结构大致如下
 
-![](img\spark\Hive的MetaStore.png)
+![](img/spark/Hive的MetaStore.png)
 
 由上图可知道, 其实 `Hive` 中主要的组件就三个, `HiveServer2` 负责接受外部系统的查询请求, 例如 `JDBC`, `HiveServer2` 接收到查询请求后, 交给 `Driver` 处理, `Driver` 会首先去询问 `MetaStore` 表在哪存, 后 `Driver` 程序通过 `MR` 程序来访问 `HDFS` 从而获取结果返回给查询请求者
 
@@ -1356,8 +1356,8 @@ spark.read.json(peopleDataset).show()
      gpa   string
    )
    ROW FORMAT DELIMITED
-     FIELDS TERMINATED BY '\t'
-     LINES TERMINATED BY '\n'
+     FIELDS TERMINATED BY '/t'
+     LINES TERMINATED BY '/n'
    STORED AS TEXTFILE
    LOCATION '/dataset/hive';
    
@@ -1379,7 +1379,7 @@ scala> resultDF.show()
 通过 `SparkSQL` 可以直接创建 `Hive` 表, 并且使用 `LOAD DATA` 加载数据
 
 ```scala
-val createTableStr = """CREATE EXTERNAL TABLE student1( name  STRING,age   INT,gpa   string)ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t' LINES TERMINATED BY '\n' STORED AS TEXTFILE LOCATION '/dataset/hive'""".stripMargin
+val createTableStr = """CREATE EXTERNAL TABLE student1( name  STRING,age   INT,gpa   string)ROW FORMAT DELIMITED FIELDS TERMINATED BY '/t' LINES TERMINATED BY '/n' STORED AS TEXTFILE LOCATION '/dataset/hive'""".stripMargin
 
 spark.sql("CREATE DATABASE IF NOT EXISTS spark_integrition1")
 spark.sql("USE spark_integrition1")
@@ -1440,7 +1440,7 @@ spark.sql("select * from student limit 100").show()
       )
       
       val studentDF = spark.read
-        .option("delimiter", "\t")
+        .option("delimiter", "/t")
         .schema(schema)
         .csv("dataset/studenttab10k")
       
@@ -1522,9 +1522,9 @@ spark.sql("select * from student limit 100").show()
       )
     )
     val studentDF = spark.read
-      .option("delimiter", "\t")
+      .option("delimiter", "/t")
       .schema(schema)
-      .csv("C:\\Users\\宋天\\Desktop\\大数据\\file\\studenttab10k")
+      .csv("C://Users//宋天//Desktop//大数据//file//studenttab10k")
 
     studentDF.write.format("jdbc").mode(SaveMode.Overwrite)
       .option("url", "jdbc:mysql://bigdata111:3306/spark_test")

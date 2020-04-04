@@ -80,7 +80,7 @@ Azkaban是由Linkedin（领英）公司推出的一个批量工作流任务调�
 
 Azkaban由三个关键组件构成：
 
-![](img\azkaban\azkaban架构.png)
+![](img/azkaban/azkaban架构.png)
 
 1.  AzkabanWebServer：AzkabanWebServer是整个Azkaban工作流系统的主要管理者，它用户登录认证、负责project管理、定时执行工作流、跟踪工作流执行进度等一系列任务。
 2.  AzkabanExecutorServer：负责具体的工作流的提交、执行，它们通过mysql数据库来协调任务的执行。
@@ -267,45 +267,45 @@ Keytool是java数据证书的管理工具，使用户能够管理自己的公/�
 
 2. 按照如下配置修改azkaban.properties文件。
 
-   > \#Azkaban Personalization Settings
+   > /#Azkaban Personalization Settings
    >
-   > \#服务器UI名称,用于服务器上方显示的名字
+   > /#服务器UI名称,用于服务器上方显示的名字
    >
    > azkaban.name=Test
    >
-   > \#描述
+   > /#描述
    >
    > azkaban.label=My Local Azkaban
    >
-   > \#UI颜色
+   > /#UI颜色
    >
    > azkaban.color=#FF3601
    >
    > azkaban.default.servlet.path=/index
    >
-   > **\#默认web server存放web文件的目录**
+   > **/#默认web server存放web文件的目录**
    >
    > **web.resource.dir=/opt/module/azkaban/server/web/**
    >
-   > **\#默认时区,已改为亚洲/上海 默认为美国**
+   > **/#默认时区,已改为亚洲/上海 默认为美国**
    >
    > **default.timezone.id=Asia/Shanghai**
    >
    >  
    >
-   > \#Azkaban UserManager class
+   > /#Azkaban UserManager class
    >
    > user.manager.class=azkaban.user.XmlUserManager
    >
-   > **\#用户权限管理默认类（绝对路径）**
+   > **/#用户权限管理默认类（绝对路径）**
    >
    > **user.manager.xml.file=/opt/module/azkaban/server/conf/azkaban-users.xml**
    >
    > 
    >
-   > \#Loader for projects
+   > /#Loader for projects
    >
-   > **\#global配置文件所在位置（绝对路径）**
+   > **/#global配置文件所在位置（绝对路径）**
    >
    > **executor.global.properties=/opt/module/azkaban/executor/conf/global.properties**
    >
@@ -313,87 +313,87 @@ Keytool是java数据证书的管理工具，使用户能够管理自己的公/�
    >
    >  
    >
-   > \#数据库类型
+   > /#数据库类型
    >
    > database.type=mysql
    >
-   > \#端口号
+   > /#端口号
    >
    > mysql.port=3306
    >
-   > \#数据库连接IP
+   > /#数据库连接IP
    >
    > **mysql.host=bigdata111**
    >
-   > \#数据库实例名
+   > /#数据库实例名
    >
    > mysql.database=azkaban
    >
-   > **\#数据库用户名**
+   > **/#数据库用户名**
    >
    > **mysql.user=root**
    >
-   > **\#数据库密码**
+   > **/#数据库密码**
    >
    > **mysql.password=000000**
    >
-   > \#最大连接数
+   > /#最大连接数
    >
    > mysql.numconnections=100
    >
    >  
    >
-   > \# Velocity dev mode
+   > /# Velocity dev mode
    >
    > velocity.dev.mode=false
    >
    >  
    >
-   > \# Azkaban Jetty server properties.
+   > /# Azkaban Jetty server properties.
    >
-   > \# Jetty服务器属性.
+   > /# Jetty服务器属性.
    >
-   > \#最大线程数
+   > /#最大线程数
    >
    > jetty.maxThreads=25
    >
-   > \#Jetty SSL端口
+   > /#Jetty SSL端口
    >
    > jetty.ssl.port=8443
    >
-   > \#Jetty端口
+   > /#Jetty端口
    >
    > jetty.port=8081
    >
-   > **\#SSL文件名（绝对路径）**
+   > **/#SSL文件名（绝对路径）**
    >
    > **jetty.keystore=/opt/module/azkaban/server/keystore**
    >
-   > **\#SSL文件密码**
+   > **/#SSL文件密码**
    >
    > **jetty.password=000000**
    >
-   > **\#Jetty主密码与keystore文件相同**
+   > **/#Jetty主密码与keystore文件相同**
    >
    > **jetty.keypassword=000000**
    >
-   > **\#SSL文件名（绝对路径）**
+   > **/#SSL文件名（绝对路径）**
    >
    > **jetty.truststore=/opt/module/azkaban/server/keystore**
    >
-   > **\#SSL文件密码**
+   > **/#SSL文件密码**
    >
    > **jetty.trustpassword=000000**
    >
    >  
    >
-   > \# Azkaban Executor settings
+   > /# Azkaban Executor settings
    >
    > executor.port=12321
    >
    >  
    >
-   > \# mail settings
+   > /# mail settings
    >
    > mail.sender=
    >
@@ -439,23 +439,23 @@ Keytool是java数据证书的管理工具，使用户能够管理自己的公/�
 
 2.  按照如下配置修改azkaban.properties文件。
 
-   > \#Azkaban
+   > /#Azkaban
    >
-   > \#时区
+   > /#时区
    >
    > **default.timezone.id=Asia/Shanghai**
    >
    >  
    >
-   > \# Azkaban JobTypes Plugins
+   > /# Azkaban JobTypes Plugins
    >
-   > \#jobtype 插件所在位置
+   > /#jobtype 插件所在位置
    >
    > azkaban.jobtype.plugin.dir=plugins/jobtypes
    >
    >  
    >
-   > \#Loader for projects
+   > /#Loader for projects
    >
    > **executor.global.properties=/opt/module/azkaban/executor/conf/global.properties**
    >
@@ -479,17 +479,17 @@ Keytool是java数据证书的管理工具，使用户能够管理自己的公/�
    >
    >  
    >
-   > \# Azkaban Executor settings
+   > /# Azkaban Executor settings
    >
-   > \#最大线程数
+   > /#最大线程数
    >
    > executor.maxThreads=50
    >
-   > \#端口号(如修改,请与web服务中一致)
+   > /#端口号(如修改,请与web服务中一致)
    >
    > executor.port=12321
    >
-   > \#线程数
+   > /#线程数
    >
    > executor.flow.threads=30
 
@@ -1161,31 +1161,31 @@ Azkaba内置的任务类型支持command、java
 
    首先创建project
 
-   ![](img\azkaban\创建job.png)
+   ![](img/azkaban/创建job.png)
 
    上传zip包
 
-   ![](img\azkaban\上传zip包.png)
+   ![](img/azkaban/上传zip包.png)
 
    启动执行该job
 
-   ![](img\azkaban\启动job.png)
+   ![](img/azkaban/启动job.png)
 
    点击执行工作流
 
-   ![](img\azkaban\执行.png)
+   ![](img/azkaban/执行.png)
 
    点击继续
 
-   ![](img\azkaban\继续.png)
+   ![](img/azkaban/继续.png)
 
    Job执行成功
 
-   ![](img\azkaban\执行成功.png)
+   ![](img/azkaban/执行成功.png)
 
    点击查看job日志
 
-   ![](img\azkaban\查看日志.png)
+   ![](img/azkaban/查看日志.png)
 
 ### 4.2 多job工作流案例
 

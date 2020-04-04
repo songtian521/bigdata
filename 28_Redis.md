@@ -4,7 +4,7 @@
 
 ## 1.1 web系统的变迁历史
 
-![](img\redis\nosql变迁历史.png)
+![](img/redis/nosql变迁历史.png)
 
 **web1.0时代简介**
 
@@ -17,7 +17,7 @@
 
 **web2.0时代简介**
 
-![](img\redis\web2.0.png)
+![](img/redis/web2.0.png)
 
 随着Web2.0的时代的到来，用户访问量大幅度提升，同时产生了大量的用户数据。加上后来的智能移动设备的普及，所有的互联网平台都面临了巨大的性能挑战。包括web服务器CPU及内存压力。数据库服务器IO压力等
 
@@ -29,7 +29,7 @@
 
 **关于如何解决Web服务器的负载压力**，其中最常用的一种方式就是使用nginx实现web集群的服务转发以及服务拆分等等
 
-![](img\redis\nginx.png) 但是这样也会存在问题，后端服务器的多个tomcat之间如何解决session共享的问题，以及session存放的问题等等，为了解决session存放的问题，也有多种解决方案
+![](img/redis/nginx.png) 但是这样也会存在问题，后端服务器的多个tomcat之间如何解决session共享的问题，以及session存放的问题等等，为了解决session存放的问题，也有多种解决方案
 
 方案一：存放在cookie里面。不安全，否定
 
@@ -247,11 +247,11 @@ src/redis-cli -h bigdata111
 
 # 5.Redis的数据类型
 
-![](img\redis\redis的数据类型.png)
+![](img/redis/redis的数据类型.png)
 
 redis当中一共支持五种数据类型，分别是string字符串类型，list列表类型，集合set类型，hash表类型以及有序集合zset类型，通过这五种不同的数据类型，我们可以实现各种不同的功能也可以应用于各种不同的场景，接下来我们来看五种数据类型的操作语法
 
-![](img\redis\redis的key-value.png)
+![](img/redis/redis的key-value.png)
 
 redis当中各种数据类型结构如上图：
 
@@ -787,7 +787,7 @@ appendonly yes
 
 在Redis中，用户可以通过执行SLAVEOF命令或者设置slaveof选项，让一个服务器去复制（replicate）另一个服务器，我们称呼被复制的服务器为主服务器（master），而对主服务器进行复制的服务器则被称为从服务器（slave），如下所示。
 
-![](img\redis\redis的主从复制架构.png)
+![](img/redis/redis的主从复制架构.png)
 
 使用主从复制这种模式，实现bigdata111作为主节点，bigdata222与bigdata333作为从节点，并且将bigdata111所有的数据全部都同步到bigdata222与bigdata333服务器
 
@@ -868,15 +868,15 @@ Sentinel（哨兵）是Redis 的高可用性解决方案：由一个或多个Sen
 
 例如：
 
-![](img\redis\redis当中的Sentinel架构.png)
+![](img/redis/redis当中的Sentinel架构.png)
 
 在Server1 掉线后：
 
-![](img\redis\在Server1 掉线后.png)
+![](img/redis/在Server1 掉线后.png)
 
 升级Server2 为新的主服务器：
 
-![](img\redis\升级Server2 为新的主服务器.png)
+![](img/redis/升级Server2 为新的主服务器.png)
 
 ## 9.1 redis的Sentinel配置
 
@@ -960,7 +960,7 @@ Sentinel（哨兵）是Redis 的高可用性解决方案：由一个或多个Sen
 5. Redis集群没有中心节点，不会因为某个节点成为整个集群的性能瓶颈;
 6. 异步处理数据，实现快速读写。
 
-![](img\redis\redis集群.png)
+![](img/redis/redis集群.png)
 
 ##  10.2 redis集群环境搭建
 

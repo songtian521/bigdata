@@ -36,7 +36,7 @@ Flink应用程序结构主要包含三部分，Source、Transformation、Sink，
 
     自定义的 sink 常见的有 Apache kafka、RabbitMQ、MySQL、ElasticSearch、Apache Cassandra、Hadoop FileSystem 等，同理你也可以定义自己的 Sink。
 
-![](img\flink\批处理.jpg)
+![](img/flink/批处理.jpg)
 
 ## 环境搭建
 
@@ -438,7 +438,7 @@ case class Student(id:Int,name: String)
     //初始化环境
     val env = ExecutionEnvironment.getExecutionEnvironment
     //加载数据
-    val result = env.readTextFile(" C:\\Users\\宋天\\Desktop\\大数据\\安装包\\HBase\\hbase-2.0.0-bin.tar.gz")
+    val result = env.readTextFile(" C://Users//宋天//Desktop//大数据//安装包//HBase//hbase-2.0.0-bin.tar.gz")
     //触发程序执行
     result.print()
   }
@@ -720,7 +720,7 @@ Tom,America,NewYork,Manhattan
 
 reduce和reduceGroup的`区别`
 
-![](img\flink\reduceGroup.png)
+![](img/flink/reduceGroup.png)
 
 - reduce是将数据一个个拉取到另外一个节点，然后再执行计算
 - reduceGroup是先在每个group所在的节点上执行计算，然后再拉取
@@ -854,11 +854,11 @@ reduce和reduceGroup的`区别`
 
 有两个csv文件，有一个为`score.csv`，一个为`subject.csv`，分别保存了成绩数据以及学科数据。
 
-![](img\flink\数据1.png)
+![](img/flink/数据1.png)
 
 需要将这两个数据连接到一起，然后打印出来。
 
-![](img\flink\数据2.png)
+![](img/flink/数据2.png)
 
 ```scala
 @Test
@@ -933,11 +933,11 @@ case class Score(id:Int, name:String, subjectId:Int, score:Double)
 
   Flink也会产生`数据倾斜`的时候，例如：当前的数据量有10亿条，在处理过程就有可能发生如下状况：
 
-![](img\flink\rebalance1.png)
+![](img/flink/rebalance1.png)
 
 `rebalance`会使用轮询的方式将数据均匀打散，这是处理数据倾斜最好的选择。
 
-![](img\flink\rebalance2.png)
+![](img/flink/rebalance2.png)
 
 ```scala
   @Test
@@ -1295,7 +1295,7 @@ def createRemoteEnvironment(host: String, port: Int, jarFiles: String*): Executi
 object remote {
   def main(args: Array[String]): Unit = {
     // 1. 创建远程执行环境，这里的jar包需要把程序打包，然后指定这个jar包的路径即可
-    val env = ExecutionEnvironment.createRemoteEnvironment("bigdata111",9000,"E:\\bigdata_ws\\flink-base\\target\\flink-base-1.0-SNAPSHOT.jar")
+    val env = ExecutionEnvironment.createRemoteEnvironment("bigdata111",9000,"E://bigdata_ws//flink-base//target//flink-base-1.0-SNAPSHOT.jar")
 
     // 2. 读取hdfs中csv文件,转换为元组
 
@@ -1319,7 +1319,7 @@ Flink支持广播。可以将数据广播到TaskManager上，数据存储到内�
 
 一句话解释，可以理解为是一个公共的共享变量，我们可以把一个dataset 数据集广播出去，然后不同的task在节点上都能够获取到，这个数据在每个节点上只会存在一份。如果不使用broadcast，则在每个节点中的每个task中都需要拷贝一份dataset数据集，比较浪费内存(也就是一个节点中可能会存在多份dataset数据)。
 
-![](img\flink\广播变量.png)
+![](img/flink/广播变量.png)
 
 * 可以理解广播就是一个公共的共享变量
 * 将一个数据集广播后，不同的Task都可以在节点上获取到
@@ -1569,7 +1569,7 @@ object CachFile {
 
     // 3. 注册文件
     // 参数1:文件路径,可以是HDFS的路径,参数2:文件的名称,自定义
-    env.registerCachedFile("E:\\bigdata_ws\\flink-base\\src\\main\\resources\\data.txt","data.txt")
+    env.registerCachedFile("E://bigdata_ws//flink-base//src//main//resources//data.txt","data.txt")
 
     // 4. map open 获取文件
     val result: DataSet[String] = list.map(new RichMapFunction[String, String] {

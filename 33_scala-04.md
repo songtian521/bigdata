@@ -4,7 +4,7 @@
 
 Actor并发编程模型，是scala提供给程序员的一种与Java并发编程完全不一样的并发编程模型，是一种基于事件模型的并发机制。Actor并发编程模型是一种不共享数据，依赖消息传递的一种并发编程模式，有效避免资源争夺、死锁等情况。
 
-![](img\scala\Actor并发编程模型.png)
+![](img/scala/Actor并发编程模型.png)
 
 **Java并发编程对比Actor并发编程**
 
@@ -576,7 +576,7 @@ println((1 to 10).map("*" * _))
     def add4(x:Int)(y:Int)=x+y
 ```
 
-![](img\scala\柯里化.png)
+![](img/scala/柯里化.png)
 
 示例：
 
@@ -829,7 +829,7 @@ Akka是一个用于构建高并发、分布式和可扩展的基于事件驱动�
 5. Message Dispatcher将MailBox放到一个线程中
 6. MailBox按照顺序取出消息，最终将它递给TeacherActor接受的方法中
 
-![](img\scala\Akka.png)
+![](img/scala/Akka.png)
 
 ## 7.2 创建Actor
 
@@ -1134,7 +1134,7 @@ object WorkerActor extends Actor{
   * 注册
   * 发送心跳
 
-![](img\scala\简易Spark.png)
+![](img/scala/简易Spark.png)
 
 实现思路
 

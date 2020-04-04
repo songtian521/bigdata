@@ -2,9 +2,9 @@
 
 # WordCount案例
 
-![](img\MapReduce\WordCount1.png)
+![](img/MapReduce/WordCount1.png)
 
-![](img\MapReduce\WordCount2.png)
+![](img/MapReduce/WordCount2.png)
 
 ## 17.1 统计一堆文件中单词出现的个数
 
@@ -98,7 +98,7 @@
     */
    public class WordCountDriver {
        public static void main(String[] args) throws Exception{
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\_711\\hello.txt","G:\\学习\\maven\\src\\main\\java\\_711\\out"};
+           args = new String[]{"G://学习//maven//src//main//java//_711//hello.txt","G://学习//maven//src//main//java//_711//out"};
            //1.获取配置信息
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
@@ -244,7 +244,7 @@
     */
    public class WordCountDriver {
        public static void main(String[] args) throws Exception{
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\_711\\hello.txt","G:\\学习\\maven\\src\\main\\java\\_712\\out"};
+           args = new String[]{"G://学习//maven//src//main//java//_711//hello.txt","G://学习//maven//src//main//java//_712//out"};
            //1.获取配置信息
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
@@ -389,7 +389,7 @@
    ```java
    public class WordCountDriver {
        public static void main(String[] args) throws Exception{
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\_711\\hello.txt","G:\\学习\\maven\\src\\main\\java\\_713\\out"};
+           args = new String[]{"G://学习//maven//src//main//java//_711//hello.txt","G://学习//maven//src//main//java//_713//out"};
            //1.获取配置信息
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
@@ -435,9 +435,9 @@ job.setCombinerClass(WordcountReducer.class);
 
 运行程序：
 
-![](img\MapReduce\combiner1.png)
+![](img/MapReduce/combiner1.png)
 
-![](img\MapReduce\combiner2.png)
+![](img/MapReduce/combiner2.png)
 
 
 
@@ -600,7 +600,7 @@ CombineTextInputFormat.setMaxInputSplitSize(job, 4096);
     */
    public class WordCountDriver {
        public static void main(String[] args) throws Exception{
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\_714\\input","G:\\学习\\maven\\src\\main\\java\\_714\\out"};
+           args = new String[]{"G://学习//maven//src//main//java//_714//input","G://学习//maven//src//main//java//_714//out"};
            //1.获取配置信息
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
@@ -741,9 +741,9 @@ reduce阶段
        @Override
        public String toString() {
            return  upFlow +
-                   "\t" + downFlow +
-                   "\t" + upCountFlow +
-                   "\t" + downCountFlow;
+                   "/t" + downFlow +
+                   "/t" + upCountFlow +
+                   "/t" + downCountFlow;
        }
    
        //序列化方法
@@ -884,7 +884,7 @@ reduce阶段
    
            //2.配置job任务对象
            job.setInputFormatClass(TextInputFormat.class);//1.读文件的方式使用InputFormat的子类TextInputFormat
-           TextInputFormat.addInputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\FlowCount\\data_flow.dat"));//2.指定读取源文件对象地址。
+           TextInputFormat.addInputPath(job,new Path("file:///G://学习//maven//src//main//java//FlowCount//data_flow.dat"));//2.指定读取源文件对象地址。
    
            job.setMapperClass(FlowCountMapper.class);//3.指定map阶段的处理方式
            job.setMapOutputKeyClass(Text.class);//4.设置map阶段k2的类型
@@ -902,7 +902,7 @@ reduce阶段
            //9.设置输出类型
            job.setOutputFormatClass(TextOutputFormat.class);
            //10.设置输出路径
-           Path path = new Path("file:///G:\\学习\\maven\\src\\main\\java\\FlowCount\\FlowCountOut");
+           Path path = new Path("file:///G://学习//maven//src//main//java//FlowCount//FlowCountOut");
            TextOutputFormat.setOutputPath(job,path);
    
            //11.等待任务结束
@@ -1012,7 +1012,7 @@ public class JobMain extends Configured implements Tool {
 
         //2.配置job任务对象
         job.setInputFormatClass(TextInputFormat.class);//1.读文件的方式使用InputFormat的子类TextInputFormat
-        TextInputFormat.addInputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\FlowCount_partition\\data_flow.dat"));//2.指定读取源文件对象地址。
+        TextInputFormat.addInputPath(job,new Path("file:///G://学习//maven//src//main//java//FlowCount_partition//data_flow.dat"));//2.指定读取源文件对象地址。
 
         job.setMapperClass(FlowCountMapper.class);//3.指定map阶段的处理方式
         job.setMapOutputKeyClass(Text.class);//4.设置map阶段k2的类型
@@ -1035,7 +1035,7 @@ public class JobMain extends Configured implements Tool {
         //9.设置输出类型
         job.setOutputFormatClass(TextOutputFormat.class);
         //10.设置输出路径
-        Path path = new Path("file:///G:\\学习\\maven\\src\\main\\java\\FlowCount_partition\\FlowPartitionOut");
+        Path path = new Path("file:///G://学习//maven//src//main//java//FlowCount_partition//FlowPartitionOut");
         TextOutputFormat.setOutputPath(job,path);
 
         //11.等待任务结束
@@ -1159,7 +1159,7 @@ public class JobMain extends Configured implements Tool {
        //指定排序的规则
        @Override
        public int compareTo(FlowBean o) {
-           //this.upFlow .compareTo(o.getUpFlow());
+           /\this.upFlow .compareTo(o.getUpFlow());
            return  o.upFlow - this.upFlow;//降序
        }
    }
@@ -1275,7 +1275,7 @@ public class JobMain extends Configured implements Tool {
    
            //2.配置job任务对象
            job.setInputFormatClass(TextInputFormat.class);//1.读文件的方式使用InputFormat的子类TextInputFormat
-           TextInputFormat.addInputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\_721\\FlowCountOut"));//2.指定读取源文件对象地址,将上次的输出作为本次的输入
+           TextInputFormat.addInputPath(job,new Path("file:///G://学习//maven//src//main//java//_721//FlowCountOut"));//2.指定读取源文件对象地址,将上次的输出作为本次的输入
    
            job.setMapperClass(FlowSortMapper.class);//3.指定map阶段的处理方式
            job.setMapOutputKeyClass(FlowBean.class);//4.设置map阶段k2的类型
@@ -1293,7 +1293,7 @@ public class JobMain extends Configured implements Tool {
            //9.设置输出类型
            job.setOutputFormatClass(TextOutputFormat.class);
            //10.设置输出路径
-           Path path = new Path("file:///G:\\学习\\maven\\src\\main\\java\\FlowCount_sort\\FlowCount_sortOut");
+           Path path = new Path("file:///G://学习//maven//src//main//java//FlowCount_sort//FlowCount_sortOut");
            TextOutputFormat.setOutputPath(job,path);
    
            //11.等待任务结束
@@ -1388,7 +1388,7 @@ public class JobMain extends Configured implements Tool {
 1. 利用“订单id和成交金额”作为key，可以将map阶段读取到的所有订单数据按照id分区，按照金额排序，发送到reduce。
 2. 在reduce端利用groupingcomparator将订单id相同的kv聚合成组，然后取第一个即是最大值。
 
-![](img\MapReduce\辅助排序和二次排序.png)
+![](img/MapReduce/辅助排序和二次排序.png)
 
 代码实现：
 
@@ -1616,7 +1616,7 @@ public class JobMain extends Configured implements Tool {
     */
    public class OrderDriver{
        public static void main(String[] args) throws Exception{
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\_730\\GroupingComparator.txt","G:\\学习\\maven\\src\\main\\java\\_730\\out"};
+           args = new String[]{"G://学习//maven//src//main//java//_730//GroupingComparator.txt","G://学习//maven//src//main//java//_730//out"};
            //1.获取配置信息
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
@@ -1901,7 +1901,7 @@ public class JobMain extends Configured implements Tool {
     */
    public class SequenceFileDriver {
        public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\myInputFormat1\\_714.input","G:\\学习\\maven\\src\\main\\java\\myInputFormat1\\out"};
+           args = new String[]{"G://学习//maven//src//main//java//myInputFormat1//_714.input","G://学习//maven//src//main//java//myInputFormat1//out"};
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
            job.setJarByClass(SequenceFileDriver.class);
@@ -2007,8 +2007,8 @@ public class JobMain extends Configured implements Tool {
                fs = FileSystem.get(job.getConfiguration());
    
                // 2 创建输出文件路径
-               Path itstarPath = new Path("G:\\学习\\maven\\src\\main\\java\\MyOutputFormat1\\out\\itstar.log");
-               Path otherPath = new Path("G:\\学习\\maven\\src\\main\\java\\MyOutputFormat1\\out\\other.log");
+               Path itstarPath = new Path("G://学习//maven//src//main//java//MyOutputFormat1//out//itstar.log");
+               Path otherPath = new Path("G://学习//maven//src//main//java//MyOutputFormat1//out//other.log");
    
                // 3 创建输出流
                itstarOut = fs.create(itstarPath);
@@ -2099,7 +2099,7 @@ public class JobMain extends Configured implements Tool {
        protected void reduce(Text key, Iterable<NullWritable> values, Context context) throws IOException, InterruptedException {
    
            String k = key.toString();
-           k = k + "\r\n";
+           k = k + "/r/n";
            context.write(new Text(k),NullWritable.get());
        }
    }
@@ -2128,7 +2128,7 @@ public class JobMain extends Configured implements Tool {
     */
    public class FilterDriver {
        public static void main(String[] args) throws Exception {
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\MyOutputFormat1\\log.txt","G:\\学习\\maven\\src\\main\\java\\MyOutputFormat1\\out1"};
+           args = new String[]{"G://学习//maven//src//main//java//MyOutputFormat1//log.txt","G://学习//maven//src//main//java//MyOutputFormat1//out1"};
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
    
@@ -2192,7 +2192,7 @@ public class JobMain extends Configured implements Tool {
 
 通过将关联条件作为map输出的key，将两表满足join条件的数据并携带数据所来源的文件信息，发往同一个reduce task，在reduce中进行数据的串联。
 
-![](C:\Users\宋天\Desktop\大数据\大数据笔记\img\MapReduce\Reduce端Join合并.png)
+![](img/MapReduce/Reduce端Join合并.png)
 
 编写代码
 
@@ -2442,7 +2442,7 @@ public class JobMain extends Configured implements Tool {
     */
    public class TableDriver {
        public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\reduce_join2\\a\\","G:\\学习\\maven\\src\\main\\java\\reduce_join2\\out"};
+           args = new String[]{"G://学习//maven//src//main//java//reduce_join2//a//","G://学习//maven//src//main//java//reduce_join2//out"};
    
            //获取配置信息或者job对象实例
            Configuration conf = new Configuration();
@@ -2494,7 +2494,7 @@ public class JobMain extends Configured implements Tool {
 1. 适用于关联表中有小表的情形；
 2. 可以将小表分发到所有的map节点，这样，map节点就可以在本地对自己所读到的大表数据进行合并并输出最终结果，可以大大提高合并操作的并发度，加快处理速度。
 
-![](img\MapReduce\Map端Join.png)
+![](img/MapReduce/Map端Join.png)
 
 编写代码：
 
@@ -2521,7 +2521,7 @@ public class JobMain extends Configured implements Tool {
     */
    public class MapJoinDriver {
        public static void main(String[] args) throws Exception {
-           args =new String[]{"G:\\学习\\maven\\src\\main\\java\\Map_Join2\\order.txt","G:\\学习\\maven\\src\\main\\java\\Map_Join2\\out"};
+           args =new String[]{"G://学习//maven//src//main//java//Map_Join2//order.txt","G://学习//maven//src//main//java//Map_Join2//out"};
    
            //1.获取job信息
            Configuration configuration = new Configuration();
@@ -2576,7 +2576,7 @@ public class JobMain extends Configured implements Tool {
        @Override
        protected void setup(Context context) throws IOException, InterruptedException {
            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(
-                   new File("G:\\学习\\maven\\src\\main\\java\\Map_Join2\\pd.txt")), "UTF-8"));
+                   new File("G://学习//maven//src//main//java//Map_Join2//pd.txt")), "UTF-8"));
    
            String line;
            while (StringUtils.isNotEmpty( line = bufferedReader.readLine())) {
@@ -2701,7 +2701,7 @@ public class JobMain extends Configured implements Tool {
     */
    public class LogDriver {
        public static void main(String[] args) throws Exception{
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\_771\\web.log","G:\\学习\\maven\\src\\main\\java\\_771\\out"};
+           args = new String[]{"G://学习//maven//src//main//java//_771//web.log","G://学习//maven//src//main//java//_771//out"};
            //1.获取job信息
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
@@ -2839,14 +2839,14 @@ public class JobMain extends Configured implements Tool {
        public String toString() {
            StringBuilder sb = new StringBuilder();
            sb.append(this.valid);
-           sb.append("\001").append(this.remote_addr);
-           sb.append("\001").append(this.remote_user);
-           sb.append("\001").append(this.time_local);
-           sb.append("\001").append(this.request);
-           sb.append("\001").append(this.status);
-           sb.append("\001").append(this.body_bytes_sent);
-           sb.append("\001").append(this.http_referer);
-           sb.append("\001").append(this.http_user_agent);
+           sb.append("/001").append(this.remote_addr);
+           sb.append("/001").append(this.remote_user);
+           sb.append("/001").append(this.time_local);
+           sb.append("/001").append(this.request);
+           sb.append("/001").append(this.status);
+           sb.append("/001").append(this.body_bytes_sent);
+           sb.append("/001").append(this.http_referer);
+           sb.append("/001").append(this.http_user_agent);
    
            return sb.toString();
    
@@ -2943,7 +2943,7 @@ public class JobMain extends Configured implements Tool {
     */
    public class LogDriver {
        public static void main(String[] args) throws Exception{
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\_771\\web.log","G:\\学习\\maven\\src\\main\\java\\_772\\out"};
+           args = new String[]{"G://学习//maven//src//main//java//_771//web.log","G://学习//maven//src//main//java//_772//out"};
            //1.获取job信息
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
@@ -3101,7 +3101,7 @@ public class JobMain extends Configured implements Tool {
     */
    public class OneIndexDriver  {
        public static void main(String[] args) throws Exception{
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\_780\\input","G:\\学习\\maven\\src\\main\\java\\_780\\out"};
+           args = new String[]{"G://学习//maven//src//main//java//_780//input","G://学习//maven//src//main//java//_780//out"};
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
            job.setJarByClass(OneIndexDriver.class);
@@ -3237,7 +3237,7 @@ public class JobMain extends Configured implements Tool {
     */
    public class TwoIndexDriver {
        public static void main(String[] args) throws Exception{
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\_780\\out","G:\\学习\\maven\\src\\main\\java\\_780\\out1"};
+           args = new String[]{"G://学习//maven//src//main//java//_780//out","G://学习//maven//src//main//java//_780//out1"};
            Configuration config = new Configuration();
            Job job = Job.getInstance(config);
    
@@ -3409,7 +3409,7 @@ A-G	F E C D
     */
    public class oneFriendsDriver {
        public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\Friends\\friends.txt","G:\\学习\\maven\\src\\main\\java\\Friends\\out"};
+           args = new String[]{"G://学习//maven//src//main//java//Friends//friends.txt","G://学习//maven//src//main//java//Friends//out"};
            //配置文件对象
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
@@ -3527,7 +3527,7 @@ A-G	F E C D
     */
    public class TwoFriendsDriver {
        public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
-           args = new String[]{"G:\\学习\\maven\\src\\main\\java\\Friends\\out","G:\\学习\\maven\\src\\main\\java\\Friends\\out1"};
+           args = new String[]{"G://学习//maven//src//main//java//Friends//out","G://学习//maven//src//main//java//Friends//out1"};
            //配置文件对象
            Configuration conf = new Configuration();
            Job job = Job.getInstance(conf);
@@ -3577,7 +3577,7 @@ import java.io.IOException;
  */
 public class AllFriendsDriver {
     public static void main(String[] args) throws IOException {
-        args = new String[]{"G:\\学习\\maven\\src\\main\\java\\Friends\\friends.txt","G:\\学习\\maven\\src\\main\\java\\Friends\\out","G:\\学习\\maven\\src\\main\\java\\Friends\\out1"};
+        args = new String[]{"G://学习//maven//src//main//java//Friends//friends.txt","G://学习//maven//src//main//java//Friends//out","G://学习//maven//src//main//java//Friends//out1"};
 
         Configuration conf = new Configuration();
         //job1

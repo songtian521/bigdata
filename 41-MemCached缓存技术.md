@@ -20,13 +20,13 @@ Memcache将所有数据存储在内存中，并在内存里维护一个统一的
 
 **基于Memcached的网站架构**
 
-![](img\MemCached\MemCached.png)
+![](img/MemCached/MemCached.png)
 
 ## 1.3 MemCached的基本原理和体系架构
 
 简单的说: memcached就是在内存中维护一张巨大的hash表,通过自己的一套**路由算法**来维护数据的操作。
 
-![](img\MemCached\结构.png)
+![](img/MemCached/结构.png)
 
 ## 1.4 MemCached数据的存储方式和过期
 
@@ -37,7 +37,7 @@ Memcache将所有数据存储在内存中，并在内存里维护一个统一的
    - 优点是：最大限度的利用内存，避免产生内存碎片
    - 缺点是：会造成内存的浪费
 
-   ![](img\MemCached\组.png)
+   ![](img/MemCached/组.png)
 
 2. 数据过期方式
 
@@ -125,7 +125,7 @@ Memcache将所有数据存储在内存中，并在内存里维护一个统一的
    - -c：最大并发连接，默认1024
    - -d：启动一个守护进程
 
-   ![](img\MemCached\启动参数.png)
+   ![](img/MemCached/启动参数.png)
 
 **安装过程中出现的报错问题：**
 
@@ -201,7 +201,7 @@ error while loading shared libraries: libevent-2.0.so.5: cannot open shared obje
 
 ### 2.2.1 Telnet方式
 
-![](img\MemCached\Telnet.png)
+![](img/MemCached/Telnet.png)
 
 1. 执行如下代码
 
@@ -344,15 +344,15 @@ class  Student implements Serializable{}
 
 - 基本原理
 
-  ![](img\MemCached\基本原理.png)
+  ![](img/MemCached/基本原理.png)
 
 - 一致性hash算法下扩容
 
-  ![](img\MemCached\扩容.png)
+  ![](img/MemCached/扩容.png)
 
 - down机
 
-  ![](img\MemCached\down机.png)
+  ![](img/MemCached/down机.png)
 
 # 4.MemCached的主主复制和HA
 
@@ -453,7 +453,7 @@ class  Student implements Serializable{}
 
 ## 4.2 MemCached的HA
 
-![](img\MemCached\HA.png)
+![](img/MemCached/HA.png)
 
 Keepalived是一个交换机制的软件。Keepalived的作用是检测服务器的状态，如果有一台web服务器死机，或工作出现故障，Keepalived将检测到，并将有故障的服务器从系统中剔除，同时使用其他服务器代替该服务器的工作，当服务器工作正常后Keepalived自动将服务器加入到服务器群中，这些工作全部自动完成，不需要人工干涉，需要人工做的只是修复故障的服务器。
 
