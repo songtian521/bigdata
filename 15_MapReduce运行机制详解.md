@@ -2,7 +2,7 @@
 
 MapReduce工作机制全流程图
 
-![](img\MapReduce\0-MapReduce工作机制-全流程.jpg)
+![](\img\MapReduce\0-MapReduce工作机制-全流程.jpg)
 
 ## 1.MapTask工作机制
 
