@@ -2,7 +2,7 @@
 
 MapReduce工作机制全流程图
 
-![](\img\MapReduce\0-MapReduce工作机制-全流程.jpg)
+![](img/MapReduce/0-MapReduce工作机制-全流程.jpg)
 
 ## 1.MapTask工作机制
 
@@ -12,7 +12,7 @@ MapReduce工作机制全流程图
 
 1. 读取数据组件InputFormat（默认TextInputFormat）会通过getSplits方法对输入目录中文件进行逻辑切片规划得到block，有多少个block就对应启动多少个MapTask
 
-2. 将输入文件切分作为block之后，由RecorReader对象（默认是LineRecordReader）进行读取，以`\n`作为分隔符，读取一行数据，返回`<key,value>`。key表示每行首字符偏移值，Value表示这一行文本内容
+2. 将输入文件切分作为block之后，由RecorReader对象（默认是LineRecordReader）进行读取，以`/n`作为分隔符，读取一行数据，返回`<key,value>`。key表示每行首字符偏移值，Value表示这一行文本内容
 
 3. 读取block返回`<key,value>`，进入用户自己继承的Mapper类中，执行用户重写的map函数，RecordReader读取一行这里调用一次
 
@@ -743,7 +743,7 @@ O:A,H,I,J
        @Override
        protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
            String line = value.toString();
-           String[] split = line.split("\t");
+           String[] split = line.split("/t");
    
            String friend = split[0];
            String[] persons = split[1].split(",");
@@ -1048,7 +1048,7 @@ MapReduce任务的输入文件一般是存储在HDFS里面。输入的文件格�
 
 2. KeyValueTextInputFormat(仅知道即可）
 
-   每一行均为一条记录，被分隔符分割为key，value。可以通过在驱动类中设置conf.set(KeyValueLineRecordReader.KEY_VALUE_SEPERATOR, " ");来设定分隔符。默认分隔符是tab（\t）。
+   每一行均为一条记录，被分隔符分割为key，value。可以通过在驱动类中设置conf.set(KeyValueLineRecordReader.KEY_VALUE_SEPERATOR, " ");来设定分隔符。默认分隔符是tab（/t）。
 
    以下是一个示例，输入是一个包含4条记录的分片。其中——>表示一个（水平方向的）制表符。
 
@@ -1072,7 +1072,7 @@ MapReduce任务的输入文件一般是存储在HDFS里面。输入的文件格�
 
 3. NLineInputFormat(仅知道即可）
 
-   如果使用NlineInputFormat，代表每个map进程处理的InputSplit不再按block块去划分，而是按NlineInputFormat指定的行数N来划分。即输入文件的总行数\n=切片数，如果不整除，切片数=商+1。
+   如果使用NlineInputFormat，代表每个map进程处理的InputSplit不再按block块去划分，而是按NlineInputFormat指定的行数N来划分。即输入文件的总行数/n=切片数，如果不整除，切片数=商+1。
 
    以下是一个示例，仍然以上面的4行输入为例。
 
@@ -1364,18 +1364,18 @@ OutputFormat是MapReduce输出的基类，所有实现MapReduce输出都实现�
        @Override
        public void write(Text text, NullWritable nullWritable) throws IOException, InterruptedException {
            //1.从行文本中获取源数据第九个字段
-           String[] split = text.toString().split("\t");
+           String[] split = text.toString().split("/t");
            String numStr = split[9];
    
            //2.根据字段的值判断评论的类型，将对应的数据写入不同的文件夹
            if(Integer.parseInt(numStr) <= 1){
                //好评或中评
                goodcommentsOutputStream.write(text.toString().getBytes());
-               goodcommentsOutputStream.write("/r\n".getBytes());
+               goodcommentsOutputStream.write("/r/n".getBytes());
            }else{
                //差评
                badcommentsOutputStream.write(text.toString().getBytes());
-               badcommentsOutputStream.write("/r\n".getBytes());
+               badcommentsOutputStream.write("/r/n".getBytes());
            }
    
        }
@@ -1492,7 +1492,7 @@ Order_0000003 	Pdt_01 		222.8
    
        @Override
        public String toString() {
-           return  orderID + "\t" + price;
+           return  orderID + "/t" + price;
        }
    
        //指定排序规则
@@ -1530,7 +1530,7 @@ Order_0000003 	Pdt_01 		222.8
        protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
    
            //1.拆分行文本数据，得到订单ID，订单的金额
-           String[] split = value.toString().split("\t");
+           String[] split = value.toString().split("/t");
            //2.封装OrderBean，得到K2
            OrderBean orderBean = new OrderBean();
            orderBean.setOrderID(split[0]);
