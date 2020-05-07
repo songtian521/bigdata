@@ -1,10 +1,12 @@
 # 31_scala-02
 
-# 1.遍历
+# 1. 函数式编程
+
+## 1.1遍历
 
 方法签名：
 
-```
+```scala
 foreach(f: (A) ⇒ Unit): Unit
 ```
 
@@ -15,6 +17,10 @@ foreach(f: (A) ⇒ Unit): Unit
 | 参数    | f: (A) ⇒ Unit | 接收一个函数对象 函数的输入参数为集合的元素，返回值为空 |
 | 返回值  | Unit          | 空                                                      |
 
+foreach执行过程：
+
+![](img/scala/foreach.png)
+
 示例：
 
 ```scala
@@ -24,6 +30,10 @@ a: List[Int] = List(1, 2, 3, 4)
 
 // 迭代打印
 scala> a.foreach((x:Int)=>println(x))
+1
+2
+3
+4
 ```
 
 **使用类型推断简化函数定义**
@@ -51,7 +61,11 @@ scala> a.foreach(x=>println(x))
 scala> val a = List(1,2,3,4)
 a: List[Int] = List(1, 2, 3, 4)
 
-a.foreach(println(_))
+scala> a.foreach(println(_))
+1
+2
+3
+4
 ```
 
 注：
@@ -59,9 +73,13 @@ a.foreach(println(_))
 * 如果方法参数是函数，如果出现了下划线，scala编译器会自动将代码封装到一个函数中
 * 参数列表也是由scala编译器自动处理
 
-# 2.映射
+## 1.2 映射
 
 集合的映射操作是将来在编写Spark/Flink用得最多的操作，是我们必须要掌握的。因为进行数据计算的时候，就是一个将一种数据类型转换为另外一种数据类型的过程。
+
+map方法接收一个函数，将这个函数应用到每一个元素，返回一个新的列表：
+
+![](img/scala/映射.png)
 
 **方法签名**
 
@@ -77,9 +95,16 @@ def map[B](f: (A) ⇒ B): TraversableOnce[B]
 | 参数    | f: (A) ⇒ B         | 传入一个函数对象 该函数接收一个类型A（要转换的列表元素），返回值为类型B |
 | 返回值  | TraversableOnce[B] | B类型的集合                                                  |
 
+**map方法解析**
+
+![](img/scala/map解析.png)
+
 示例1：
 
 ```scala
+scala> val a = List(1,2,3,4)
+a: List[Int] = List(1, 2, 3, 4)
+
 scala> a.map(x=>x+1)
 res4: List[Int] = List(2, 3, 4, 5)
 ```
@@ -93,10 +118,14 @@ a: List[Int] = List(1, 2, 3, 4)
 scala> a.map(_ + 1)
 ```
 
-# 3.扁平化映射
+## 1.3 扁平化映射
+
+可以把flatMap，理解为先map，然后再flatten
 
 - map是将列表中的**元素转换为一个List**
 - flatten再将整个列表进行扁平化
+
+![](img/scala/扁平化映射.png)
 
 方法签名：
 
@@ -116,6 +145,10 @@ def flatMap[B](f: (A) ⇒ GenTraversableOnce[B]): TraversableOnce[B]
 
 1. 有一个包含了若干个文本行的列表："hadoop hive spark flink flume", "kudu hbase sqoop storm"
 2. 获取到文本行中的每一个单词，并将每一个单词都放到列表中
+
+**思路分析**
+
+![](img/scala/扁平化思路分析.png)
 
 步骤：
 
@@ -148,7 +181,11 @@ res7: List[String] = List(hadoop, hive, spark, flink, flume, kudu, hbase, sqoop,
 
 注：`flatten`与`flatMap`的返回值为处理后的的List列表，并不会对原列表作出改变
 
-# 4.过滤
+## 1.4 过滤
+
+过滤符合一定条件的元素
+
+![](img/scala/过滤.png)
 
 方法签名：
 
@@ -163,6 +200,8 @@ def filter(p: (A) ⇒ Boolean): TraversableOnce[A]
 | 参数       | p: (A) ⇒ Boolean   | 传入一个函数对象 接收一个集合类型的参数 返回布尔类型，满足条件返回true, 不满足返回false |
 | 返回值     | TraversableOnce[A] | 列表                                                         |
 
+![](img/scala/过滤分析.png)
+
 示例：
 
 ```scala
@@ -170,7 +209,7 @@ scala> List(1,2,3,4,5,6,7,8,9).filter(_ % 2 == 0)
 res8: List[Int] = List(2, 4, 6, 8)
 ```
 
-# 5.排序
+## 1.5 排序
 
 在scala集合中，可以使用以下几种方式来进行排序
 
@@ -182,6 +221,8 @@ res8: List[Int] = List(2, 4, 6, 8)
   ```
 
 * sortBy指定字段排序
+
+  根据传入的函数转换后，再进行排序
 
   方法签名：
 
@@ -200,30 +241,34 @@ res8: List[Int] = List(2, 4, 6, 8)
   示例：
 
   ```scala
-  val a = List("1 hadoop", "3 flume", "5 hive", "2 spark")
-   print( a.sortBy(_.split(" ")(0)))
-  //List(1 hadoop, 2 spark, 3 flume, 5 hive)
+  scala> val a = List("1 hadoop", "3 flume", "5 hive", "2 spark")
+  a: List[String] = List(1 hadoop, 3 flume, 5 hive, 2 spark)
+  
+  scala> a.sortBy(_.split(" ")(0))
+  res30: List[String] = List(1 hadoop, 2 spark, 3 flume, 5 hive)
   ```
 
   
 
 * sortWith自定义排序
 
-  方法签名：
+  自定义排序，根据一个函数来进行自定义排序
 
+  方法签名：
+  
   ```scala
-  def sortWith(lt: (A, A) ⇒ Boolean): List[A]
+def sortWith(lt: (A, A) ⇒ Boolean): List[A]
   ```
 
   说明：
-
+  
   | sortWith方法 | API                  | 说明                                                         |
   | ------------ | -------------------- | ------------------------------------------------------------ |
-  | 参数         | lt: (A, A) ⇒ Boolean | 传入一个比较大小的函数对象 接收两个集合类型的元素参数 返回两个元素大小，小于返回true，大于返回false |
+| 参数         | lt: (A, A) ⇒ Boolean | 传入一个比较大小的函数对象 接收两个集合类型的元素参数返回两个元素大小，小于返回true，大于返回false |
   | 返回值       | List[A]              | 返回排序后的列表                                             |
 
   示例：
-
+  
   ```scala
   scala> val a = List(2,3,1,6,4,5)
   a: List[Int] = List(2, 3, 1, 6, 4, 5)
@@ -232,11 +277,11 @@ res8: List[Int] = List(2, 4, 6, 8)
   res15: List[Int] = List(1, 2, 3, 4, 5, 6)
   
   scala> res15.reverse
-  res18: List[Int] = List(6, 5, 4, 3, 2, 1)
+res18: List[Int] = List(6, 5, 4, 3, 2, 1)
   ```
 
   简化：
-
+  
   ```scala
   scala> val a = List(2,3,1,6,4,5)
   a: List[Int] = List(2, 3, 1, 6, 4, 5)
@@ -249,7 +294,7 @@ res8: List[Int] = List(2, 4, 6, 8)
 
 注：reverse为反转的意思。
 
-# 6.分组
+## 1.6 分组
 
 groupBy表示按照函数将列表分成不同的组
 
@@ -267,6 +312,10 @@ def groupBy[K](f: (A) ⇒ K): Map[K, List[A]]
 | 参数        | f: (A) ⇒ K      | 传入一个函数对象 接收集合元素类型的参数 返回一个K类型的key，这个key会用来进行分组，相同的key放在一组中 |
 | 返回值      | Map[K, List[A]] | 返回一个映射，K为分组字段，List为这个分组字段对应的一组数据  |
 
+**groupBy执行过程分析：**
+
+![](img/scala/groupBy.png)
+
 示例：
 
 ```scala
@@ -274,15 +323,21 @@ scala> val a = List("张三"->"男", "李四"->"女", "王五"->"男")
 a: List[(String, String)] = List((张三,男), (李四,女), (王五,男))
 
 // 按照性别分组
+scala> a.groupBy(x=>x._2)
+//简化：
 scala> a.groupBy(_._2)
-res0:Map(男 -> List((张三,男), (王五,男)),女 -> List((李四,女)))
+res6: scala.collection.immutable.Map[String,List[(String, String)]] = Map(男 -> List((张三,男), (王五,男)), 女 -> List((李四,女)))
 
 // 将分组后的映射转换为性别/人数元组列表
 scala> res0.map(x => x._1 -> x._2.size)
 res3: scala.collection.immutable.Map[String,Int] = Map(男 -> 2, 女 -> 1)
+
+//统计出现的结果
+scala> res3.toList
+res4: List[(String, Int)] = List((男,2), (女,1))
 ```
 
-# 7.聚合
+## 1.7 聚合
 
 聚合操作，可以将一个列表中的数据合并为一个。这种操作经常用来统计分析中
 
@@ -291,6 +346,8 @@ res3: scala.collection.immutable.Map[String,Int] = Map(男 -> 2, 女 -> 1)
 ```scala
 def reduce[A1 >: A](op: (A1, A1) ⇒ A1): A1
 ```
+
+![](img/scala/reduce.png)
 
 说明：
 
@@ -311,6 +368,7 @@ def reduce[A1 >: A](op: (A1, A1) ⇒ A1): A1
 scala> val a = List(1,2,3,4,5,6,7,8,9,10)
 a: List[Int] = List(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 
+//x表示两次相加的结果值，y表示聚合的下一个元素
 scala> a.reduce((x,y) => x + y)
 res5: Int = 55
 
@@ -328,7 +386,7 @@ scala> a.reduceRight(_ + _)
 res1: Int = 55
 ```
 
-# 8.折叠
+## 1.8 折叠
 
 fold与reduce很像，但是多了一个指定初始值参数
 
@@ -363,7 +421,7 @@ scala> a.fold(0)(_ + _)
 res4: Int = 155
 ```
 
-# 9.创建类和对象
+# 2.创建类和对象
 
 * 使用`class`来定义一个类
 * 使用`new`来创建对象
@@ -399,7 +457,7 @@ object _02ClassDemo {
 }
 ```
 
-# 10.定义和访问成员变量
+# 3.定义和访问成员变量
 
 一个类会有自己的属性，例如：人这样一个类，有自己的姓名和年龄。我们接下来学习在类中定义、和访问成员变量。
 
@@ -429,7 +487,7 @@ object _03ClassDemo {
 }
 ```
 
-# 11.使用下划线初始化成员变量
+# 4.使用下划线初始化成员变量
 
 - 在定义`var`类型的成员变量时，可以使用`_`来初始化成员变量
   - String => null
@@ -465,7 +523,7 @@ object _04ClassDemo {
 
 
 
-# 12.定义成员方法
+# 5.定义成员方法
 
 类可以有自己的行为，scala中也可以通过定义成员方法来定义类的行为。
 
@@ -495,7 +553,7 @@ object _05ClassDemo {
 }
 ```
 
-# 13.访问修饰符
+# 6.访问修饰符
 
 Java中的访问控制，同样适用于scala，可以在成员前面添加`private/protected`关键字来控制成员的可见性。但在scala中，**没有public关键字**，任何没有被标为`private`或`protected`的成员都是公共的
 
@@ -503,8 +561,7 @@ Java中的访问控制，同样适用于scala，可以在成员前面添加`priv
 
 ```scala
 object _02AccessDemo {
-
-  class Person {
+ class Person {
     // 定义私有成员变量
     private var name:String = _
     private var age:Int = _
@@ -515,8 +572,8 @@ object _02AccessDemo {
     def setAge(age:Int) = this.age = age
 
     // 定义私有成员方法
-    private def getNameAndAge = {
-      name -> age
+    private def getNameAndAge() = {
+       (this.name -> this.age)
     }
   }
 
@@ -527,15 +584,18 @@ object _02AccessDemo {
 
     println(person.getName())
     println(person.getAge())
+    
+    //Symbol getNameAndAge is inaccessible from this place
+//    person.getNameAndAge
   }
 }
 ```
 
-# 14.类构造器
+# 7.类构造器
 
 当创建类对象的时候，会自动调用类的构造器。之前使用的都是默认构造器，我们接下来要学习如何自定义构造器。
 
-## 14.1 主构造器
+## 7.1 主构造器
 
 语法：
 
@@ -586,7 +646,7 @@ object _06ConstructorDemo {
 }
 ```
 
-## 14.2 辅助构造器
+## 7.2 辅助构造器
 
 在scala中，除了定义主构造器外，还可以根据需要来定义辅助构造器。例如：允许通过多种方式，来创建对象，这时候就可以定义其他更多的构造器。我们把除了主构造器之外的构造器称为**辅助构造器**。
 
@@ -628,7 +688,7 @@ object _07ConstructorDemo {
 }
 ```
 
-# 15.单例对象
+# 8.单例对象
 
 scala中没有Java中的静态成员，我们想要定义类似于Java的static变量、static方法，就要使用到scala中的单例对象——object.
 
@@ -680,7 +740,7 @@ object _09ObjectDemo {
 }
 ```
 
-# 16.工具类案例
+# 9.工具类案例
 
 需求：
 
@@ -708,7 +768,7 @@ object _10ObjectDemo {
 }
 ```
 
-# 17.main方法
+# 11.main方法
 
 scala和Java一样，如果要运行一个程序，必须有一个main方法。而在Java中main方法是静态的，而在scala中没有静态方法。在scala中，这个main方法必须放在一个单例对象中。
 
@@ -748,7 +808,7 @@ object Main5 extends App {
 }
 ```
 
-# 18.伴生对象
+# 12.伴生对象
 
 在Java中，经常会有一些类，同时有实例成员又有静态成员。例如：
 
@@ -780,11 +840,11 @@ val b = Set(1,2,3)
 
 **定义伴生对象**
 
-一个class和object具有同样的名字。这个object称为**伴生对象**，这个class称为**伴生类**
+**一个class和object具有同样的名字**。这个object称为**伴生对象**，这个class称为**伴生类**
 
 * 伴生对象必须要和伴生类一样的名字
 * 伴生对象和伴生类在同一个scala源文件中
-* 伴生对象和伴生类可以互相访问private属性
+* 伴生对象和伴生类可以**互相访问private属性**
 
 示例：
 
@@ -818,7 +878,7 @@ object _11ObjectDemo {
   
   object Person {
     def printPerson(person:Person): Unit = {
-      println(person.name)
+      println(person.name)// 报错
     }
   }
   
@@ -830,7 +890,7 @@ object _11ObjectDemo {
 
 注：上述代码，会编译报错。但移除掉[this]就可以访问了
 
-# 19.伴生对象-apply方法
+# 13.伴生对象-apply方法
 
 我们之前使用过这种方式来创建一个Array对象。
 
@@ -879,7 +939,7 @@ object _12ApplyDemo {
 }
 ```
 
-# 20.继承
+# 14.继承
 
 scala语言是支持面向对象编程的，我们也可以使用scala来实现继承，通过继承来减少重复代码。
 
@@ -931,13 +991,13 @@ object Student extends Person
 
 object Main13 {
   def main(args: Array[String]): Unit = {
-
+    Student.name="张三"
     println(Student.getName)
   }
 }
 ```
 
-# 21.override和super
+# 15.override和super
 
 类似于Java语言，我们在子类中使用override需要来重写父类的成员，可以使用super来引用父类
 
@@ -971,7 +1031,7 @@ object Main13 {
 }
 ```
 
-# 22.scala中的文件操作
+# 16.scala中的文件操作
 
 读取
 

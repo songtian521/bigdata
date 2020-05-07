@@ -213,9 +213,12 @@ val b:Int = null //报错
 示例：
 
 ```scala
-var a = {
-      print("aaa")
-    }
+scala> val a = {
+     | println("1+1")
+     | 1+1
+     | }
+1+1
+a: Int = 2
 ```
 
 # 7.循环
@@ -232,13 +235,34 @@ for(i <- 表达式/数组/集合) {
 }
 ```
 
-示例：
+简单循环：使用for表达式打印1-10的数字
+
+步骤
+
+1. 生成1-10的数字（提示：使用to方法）
+
+   ```scala
+   scala> val nums = 1.to(10)
+   nums: scala.collection.immutable.Range.Inclusive = Range(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+   ```
+
+2. 使用for表达式遍历，打印每个数字
+
+   ```scala
+   scala> for (i<- 1 to 10) print(i)
+   12345678910
+   ```
+
+嵌套循环案例：使用for表达式，打印字符*
 
 ```scala
-for (i<- 1 to 10){
-      print(i)
-}
+scala> for(i <- 1 to 3; j <- 1 to 5) {print("*");if(j == 5) println("")}
+*****
+*****
+*****
 ```
+
+
 
 ## 7.2 守卫
 
@@ -256,7 +280,10 @@ for(i <- 表达式/数组/集合 if 表达式) {
 
 ```scala
 // 添加守卫，打印能够整除3的数字
-for(i <- 1 to 10 if i % 3 == 0) println(i)
+scala> for(i <- 1 to 10 if i % 3 == 0) println(i)
+3
+6
+9
 ```
 
 ## 7.3 推导式
@@ -268,10 +295,10 @@ for(i <- 1 to 10 if i % 3 == 0) println(i)
 
 ```scala
 // for推导式：for表达式中以yield开始，该for表达式会构建出一个集合
- val v = for(i <- 1 to 10) yield i * 10
-    print(v)
+scala>  val v = for(i <- 1 to 10) yield i * 10
+v: scala.collection.immutable.IndexedSeq[Int] = Vector(10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
 
-输出：
+scala> print(v)
 Vector(10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
 ```
 
@@ -282,11 +309,11 @@ scala中while循环和Java中是一致的
 示例：
 
 ```scala
- var i = 1;
-    while(i <= 10) {
-       println(i)
-       i = i+1
-    }
+var i = 1;
+while(i <= 10) {
+    println(i)
+    i = i+1
+}
 ```
 
 do while
@@ -381,15 +408,38 @@ def methodName (参数名:参数类型, 参数名:参数类型) : [return type] 
 
 scala定义方法可以省略返回值，由scala自动推断返回值类型。这样方法定义后更加简洁。
 
-注：定义递归方法，**不能省略返回值类型**
-
 示例：
 
 ```scala
-	print( m2(10))
-    def m2(x:Int):Int = {
-       if(x<=1)1 else m2(x-1) * x
-    }
+scala> def add(x:Int, y:Int) = x + y
+add: (x: Int, y: Int)Int
+
+scala> add(1,2)
+res12: Int = 3
+```
+
+
+
+注：定义递归方法，**不能省略返回值类型**
+
+案例：定义递归方法，求阶乘
+
+```scala
+scala> def m1(num:Int)={
+     | if(num<=1) 1
+     | else m1(num-1) * num
+     | }
+<console>:14: error: recursive method m1 needs result type
+       else m1(num-1) * num
+
+scala> def m1(num:Int):Int={
+     | if(num<=1) 1
+     | else m1(num-1) * num
+     | }
+m1: (num: Int)Int
+
+scala> m1(3)
+res8: Int = 6
 ```
 
 ## 8.3 方法参数
@@ -407,8 +457,11 @@ scala中的方法参数，使用比较灵活。它支持以下几种类型的参
    示例：
 
    ```scala
-   def add(x:Int = 0, y:Int = 0) = x + y
-   add()
+   scala> def add(x:Int = 0, y:Int = 0) = x + y
+   add: (x: Int, y: Int)Int
+   
+   scala> add()
+   res10: Int = 0
    ```
 
 2. 带名参数
@@ -418,8 +471,11 @@ scala中的方法参数，使用比较灵活。它支持以下几种类型的参
    示例：
 
    ```scala
-   def add(x:Int = 0, y:Int = 0) = x + y
-   add(x=1)
+   scala> def add(x:Int = 0, y:Int = 0) = x + y
+   add: (x: Int, y: Int)Int
+   
+   scala> add(x=1)
+   res11: Int = 1
    ```
 
 3. 变长参数
@@ -439,8 +495,11 @@ scala中的方法参数，使用比较灵活。它支持以下几种类型的参
    示例：
 
    ```scala
-   def add(num:Int*) = num.sum
-   add(1,2,3,4,5)
+   scala> def add(num:Int*) = num.sum
+   add: (num: Int*)Int
+   
+   scala> add(1,2,3,4,5)
+   res12: Int = 15
    ```
 
 ## 8.4 方法调用方式
@@ -467,7 +526,8 @@ scala中的方法参数，使用比较灵活。它支持以下几种类型的参
    使用后缀法`Math.abs`求绝对值
 
    ```scala
-   Math.abs(-1)
+   scala> Math.abs(-1)
+   res3: Int = 1
    ```
 
 2. 中缀调用法
@@ -478,12 +538,17 @@ scala中的方法参数，使用比较灵活。它支持以下几种类型的参
    对象名 方法名 参数
    ```
 
-   如果有多个参数，使用括号括起来
+   注：如果有多个参数，可以使用括号括起来
 
    示例：
 
-   ```
-   Math abs -1
+   ```scala
+   scala> Math abs -1
+   res14: Int = 1
+   
+   scala> 1 to 10
+   res15: scala.collection.immutable.Range.Inclusive = Range(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+   
    ```
 
 3. 操作符即方法
@@ -492,6 +557,14 @@ scala中的方法参数，使用比较灵活。它支持以下几种类型的参
 
    - 所有的操作符都是方法
    - 操作符是一个方法名字是符号的方法
+
+   示例：
+
+   ```scala
+   1 + 1
+   ```
+
+   
 
 4. 花括号调用法
 
@@ -508,8 +581,9 @@ scala中的方法参数，使用比较灵活。它支持以下几种类型的参
 
    示例：
 
-   ```
-   Math.abs{-10}
+   ```scala
+   scala> Math.abs{-10}
+   res13: Int = 10
    ```
 
 5. 无括号调用法
@@ -519,8 +593,14 @@ scala中的方法参数，使用比较灵活。它支持以下几种类型的参
    示例：
 
    ```scala
-   def m3()=println("hello")
-   m3()
+   scala> def m3()=println("hello")
+   m3: ()Unit
+   
+   scala> m3()
+   hello
+   
+   scala> m3
+   hello
    ```
 
 # 9.函数
@@ -545,7 +625,11 @@ val 函数变量名 = (参数名:参数类型, 参数名:参数类型....) => �
 示例：
 
 ```scala
- val add = (x:Int, y:Int) => x + y
+scala>  val add = (x:Int, y:Int) => x + y
+add: (Int, Int) => Int = <function2>
+
+scala> add(1,2)
+res0: Int = 3
 ```
 
 ## 9.2 方法和函数的区别
@@ -554,7 +638,28 @@ val 函数变量名 = (参数名:参数类型, 参数名:参数类型....) => �
 - 可以将函数对象赋值给一个变量，在运行时，它是加载到JVM的堆内存中
 - 函数是一个对象，继承自FunctionN，函数对象有apply，curried，toString，tupled这些方法。方法则没有
 
-注：无法将函数赋值给变量
+示例：
+
+```scala
+# 方法无法赋值给变量
+scala> def add(x:Int,y:Int)=x+y
+add: (x: Int, y: Int)Int
+
+scala> val a = add
+<console>:12: error: missing argument list for method add
+Unapplied methods are only converted to functions when a function type is expected.
+You can make this conversion explicit by writing `add _` or `add(_,_)` instead of `add`.
+       val a = add
+
+
+# 函数可以赋值给变量
+scala>  val add = (x:Int, y:Int) => x + y
+add: (Int, Int) => Int = <function2>
+
+scala> val a = add
+a: (Int, Int) => Int = <function2>
+
+```
 
 ## 9.3 方法转换为函数
 
@@ -563,9 +668,12 @@ val 函数变量名 = (参数名:参数类型, 参数名:参数类型....) => �
 
 示例：
 
-```
-def add(x:Int,y:Int)=x+y
-val a = add _
+```scala
+scala> def add(x:Int,y:Int)=x+y
+add: (x: Int, y: Int)Int
+
+scala> val a = add _
+a: (Int, Int) => Int = <function2>
 ```
 
 # 10.数组
@@ -595,16 +703,23 @@ val/var 变量名 = Array(元素1, 元素2, 元素3...)
 示例1：
 
 ```scala
-val a = new Array[Int](100)
-a(0) = 110
-println(a(0))// 110
+scala> val a = new Array[Int](10)
+a: Array[Int] = Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+scala> a(0) = 110
+
+scala> println(a(0))
+110
 ```
 
 示例2：
 
-```
- val a = Array("java", "scala", "python")
- a.length //3
+```scala
+scala>  val a = Array("java", "scala", "python")
+a: Array[String] = Array(java, scala, python)
+
+scala> a.length
+res3: Int = 3
 ```
 
 ## 10.2 变长数组
@@ -633,16 +748,21 @@ println(a(0))// 110
 
 定义一个长度为0的整型变长数组
 
-```
-val a = ArrayBuffer[Int]()
+```scala
+scala> import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.ArrayBuffer
+
+scala> val a = ArrayBuffer[Int]()
+a: scala.collection.mutable.ArrayBuffer[Int] = ArrayBuffer()
 ```
 
 示例2：
 
 定义一个包含任意元素的变长数组
 
-```
- val a = ArrayBuffer("hadoop", "storm", "spark")
+```scala
+scala>  val a = ArrayBuffer("hadoop", "storm", "spark")
+a: scala.collection.mutable.ArrayBuffer[String] = ArrayBuffer(hadoop, storm, spark)
 ```
 
 ## 10.3 添加/修改/删除元素
@@ -655,16 +775,17 @@ val a = ArrayBuffer[Int]()
 
 ```scala
 // 定义变长数组
- val a = ArrayBuffer("hadoop", "spark", "flink")
-
+scala>  val a = ArrayBuffer("hadoop", "spark", "flink")
+a: scala.collection.mutable.ArrayBuffer[String] = ArrayBuffer(hadoop, spark, flink)
 // 追加一个元素
- a += "flume"
-
+scala>  a += "flume"
+res4: a.type = ArrayBuffer(hadoop, spark, flink, flume)
 // 删除一个元素
- a -= "hadoop"
-
+scala>  a -= "hadoop"
+res5: a.type = ArrayBuffer(spark, flink, flume)
 // 追加一个数组
-scala> a ++= Array("hive", "sqoop")
+scala>  a ++= Array("hive", "sqoop")
+res6: a.type = ArrayBuffer(spark, flink, flume, hive, sqoop)
 ```
 
 ## 10.4 遍历数组
@@ -678,16 +799,36 @@ scala> a ++= Array("hive", "sqoop")
 示例1：
 
 ```scala
-val a = Array(1,2,3,4,5)
-for(i<-a) println(i)
+scala> val a = Array(1,2,3,4,5)
+a: Array[Int] = Array(1, 2, 3, 4, 5)
+
+scala> for(i<-a) println(i)
+1
+2
+3
+4
+5
 ```
 
 示例2：
 
 ```scala
-val a = Array(1,2,3,4,5)
-for(i <- 0 to a.length - 1) println(a(i))
-for(i <- 0 until a.length) println(a(i))
+scala> val a = Array(1,2,3,4,5)
+a: Array[Int] = Array(1, 2, 3, 4, 5)
+
+scala> for(i <- 0 to a.length - 1) println(a(i))
+1
+2
+3
+4
+5
+
+scala> for(i <- 0 until a.length) println(a(i))
+1
+2
+3
+4
+5
 ```
 
 注：
@@ -707,9 +848,12 @@ scala中的数组封装了一些常用的计算操作，将来在对数据处理
 
 **示例1：求和**
 
-```
-val a = Array(1,2,3,4)
-println(a.sum)
+```scala
+scala> val a = Array(1,2,3,4)
+a: Array[Int] = Array(1, 2, 3, 4)
+
+scala> println(a.sum)
+10
 ```
 
 **示例2：最大值**
@@ -725,9 +869,12 @@ println(a.sum)
 
 数组的`min`方法，可以获取到数组中最小的那个元素值
 
-```
-val a = Array(4,1,2,4,10)
-println(a.min)
+```scala
+scala>  val a = Array(4,1,2,4,10)
+a: Array[Int] = Array(4, 1, 2, 4, 10)
+
+scala>  println(a.max)
+10
 ```
 
 **示例4：排序**
@@ -764,8 +911,9 @@ val/var 元组 = 元素1->元素2
 
 示例1：
 
-```
-val a = (1, "zhangsan", 20, "beijing")
+```scala
+scala> val a = (1, "zhangsan", 20, "beijing")
+a: (Int, String, Int, String) = (1,zhangsan,20,beijing)
 ```
 
 示例2：
@@ -780,7 +928,7 @@ a: (String, Int) = (zhangsan,20)
 
 ## 10.7 访问元组
 
-使用/_1、/_2、/_3....来访问元组中的元素，_1表示访问第一个元素，依次类推
+使用`_1、_2、_3、....`来访问元组中的元素，_1表示访问第一个元素，依次类推
 
 示例：
 
@@ -795,6 +943,16 @@ res41: String = zhangsan
 // 获取第二个元素
 scala> a._2
 res42: String = male
+
+//依次类推
+。。。。
+
+// 不能修改元组中的值
+scala> a._1 = 2
+<console>:13: error: reassignment to val
+a._1 = 2
+^
+
 ```
 
 # 11.列表
@@ -834,20 +992,23 @@ val/var 变量名 = 元素1 :: 元素2 :: Nil
 
 示例1：
 
-```
-val a = List(1,2,3,4)
+```scala
+scala> val a = List(1,2,3,4)
+a: List[Int] = List(1, 2, 3, 4)
 ```
 
 示例2：
 
-```
-val a = Nil
+```scala
+scala> val a = Nil
+a: scala.collection.immutable.Nil.type = List()
 ```
 
 示例3：
 
-```
-val a = -2 :: -1 :: Nil
+```scala
+scala> val a = -2 :: -1 :: Nil
+a: List[Int] = List(-2, -1)
 ```
 
 ## 11.2 可变列表
@@ -863,13 +1024,13 @@ val a = -2 :: -1 :: Nil
 
 语法：
 
-使用ListBuffer/[元素类型/]()创建空的可变列表，语法结构：
+使用`ListBuffer[元素类型]()`创建空的可变列表，语法结构：
 
 ```scala
 val/var 变量名 = ListBuffer[Int]()
 ```
 
-使用ListBuffer(元素1, 元素2, 元素3...)创建可变列表，语法结构：
+使用`ListBuffer(元素1, 元素2, 元素3...)`创建可变列表，语法结构：
 
 ```scala
 val/var 变量名 = ListBuffer(元素1，元素2，元素3...)
@@ -877,13 +1038,13 @@ val/var 变量名 = ListBuffer(元素1，元素2，元素3...)
 
 示例1：
 
-```
+```scala
 val a = ListBuffer[Int]()
 ```
 
 示例2：
 
-```
+```scala
  val a = ListBuffer(1,2,3,4)
 ```
 
@@ -899,7 +1060,7 @@ val a = ListBuffer[Int]()
 
 示例：
 
-```
+```scala
 // 导入不可变列表
 scala> import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.ListBuffer
@@ -913,6 +1074,7 @@ scala> a(0)
 res19: Int = 1
 
 // 追加一个元素
+
 scala> a += 4
 res20: a.type = ListBuffer(1, 2, 3, 4)
 
@@ -937,37 +1099,53 @@ res24: Array[Int] = Array(1, 2, 3, 4, 5, 6)
 
 - 判断列表是否为空（`isEmpty`）
 
-  ```
-  val a = List(1,2,3,4)
-  a.isEmpty
+  ```scala
+  scala> val a = List(1,2,3,4)
+  a: List[Int] = List(1, 2, 3, 4)
+  
+  scala> a.isEmpty
+  res0: Boolean = false
   ```
 
 - 拼接两个列表（`++`）
 
-  ```
-  val a = List(1,2,3)
-  val b = List(4,5,6)
-  print( a++ b);//List(1, 2, 3, 4, 5, 6)
+  ```scala
+  scala> val a = List(1,2,3)
+  a: List[Int] = List(1, 2, 3)
+  
+  scala> val b = List(4,5,6)
+  b: List[Int] = List(4, 5, 6)
+  
+  scala> print( a++b);
+  List(1, 2, 3, 4, 5, 6)
   ```
 
 - 获取列表的首个元素（`head`）和剩余部分(`tail`)
 
-  ```
-   	val a = List(1,2,3)
-      println(a.head)//1
-      println(a.tail)//List(2, 3)
+  ```scala
+  scala> val a = List(1,2,3)
+  a: List[Int] = List(1, 2, 3)
+  
+  scala> println(a.head)
+  1
+  
+  scala> println(a.tail)
+  List(2, 3)
   ```
 
 - 反转列表（`reverse`）
 
-  ```
-  val a = List(1,2,3)
-  println( a.reverse)//List(3, 2, 1)
+  ```scala
+  scala> val a = List(1,2,3)
+  a: List[Int] = List(1, 2, 3)
+  
+  scala> println( a.reverse)
+  List(3, 2, 1)
   ```
 
 - 获取前缀（`take`）、获取后缀（`drop`）
 
-  ```
+  ```scala
   scala> val a = List(1,2,3,4,5)
   a: List[Int] = List(1, 2, 3, 4, 5)
   
@@ -982,7 +1160,7 @@ res24: Array[Int] = Array(1, 2, 3, 4, 5, 6)
 
   扁平化表示将列表中的列表中的所有元素放到一个列表中。
 
-  ```
+  ```scala
   scala> val a = List(List(1,2), List(3), List(4,5))
   a: List[List[Int]] = List(List(1, 2), List(3), List(4, 5))
   
@@ -994,7 +1172,7 @@ res24: Array[Int] = Array(1, 2, 3, 4, 5, 6)
 
   * 拉链：使用zip将两个列表，组合成一个元素为元组的列表
 
-    ```
+    ```scala
     scala> val a = List("zhangsan", "lisi", "wangwu")
     a: List[String] = List(zhangsan, lisi, wangwu)
     
@@ -1002,16 +1180,16 @@ res24: Array[Int] = Array(1, 2, 3, 4, 5, 6)
     b: List[Int] = List(19, 20, 21)
     
     scala> a.zip(b)
-    res1: List[(String, Int)] = List((zhangsan,19), (lisi,20), (wangwu,21))
+    res11: List[(String, Int)] = List((zhangsan,19), (lisi,20), (wangwu,21))
     ```
 
     
 
   * 拉开：将一个包含元组的列表，解开成包含两个列表的元组
 
-    ```
-    scala> res1.unzip
-    res2: (List[String], List[Int]) = (List(zhangsan, lisi, wangwu),List(19, 20, 21))
+    ```scala
+    scala> res11.unzip
+    res15: (List[String], List[Int]) = (List(zhangsan, lisi, wangwu),List(19, 20, 21))
     ```
 
     
@@ -1020,7 +1198,7 @@ res24: Array[Int] = Array(1, 2, 3, 4, 5, 6)
 
   toString方法可以返回List中的所有元素
 
-  ```
+  ```scala
   scala> val a = List(1,2,3,4)
   a: List[Int] = List(1, 2, 3, 4)
   
@@ -1034,7 +1212,7 @@ res24: Array[Int] = Array(1, 2, 3, 4, 5, 6)
 
   mkString方法，可以将元素以分隔符拼接起来。默认没有分隔符
 
-  ```
+  ```scala
   scala> val a = List(1,2,3,4)
   a: List[Int] = List(1, 2, 3, 4)
   
@@ -1051,7 +1229,7 @@ res24: Array[Int] = Array(1, 2, 3, 4, 5, 6)
 
   union表示对两个列表取并集，不去重
 
-  ```
+  ```scala
   scala> val a1 = List(1,2,3,4)
   a1: List[Int] = List(1, 2, 3, 4)
   
@@ -1073,7 +1251,7 @@ res24: Array[Int] = Array(1, 2, 3, 4, 5, 6)
 
   intersect表示对两个列表取交集
 
-  ```
+  ```scala
   scala> val a1 = List(1,2,3,4)
   a1: List[Int] = List(1, 2, 3, 4)
   
@@ -1090,7 +1268,7 @@ res24: Array[Int] = Array(1, 2, 3, 4, 5, 6)
 
   iff表示对两个列表取差集，例如： a1.diff(a2)，表示获取a1在a2中不存在的元素
 
-  ```
+  ```scala
   scala> val a1 = List(1,2,3,4)
   a1: List[Int] = List(1, 2, 3, 4)
   
@@ -1118,26 +1296,28 @@ scala中的集也分为两种，一种是不可变集，另一种是可变集。
 
 创建一个空的不可变集，语法格式：
 
-```
+```scala
 val/var 变量名 = Set[类型]()
 ```
 
 给定元素来创建一个不可变集，语法格式：
 
-```
+```scala
 val/var 变量名 = Set(元素1, 元素2, 元素3...)
 ```
 
 示例1：定义一个空的不可变集
 
-```
+```scala
 scala> val a = Set[Int]()
 a: scala.collection.immutable.Set[Int] = Set()
 ```
 
-示例2：定义一个不可变集，保存以下元素：1,1,3,2,4,8
+示例2：定义一个不可变集，保存以下元素：1,1,3,2,4,8 
 
-```
+注意：set集合不重复
+
+```scala
 scala> val a = Set(1,1,3,2,4,8)
 a: scala.collection.immutable.Set[Int] = Set(1, 2, 3, 8, 4)
 ```
@@ -1145,7 +1325,8 @@ a: scala.collection.immutable.Set[Int] = Set(1, 2, 3, 8, 4)
 注：默认创建的都是不可变集合，同样可以这样直接创建不可变集合
 
 ```scala
-var a = scala.collection.immutable.Set(1,2,3,4)
+scala> var a = scala.collection.immutable.Set(1,2,3,4)
+a: scala.collection.immutable.Set[Int] = Set(1, 2, 3, 4)
 ```
 
 ### 12.1.2 set基本操作
@@ -1167,7 +1348,11 @@ res0: Int = 5
 
 // 遍历集
 scala> for(i <- a) println(i)
-
+5
+1
+2
+3
+4
 // 删除一个元素
 scala> a - 1
 res5: scala.collection.immutable.Set[Int] = Set(5, 2, 3, 4)
@@ -1179,19 +1364,18 @@ res2: scala.collection.immutable.Set[Int] = Set(5, 1, 6, 2, 7, 3, 8, 4)
 // 拼接集和列表
 scala> a ++ List(6,7,8,9)
 res6: scala.collection.immutable.Set[Int] = Set(5, 1, 6, 9, 2, 7, 3, 8, 4)
-
-//直接创建有序集合
-var v = SortedSet(2,4,1,3)
-println(v)
 ```
 
-### 12.3 set 可变集
+### 12.1.3 set 可变集
 
 可变集合不可变集的创建方式一致，只不过需要提前导入一个可变集类。
 
 手动导入：`import scala.collection.mutable.Set`
 
 ```scala
+scala> import scala.collection.mutable.Set
+import scala.collection.mutable.Set
+
 scala> val a = Set(1,2,3,4)
 a: scala.collection.mutable.Set[Int] = Set(1, 2, 3, 4)                          
 
@@ -1207,7 +1391,8 @@ res26: a.type = Set(5, 2, 3, 4)
 注：同样可以这样直接创建可变集合
 
 ```scala
-var a = scala.collection.mutable.Set(1,2,3,4)
+scala> var a = scala.collection.mutable.Set(1,2,3,4)
+a: scala.collection.mutable.Set[Int] = Set(1, 2, 3, 4)
 ```
 
 
@@ -1220,7 +1405,7 @@ Map可以称之为映射。它是由键值对组成的集合。在scala中，Map
 
 语法：
 
-```
+```scala
 val/var map = Map(键->值, 键->值, 键->值...)	// 推荐，可读性更好
 val/var map = Map((键, 值), (键, 值), (键, 值), (键, 值)...)
 ```
@@ -1248,6 +1433,9 @@ res10: Int = 30
 示例：
 
 ```scala
+scala> import scala.collection.mutable.Map
+import scala.collection.mutable.Map
+
 scala> val map = Map("zhangsan"->30, "lisi"->40)
 map: scala.collection.mutable.Map[String,Int] = Map(lisi -> 40, zhangsan -> 30)
 
@@ -1317,12 +1505,20 @@ scala针对每一类集合都提供了一个迭代器（iterator）用来迭代�
 示例1：
 
 ```scala
+scala> val a = List(1,2,3,4,5)
+a: List[Int] = List(1, 2, 3, 4, 5)
+
 scala> val ite = a.iterator
 ite: Iterator[Int] = non-empty iterator
 
 scala> while(ite.hasNext) {
-     | println(ite.next)
+     |  println(ite.next)
      | }
+1
+2
+3
+4
+5
 ```
 
 示例2：
@@ -1331,7 +1527,15 @@ scala> while(ite.hasNext) {
 scala> val a = List(1,2,3,4,5)
 a: List[Int] = List(1, 2, 3, 4, 5)
 
+scala> val ite = a.iterator
+ite: Iterator[Int] = non-empty iterator
+
 scala> for(i <- a) println(i)
+1
+2
+3
+4
+5
 ```
 
 # 14.序列

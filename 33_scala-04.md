@@ -1,6 +1,20 @@
-# 33_scala-04
+33_scala-04
 
 # 1.Actor并发编程模型
+
+scala的Actor并发编程模型可以用来开发比Java线程效率更高的并发程序
+
+**Java并发编程的问题：**
+
+在Java并发编程中，每个对象都有一个逻辑监视器（monitor），可以用来控制对象的多线程访问。我们添加sychronized关键字来标记，需要进行同步加锁访问。这样，通过加锁的机制来确保同一时间只有一个线程访问共享数据。但这种方式存在资源争夺、以及死锁问题，程序越大问题越麻烦
+
+![](img/scala/Java并发编程的问题.png)
+
+线程死锁：
+
+![](img/scala/线程死锁.png)
+
+**Actor并发编程模型**
 
 Actor并发编程模型，是scala提供给程序员的一种与Java并发编程完全不一样的并发编程模型，是一种基于事件模型的并发机制。Actor并发编程模型是一种不共享数据，依赖消息传递的一种并发编程模式，有效避免资源争夺、死锁等情况。
 
@@ -122,7 +136,7 @@ Actor中使用receive方法来接收消息，需要给receive方法传入一个�
 示例：
 
 ```scala
-object ActorSender extends Actor {
+  object ActorSender extends Actor {
     override def act(): Unit = {
       // 发送消息
       while(true) {
@@ -147,6 +161,7 @@ object ActorSender extends Actor {
     ActorReceiver.start()
     ActorSender.start()
   }
+
 ```
 
 ## 3.1 使用loop和react优化接收消息
@@ -171,9 +186,42 @@ loop {
 }
 ```
 
+示例：
+
+```scala
+  object ActorSender extends Actor {
+    override def act(): Unit = {
+      // 发送消息
+      while(true) {
+        ActorReceiver ! "hello!"
+        TimeUnit.SECONDS.sleep(3)
+      }
+    }
+  }
+
+  object ActorReceiver extends Actor {
+    override def act(): Unit = {
+     // 持续接收消息
+        loop {
+            react {
+                case msg:String => println("接收到消息：" + msg)
+            }
+        }
+    }
+  }
+
+  def main(args: Array[String]): Unit = {
+    ActorReceiver.start()
+    ActorSender.start()
+  }
+
+```
+
+
+
 ## 3.2 发送/接受自定义消息
 
-我们前面发送的消息是字符串类型，Actor中也支持发送自定义消息，常见的如：使用样例类封装消息，然后进行发送处理。
+我们前面发送的消息是字符串类型，Actor中也支持发送自定义消息，常见的如：**使用样例类封装消息，然后进行发送处理。**
 
 **示例1：**
 
@@ -182,8 +230,8 @@ loop {
 * 打印回复消息
 
 ```scala
- case class Message(id:Int, msg:String)
-  case class ReplyMessage(msg:String, name:String)
+case class Message(id:Int, msg:String)
+case class ReplyMessage(msg:String, name:String)
 
   object MsgActor extends Actor {
     override def act(): Unit = {
@@ -201,8 +249,12 @@ loop {
   def main(args: Array[String]): Unit = {
     MsgActor.start()
 
+    //同步方式发送自定义消息，所以有返回值
     val replyMessage: Any = MsgActor !? Message(1, "你好")
-    println("回复消息:" + replyMessage.asInstanceOf[ReplyMessage])
+    //打印回复消息
+    if(replyMessage.isInstanceOf[ReplyMessage]){
+        println("回复消息:" + replyMessage.asInstanceOf[ReplyMessage])
+    }
   }
 ```
 
@@ -231,7 +283,6 @@ object MsgActor extends Actor {
 
 def main(args: Array[String]): Unit = {
     MsgActor.start()
-
     MsgActor ! Mesasge("中国联通", "大爷，快交话费！")
 }
 ```
@@ -263,10 +314,14 @@ object MsgActor extends Actor {
 def main(args: Array[String]): Unit = {
     MsgActor.start()
 
+    //future表示将来会返回一个数据
     val future: Future[Any] = MsgActor !! Message(1, "你好！")
 
+    //提前通过一个循环等到future中有数据，再执行
+    //调用future.isSet方法可以判断数据是否已经被接收到
     while(!future.isSet) {}
 
+    //使用future的apply方法就可以获取数据
     val replyMessage = future.apply().asInstanceOf[ReplyMessage]
     println(replyMessage)
 }
@@ -509,7 +564,180 @@ def main(args: Array[String]): Unit = {
    println("最终结果:" + result)
    ```
 
-   
+
+**完整代码：**
+
+WordCountTask.scala
+
+```scala
+package day01
+
+/**
+ * @Class:scala.day01.WordCountTask
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/5
+ */
+case class WordCountTask(fileName:String)
+
+/**
+ * 封装单词统计结果
+ * @param wordCountMap
+ */
+case class WordCountResult(wordCountMap: Map[String, Int])
+
+```
+
+MainActor.scala
+
+```scala
+package day01
+
+import java.io.File
+
+import scala.actors.Future
+
+
+/**
+ * @Class:spark.test.MainActor
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/5
+ */
+object MainActor {
+  def main(args: Array[String]): Unit = {
+    //第一步
+    //1.加载指定目录的数据文件
+    val DIR_PATH = "./WordCount/"
+    //2.获取指定目录下所有的数据文件名
+    //list方法 返回此抽象路径名表示的目录中的文件和目录的名称字符串数组
+    val fileNames = new File(DIR_PATH).list().toList // List(1.txt, 2.txt)
+    //3.将数据文件添加目录
+    val fileDirNames: List[String] = fileNames.map(DIR_PATH + _)// List(./WordCount/1.txt, ./WordCount/2.txt)
+
+
+    //第二步
+    //1. 创建Actor关联文件
+    val ActorLists: List[WordCountActor] = fileNames.map {
+      fileName => new WordCountActor
+    }
+    //2. 将Actor和文件名关联
+    //List((day01.WordCountActor@62ee68d8,./WordCount/1.txt), (day01.WordCountActor@735b5592,./WordCount/2.txt))
+    val tuples: List[(WordCountActor, String)] = ActorLists.zip(fileDirNames)
+
+    //3. 启动Actor/发送/接收消息
+    val futureList: List[Future[Any]] = tuples.map {
+      actorFilename =>
+        val actor = actorFilename._1
+        //启动Actor
+        actor.start()
+        //发送消息到Actor，异步有返回值消息
+        val future: Future[Any] = actor !! WordCountTask(actorFilename._2)
+        future
+    }
+
+    //4. 等待所有的Actor返回数据
+    while (futureList.filter(!_.isSet).size != 0){}
+    //获取数据
+    val results: List[WordCountResult] = futureList.map(_.apply().asInstanceOf[WordCountResult])
+    //获取样例类中封装的单词统计结果
+    val ResultMap: List[Map[String, Int]] = results.map(_.wordCountMap)
+    println(ResultMap)
+    // List(Map(flink -> 1, hadoop -> 3, spark -> 3, hive -> 2, flume -> 1, hbase -> 2), Map(flink -> 1, hadoop -> 3, spark -> 3, hive -> 2, flume -> 1, hbase -> 2))
+
+    //展平
+    val resultList: Map[String, Int] = WordCountUtils.reduce(ResultMap.flatten)
+    println(resultList)
+   //Map(flink -> 2, hadoop -> 6, spark -> 6, hive -> 4, flume -> 2, hbase -> 4)
+  }
+}
+
+```
+
+WordCountActor.scala
+
+```scala
+package day01
+
+import scala.actors.Actor
+import scala.io.Source
+
+/**
+ * @Class:spark.test.WordCountActor
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/5
+ */
+class WordCountActor extends Actor{
+  override def act(): Unit = {
+    loop{
+      react{
+       case WordCountTask(fileName) =>
+         println(fileName)
+//           ./WordCount/1.txt
+//         ./WordCount/2.txt
+
+          //1. 读取文件，转换为列表
+          val lineList: List[String] = Source.fromFile(fileName).getLines().toList
+          //2. 切割字符串，转换为单词
+          val wordLists: List[String] = lineList.flatMap(_.split(" "))
+          //3. 将单词转换为一个元组
+          val wordAndCountLists: List[(String, Int)] = wordLists.map(_ -> 1)
+
+
+//          //4. 分组
+//          val groupMap: Map[String, List[(String, Int)]] = wordAndCountLists.groupBy(_._1)
+//          //5. 聚合计算
+//          val wordCountMap: Map[String, Int] = groupMap.map {
+//            keyVal =>
+//              keyVal._1 -> keyVal._2.map(_._2).sum
+//          }
+
+         //简化
+         val wordCountMap: Map[String, Int] = WordCountUtils.reduce(wordAndCountLists)
+
+          //6. 打印测试
+          println(wordCountMap)
+          // Map(flink -> 1, hadoop -> 3, spark -> 3, hive -> 2, flume -> 1, hbase -> 2)
+          //Map(flink -> 1, hadoop -> 3, spark -> 3, hive -> 2, flume -> 1, hbase -> 2)
+
+          //7. 封装数据，并发送给MainActor
+          sender ! WordCountResult(wordCountMap)
+      }
+    }
+  }
+}
+
+```
+
+WordCountUtils.scala
+
+```scala
+package day01
+
+/**
+ * @Class:scala.day01.WordCountUtils
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/5
+ */
+object WordCountUtils {
+  def reduce(wordAndCountLists:List[(String,Int)])={
+    //4. 分组
+    val groupMap: Map[String, List[(String, Int)]] = wordAndCountLists.groupBy(_._1)
+    //5. 聚合计算
+    val wordCountMap: Map[String, Int] = groupMap.map {
+      keyVal =>
+        keyVal._1 -> keyVal._2.map(_._2).sum
+    }
+    wordCountMap
+  }
+
+}
+
+```
+
+
 
 # 5.高阶函数
 
@@ -526,7 +754,7 @@ scala 混合了面向对象和函数式的特性，在函数式编程语言中�
 
 在scala中，函数就像和数字、字符串一样，可以将函数传递给一个方法。我们可以对算法进行封装，然后将具体的动作传递给方法，这种特性很有用。
 
-示例：
+示例：将数字转换为指定个数的小星型
 
 ```scala
 val func: Int => String = (num:Int) => "*" * num
@@ -536,32 +764,30 @@ println((1 to 10).map(func))
 
 ## 5.2 匿名函数
 
-上面的代码，给`(num:Int) => "\*" \* num`函数赋值给了一个变量，但是这种写法有一些啰嗦。在scala中，可以不需要给函数赋值给变量，没有赋值给变量的函数就是**匿名函数**
+上面的代码，给`(num:Int) => "*" * num`函数赋值给了一个变量，但是这种写法有一些啰嗦。在scala中，可以不需要给函数赋值给变量，没有赋值给变量的函数就是**匿名函数**
 
-示例：
-
-```scala
-val list = List(1, 2, 3, 4)
-
-// 字符串*方法，表示生成指定数量的字符串
-val func_num2star = (num:Int) => "*" * num
-
-print(list.map(func_num2star))
-```
-
-使用匿名函数优化上述代码
+示例：简化上述的案例
 
 ```scala
-println((1 to 10).map(num => "*" * num))
-// 因为此处num变量只使用了一次，而且只是进行简单的计算，所以可以省略参数列表，使用_替代参数
-println((1 to 10).map("*" * _))
+object starNum {
+  def main(args: Array[String]): Unit = {
+    // val list = (1 to 5 ).map(num => "*" * num)
+      
+    //再次简化
+    // 因为此处num变量只使用了一次，而且只是进行简单的计算，所以可以省略参数列表，使用_替代参数
+    val list = (1 to 5 ).map( "*" * _)
+    println(list)
+    // Vector(*, **, ***, ****, *****)
+  }
+
+}
 ```
 
 ## 5.3 柯里化
 
 在scala和spark的源代码中，大量使用到了柯里化。为了后续方便阅读源代码，我们需要来了解下柯里化。
 
-定义：柯里化（Currying）是指将原先接受多个参数的方法转换为多个只有一个参数的参数列表的过程。
+**定义：**柯里化（Currying）是指将原先接收多个参数的方法转换为多个只有一个参数的参数列表的过程。
 
 ```scala
 //    以下两个函数在定义时等价
@@ -602,18 +828,16 @@ def main(args: Intrray[String]): Unit = {
 
 ## 5.4 闭包
 
-闭包其实就是一个函数，只不过这个函数的返回值依赖于声明在函数外部的变量。
+闭包其实就是一个函数，只不过这个**函数的返回值依赖于声明在函数外部的变量**。
 
-可以简单认为，就是可以访问不在当前作用域范围的一个函数。
+可以简单认为，就是**可以访问不在当前作用域范围的一个函数**。
 
 **示例1：**
 
 ```scala
 val y=10
 
-val add=(x:Int)=>{
-    x+y
-}
+val add: Int => Int = (x:Int)=> x + y
 
 println(add(5)) // 结果15
 ```
@@ -644,13 +868,15 @@ println(add(5)) // 结果15
 
 **定义：**所谓**隐式转换**，是指以implicit关键字声明的带有**单个参数**的方法。它是**自动被调用**的，自动将某种类型转换为另外一种类型。
 
+在spark中隐士转换都写在伴生对象中，因为类的实例肯定能找到伴生对象的，在一个作用域当中
+
 **注：隐式转换会导致代码的可读性变差，所以需要谨慎使用**
 
 **使用步骤：**
 
-1. 在object中定义隐式转换方法（使用implicit）
+1. 在**object中定义隐式转换方法**（使用implicit）
 2. 在需要用到隐式转换的地方，引入隐式转换（使用import）
-3. 自动调用隐式转化后的方法
+3. **自动调用**隐式转化后的方法
 
 **示例：**
 
@@ -663,15 +889,16 @@ println(add(5)) // 结果15
 **参考代码**
 
 ```scala
+//这里的RichFile相当于File的增强类 需要将被增强的类作为参数传入构造器中
 class RichFile(val file:File) {
     // 读取文件为字符串
     def read() = {
         Source.fromFile(file).mkString
     }
 }
-
+//implicit是隐式转换的关键字 这里定义一个隐式转换函数把当前类型转换成增强的类型
 object RichFile {
-    // 定义隐式转换方法
+    //File --> RichFile
     implicit def file2RichFile(file:File) = new RichFile(file)
 }
 
@@ -684,6 +911,11 @@ def main(args: Array[String]): Unit = {
 
     // file对象具备有read方法
     println(file.read())
+    /**
+      * File对象中并没有read方法 编译器会在全局范围内查询匹配的隐式类
+      * 在RichFile导入的类中有file2RichFile接受File类型的类 会自动匹配 
+      * 使得File对象通过这种隐式的方法具有read方法
+      */
 }
 ```
 
@@ -736,7 +968,7 @@ object demo_01  {
   }
   def main(args: Array[String]): Unit = {
     var f:Fruit = new Fruit("Banana")
-    f.say()
+    f.say() // Monkey like Banana
 
   }
 
@@ -777,15 +1009,21 @@ object ImplicitParam {
     implicit val DEFAULT_DELIMITERS = ("<<<", ">>>")
 }
 
-def main(args: Array[String]): Unit = {
-	// 导入隐式参数
+  def main(args: Array[String]): Unit = {
+    // 导入隐式参数
     import ImplicitParam.DEFAULT_DELIMITERS
 
-    println(quote("李雷和韩梅梅"))
-}
+    //隐式参数没有传值，编译器会在全局范围内搜索 有没有implicit String类型的隐式值 并传入
+    println(quote("李雷和韩梅梅")) // <<<李雷和韩梅梅>>>
+    //隐式参数正常是可以传值的，和普通函数传值一样  但是也可以不传值，因为有缺省值(默认配置)
+    println(quote("李雷和韩梅梅")("222","222")) // 222李雷和韩梅梅222
+  }
 ```
 
 ## 6.3 隐式类
+
+- 有时候进行代码重构，要增强他的某项功能同时又不想做太大的改动
+- 更多用的是隐式转换，隐式类用的不多
 
 在类名前加上implicit关键字
 
@@ -794,16 +1032,183 @@ def main(args: Array[String]): Unit = {
 示例：
 
 ```scala
-  implicit class calc(x:Int){
-    def add(y:Int):Int = x+y
-  }
-  def main(args: Array[String]): Unit = {
-    println(1.add(2))
-  }
+object Context_Helper {
+    implicit class FileEnhancer(file: File) {
+        def read = Source.fromFile(file.getPath).mkString
+    }
+    implicit class Op(x: Int) {
+        def add(second: Int) = x + second
+    }
+}
+ 
+object Implicits_Class {
+  
+    def main(args: Array[String]): Unit = {
+        import Context_Helper._
+
+        /**
+         * File对象中并没有read方法 编译器会在全局范围内查询匹配的隐式类
+         * 在Context_Helper导入的类中有FileEnhancer 接受File类型的类 会自动匹配 、
+         * 使得File对象通过这种隐式的方法具有read方法
+         */
+        println(new File("E:\\projectTest\\1.txt").read)   
+        
+        // 执行过程：首先把1转换为Op类，再调用add方法
+        println(1.add(2))    //3
+        
+    }
+}
 
 ```
 
-执行过程：首先把1转换为calc类，再调用add方法
+## 6.4 隐式参数与隐式转换
+
+```scala
+
+object Implicit_Conversions_with_Implicit_Parameters {
+  
+    def main(args: Array[String]): Unit = {
+        
+        /**
+         * (1)bigger[T]为泛型函数
+         * (2)bigger(...)(...)该函数是柯里化的
+         * (3)第二个括号传入的是一个匿名函数，类型为T => Ordered[T] orders是隐式参数 输入类型为T类型， 返回类型为Ordered[T]类型
+         * 
+         * */
+        def bigger[T](a: T, b: T)(implicit ordered: T => Ordered[T]) = {
+            /**
+             * ordered(a) > b中的">"是一个函数 具体定义在Ordered类中 
+             * Source define:
+             *        def >  (that: A): Boolean = (this compare that) >  0
+             */
+            if (ordered(a) > b) a else b   // if (a > b) a else b  这样写也可以
+        }
+      
+        println(bigger(4, 3))                 //4
+        println(bigger("Spark", "Hadoop"))    //Spark
+        
+    }
+}
+
+```
+
+## 6.5 上下文界定中的隐式参数
+
+在每次上下文运行的实例对象中将具体的值注入到隐式参数中，而且注入的过程是自动的
+
+```scala
+
+//[T: Ordering]：说明存在一个隐式类型Ordering[T]
+class Pair_Implicits[T: Ordering](val first: T, val second: T){
+    //声明一个隐式类型对象传入函数 
+    def bigger(implicit ordered: Ordering[T]) = {
+        if (ordered.compare(first, second) > 0) first else second
+    }
+}
+
+//简化上面的写法
+class Pair_Implicitly[T: Ordering](val first: T, val second: T){
+    def bigger = 
+      if (implicitly[Ordering[T]].compare(first, second) > 0) first else second
+}
+
+//进一步简化
+class Pair_Implicitly_Ordereded[T: Ordering](val first: T, val second: T) {
+    def bigger = {
+        import Ordered._
+        if (first > second) first else second
+    }
+}
+
+object Context_Bounds_Internals {
+  
+    def main(args: Array[String]): Unit = {
+      println(new Pair_Implicits(7, 9).bigger)
+      println(new Pair_Implicitly(7, 9).bigger)
+      println(new Pair_Implicitly_Ordereded(7, 9).bigger)
+      
+    }
+}
+
+```
+
+
+
+## 6.6 隐式对象
+
+```scala
+
+abstract class Template[T] {
+    def add(x: T, y: T): T
+}
+abstract class SubTemplate[T] extends Template[T] {
+    def unit: T
+}
+
+object Implicits_Object {
+    def main(args: Array[String]): Unit = {
+    
+        implicit object StringAdd extends  SubTemplate[String] {
+            def add(x: String, y: String): String = x concat y
+            def unit: String = ""
+        }  
+        
+        //定义隐式对象  定义方式:implicit object XXX
+        implicit object IntAdd extends SubTemplate[Int] {
+            def add(x: Int, y: Int): Int = x + y
+            def unit: Int = 0
+        } 
+        
+        //implicit m: SubTemplate[T]中 m是一个隐式对象就是实际在运行的对象
+        def sum[T](xs: List[T])(implicit m: SubTemplate[T]): T =
+            if (xs.isEmpty) m.unit 
+            else m.add(xs.head, sum(xs.tail))
+            
+        println(sum(List(1, 2, 3)))         //6
+        println(sum(List("Scala", "Spark", "Kafka")))   //ScalaSparkKafka
+      
+    }
+}
+
+```
+
+## 6.7 通过伴生对象进行隐式转换
+
+```scala
+ 
+import java.io.File
+import scala.io.Source
+ 
+
+class RichFile(val file: File) {
+    def read = Source.fromFile(file.getPath).mkString
+}
+
+class File_Impkicits(path: String) extends File(path)
+object File_Impkicits {
+    implicit def file2RichFile(file: File) = new RichFile(file) //file-->RichFile
+}
+ 
+object Implicits_Internals {
+    def main(args: Array[String]): Unit = {
+       /*
+        * 这里没有导入隐式对象
+        * 
+        * 通过给File_Impkicits类 构建一个伴生对象 在伴生对象内部顶一个隐式转换的方法
+        * 
+        * 执行顺序:
+        * 1.搜索File_Impkicits有无read方法 
+        * 2.在上下文上搜索(有无导入的隐式对象)
+        * 3.搜索File_Impkicits的伴生对象内有无隐式转换  发现implicit关键 尝试匹配类型  
+        *    例如这里匹配file2RichFile(file: File) 返回类型为RichFile 在RichFile中发现read方法
+        */
+       println(new File_Impkicits("E:\\projectTest\\1.txt").read)
+    }
+}
+
+```
+
+
 
 # 7.Akka并发编程框架
 
@@ -868,85 +1273,230 @@ Akka中，也是基于Actor来进行编程的。类似于之前学习过的Actor
 
 ## 7.3 入门案例
 
-基于Akka创建两个Actor，Actor之间可以互相发送消息。
+案例说明：基于Akka创建两个Actor，Actor之间可以互相发送消息。
+
+![](img/scala/Akka1.png)
 
 1. 创建Maven模块
+
 2. 打开pom.xml文件，导入akka Maven依赖和插件
 
-```xml
-  <dependencies>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-actor_2.11</artifactId>
-            <version>${actor.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-remote_2.11</artifactId>
-            <version>${actor.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-http_2.11</artifactId>
-            <version>10.0.9</version>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-protobuf_2.11</artifactId>
-            <version>${actor.version}</version>
-        </dependency>
-    </dependencies>
-```
+   ```xml
+     <dependencies>
+           <dependency>
+               <groupId>com.typesafe.akka</groupId>
+               <artifactId>akka-actor_2.11</artifactId>
+               <version>2.3.14</version>
+           </dependency>
+           <dependency>
+               <groupId>com.typesafe.akka</groupId>
+               <artifactId>akka-remote_2.11</artifactId>
+               <version>2.3.14</version>
+           </dependency>
+           <dependency>
+               <groupId>org.scala-lang</groupId>
+               <artifactId>scala-library</artifactId>
+               <version>2.11.8</version>
+           </dependency>
+     </dependencies>
+   
+       <build>
+           <sourceDirectory>src/main/scala</sourceDirectory>
+           <testSourceDirectory>src/test/scala</testSourceDirectory>
+           <plugins>
+               
+           <plugin>
+                   <groupId>net.alchim31.maven</groupId>
+                   <artifactId>scala-maven-plugin</artifactId>
+                   <version>3.2.0</version>
+                   <executions>
+                       <execution>
+                           <goals>
+                               <goal>compile</goal>
+                               <goal>testCompile</goal>
+                           </goals>
+                           <configuration>
+                               <args>
+                                   <arg>-dependencyfile</arg>
+                                   <arg>${project.build.directory}/.scala_dependencies</arg>
+                               </args>
+                           </configuration>
+                       </execution>
+                   </executions>
+               </plugin>
+               
+               <plugin>
+                   <groupId>org.apache.maven.plugins</groupId>
+                   <artifactId>maven-shade-plugin</artifactId>
+                   <version>3.1.1</version>
+                   <executions>
+                       <execution>
+                           <phase>package</phase>
+                           <goals>
+                               <goal>shade</goal>
+                           </goals>
+                           <configuration>
+                               <filters>
+                                   <filter>
+                                       <artifact>*:*</artifact>
+                                       <excludes>
+                                           <exclude>META-INF/*.SF</exclude>
+                                           <exclude>META-INF/*.DSA</exclude>
+                                           <exclude>META-INF/*.RSA</exclude>
+                                       </excludes>
+                                   </filter>
+                               </filters>
+                               <transformers>
+                                   <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                       <mainClass></mainClass>
+                                   </transformer>
+                               </transformers>
+                           </configuration>
+                       </execution>
+                   </executions>
+               </plugin>
+           </plugins>
+       </build>
+   ```
 
+3. 创建并加载Actor
 
+   创建两个Actor
 
-- 使用样例类封装消息
-- SubmitTaskMessage——提交任务消息
-- SuccessSubmitTaskMessage——任务提交成功消息
-- 使用类似于之前学习的Actor方式，使用`!`发送异步消息
+   - SenderActor：用来发送消息
+   - ReceiveActor：用来接收，回复消息
+
+4. 创建Actor
+
+   - 创建ActorSystem
+   - 创建自定义Actor
+   - ActorSystem加载Actor
+
+5. 发送/接收消息：
+
+   - 使用样例类封装消息
+   - SubmitTaskMessage——提交任务消息
+   - SuccessSubmitTaskMessage——任务提交成功消息
+   - 使用类似于之前学习的Actor方式，使用`!`发送异步消息
+
+SenderActor.scala
 
 ```scala
-case class SubmitTaskMessage(msg:String)
-case class SuccessSubmitTaskMessage(msg:String)
+package test
 
-// 注意：要导入的是Akka下的Actor
-object SenderActor extends Actor {
+import akka.actor.{Actor, ActorSelection}
 
-  override def preStart(): Unit = println("执行SenderActor的preStart()方法")
-
+/**
+ * @Class:spark.test.SenderActor
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
+object SenderActor extends Actor{
+  // 在Actor并发编程模型，需要实现act，想要持续接收消息需要 loop + react
+  // 但是在akka编程模型中，直接在receive方法中编写偏函数，直接处理消息就可以了
   override def receive: Receive = {
-    case "start" =>
-      val receiveActor = this.context.actorSelection("/user/receiverActor")
-      receiveActor ! SubmitTaskMessage("请完成#001任务!")
-    case SuccessSubmitTaskMessage(msg) =>
-      println(s"接收到来自${sender.path}的消息: $msg")
+    case "start" => {
+      println("SenderActor：接收到start消息")
+      // 发送SuccessSubmitTaskMessage消息给ReceiverActor
+      // akka://actorSystem的名字/user/actor的名字
+      //注：里面的名字必须是在主函数中自己起的名字
+      val receiverActor: ActorSelection = context.actorSelection("akka://actorSystem/user/receiverActor")
+      //发送消息
+      receiverActor ! SubmitTaskMessage("提交任务")
+    }
+    case SuccessSubmitTaskMessage(message)=>{
+      println(s"SenderActor：接收到任务提交成功消息 ${message}")
+    }
   }
 }
 
-object ReceiverActor extends Actor {
+```
 
-  override def preStart(): Unit = println("执行ReceiverActor()方法")
+ReceiverActor.scala
 
+```scala
+package test
+
+import akka.actor.Actor
+
+/**
+ * @Class:spark.test.ReceiverActor
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
+object ReceiverActor extends Actor{
   override def receive: Receive = {
-    case SubmitTaskMessage(msg) =>
-      println(s"接收到来自${sender.path}的消息: $msg")
-      sender ! SuccessSubmitTaskMessage("完成提交")
-    case _ => println("未匹配的消息类型")
+
+    case SubmitTaskMessage(message) => {
+      println(s"ReceiverActor：接收到任务提交消息 ${message}")
+      //回复任务提交成功给senderActor
+      sender ! SuccessSubmitTaskMessage("成功提交任务")
+    }
   }
 }
 
-object SimpleAkkaDemo {
+```
+
+SubmitTaskMessage.scala
+
+```scala
+package test
+
+/**
+ * @Class:spark.test.SubmitTaskMessage
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
+//提交任务消息
+case class SubmitTaskMessage(message:String)
+//提交任务成功消息
+case class SuccessSubmitTaskMessage(message:String)
+
+```
+
+Main.scala
+
+```scala
+package test
+
+import akka.actor.{ActorRef, ActorSystem, Props}
+import com.typesafe.config.ConfigFactory
+
+/**
+ * @Class:spark.test.MainActor
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
+object MainActor {
   def main(args: Array[String]): Unit = {
-    val actorSystem = ActorSystem("SimpleAkkaDemo", ConfigFactory.load())
+    //1. 实现一个Actor trait
 
+    //2. 创建ActorSystem
+    val actorSystem: ActorSystem = ActorSystem("actorSystem", ConfigFactory.load())
+    //3. 加载Actor
     val senderActor: ActorRef = actorSystem.actorOf(Props(SenderActor), "senderActor")
     val receiverActor: ActorRef = actorSystem.actorOf(Props(ReceiverActor), "receiverActor")
 
+    //在main方法中，发送一个字符串消息给senderActor
     senderActor ! "start"
-      
+
+    // 程序最终输出结果：
+    /**
+     * SenderActor：接收到start消息
+     * ReceiverActor：接收到任务提交消息 提交任务
+     * SenderActor：接收到任务提交成功消息 成功提交任务
+     */
   }
+
 }
+
 ```
+
+
 
 ## 7.4 Akka定时任务
 
@@ -981,28 +1531,47 @@ def schedule(
 * 使用发送消息方式实现
 
 ```scala
- // 1. 创建一个Actor，用来接收消息，打印消息
-  object ReceiveActor extends Actor {
+package test
+
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import com.typesafe.config.ConfigFactory
+
+/**
+ * @Class:spark.test.SchedulerDemo
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
+object SchedulerDemo {
+  //1. 创建一个Actor 接收打印消息
+  object ReceiveActor extends Actor{
     override def receive: Receive = {
       case x => println(x)
     }
   }
-
-  // 2. 构建ActorSystem，加载Actor
+  //2. 构建ActorSystem，加载Actor
   def main(args: Array[String]): Unit = {
-    val actorSystem = ActorSystem("actorSystem", ConfigFactory.load())
-    val receiveActor = actorSystem.actorOf(Props(ReceiveActor))
-
-    // 3. 启动scheduler，定期发送消息给Actor
-    // 导入一个隐式转换
+    val actorSystem: ActorSystem = ActorSystem("actorSystem", ConfigFactory.load())
+    val receiveActor: ActorRef = actorSystem.actorOf(Props(ReceiveActor), "receiveActor")
+    //3. 定时发送消息给Actor
+    /**
+     * 参数1：延迟多久启动定时任务
+     * 参数2：定时任务的周期
+     * 参数3：指定发送消息给哪个Actor
+     * 参数4：发送的消息是什么
+     */
+    //导入隐式转换
     import scala.concurrent.duration._
-    // 导入隐式参数
+    //导入隐式参数
     import actorSystem.dispatcher
 
     actorSystem.scheduler.schedule(0 seconds,
       1 seconds,
-      receiveActor, "hello")
+      receiveActor,
+      "hello")
   }
+}
+
 ```
 
 示例2：
@@ -1011,23 +1580,36 @@ def schedule(
 * 使用自定义方式实现
 
 ```scala
-object SechdulerActor extends Actor {
-  override def receive: Receive = {
-    case "timer" => println("收到消息...")
+package test
+
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import com.typesafe.config.ConfigFactory
+
+/**
+ * @Class:spark.test.SchedulerDemo02
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
+object SchedulerDemo02 {
+  //1. 创建Actor，接收打印消息
+  object ReceiveActor extends Actor{
+    override def receive: Receive = {
+      case x => println(x)
+    }
   }
-}
-
-object AkkaSchedulerDemo {
+  //2. 构建ActorSystem
   def main(args: Array[String]): Unit = {
-    val actorSystem = ActorSystem("SimpleAkkaDemo", ConfigFactory.load())
-
-    val senderActor: ActorRef = actorSystem.actorOf(Props(SechdulerActor), "sechdulerActor")
-
-    import actorSystem.dispatcher
+    val actorSystem: ActorSystem = ActorSystem("actorSystem", ConfigFactory.load())
+    val receiveActor: ActorRef = actorSystem.actorOf(Props(ReceiveActor), "receiveActor")
+    //3. 定时发送消息（自定义方式）
+    //导入隐式转换
     import scala.concurrent.duration._
-
-    actorSystem.scheduler.schedule(0 seconds, 1 seconds) {
-      senderActor ! "timer"
+    //导入隐式参数
+    import actorSystem.dispatcher
+    actorSystem.scheduler.schedule(0 seconds, 1 seconds){
+      //业务逻辑
+      receiveActor ! "hello"
     }
   }
 }
@@ -1042,89 +1624,198 @@ object AkkaSchedulerDemo {
 
 基于Akka实现在两个**进程**间发送、接收消息。Worker启动后去连接Master，并发送消息，Master接收到消息后，再回复Worker消息。
 
+![](img/scala/akka进程.png)
 
-### 7.5.1Worker实现
+### 7.5.1 Worker实现
 
 **步骤**
 
-1. 创建一个Maven模块，导入依赖和配置文件
+1. 创建一个包work，并新增配置文件
+
+   application.conf 配置文件
+
+   ```conf
+   akka.actor.provider = "akka.remote.RemoteActorRefProvider"
+   akka.remote.netty.tcp.hostname = "127.0.0.1"
+   akka.remote.netty.tcp.port = "9999"
+   ```
+
 2. 创建启动WorkerActor
+
 3. 发送"setup"消息给WorkerActor，WorkerActor接收打印消息
+
 4. 启动测试
-
-Worker.scala
-
-```scala
-val workerActorSystem = ActorSystem("actorSystem", ConfigFactory.load())
-val workerActor: ActorRef = workerActorSystem.actorOf(Props(WorkerActor), "WorkerActor")
-
-// 发送消息给WorkerActor
-workerActor ! "setup"
-```
 
 WorkerActor.scala
 
 ```scala
+package test.work
+
+import akka.actor.Actor
+
+/**
+ * @Class:spark.test.work.WorkerActor
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
 object WorkerActor extends Actor{
   override def receive: Receive = {
-    case "setup" =>
-      println("WorkerActor:启动Worker")
+    case x => println(x)
   }
 }
+
+```
+
+WorkerMainActor.scala
+
+```scala
+package test.work
+
+import akka.actor.{ActorRef, ActorSystem, Props}
+import com.typesafe.config.ConfigFactory
+
+/**
+ * @Class:spark.test.work.MainActor
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
+object WorkerMainActor {
+  def main(args: Array[String]): Unit = {
+    //1. 创建一个ActorSystem
+    //会自动加载配置文件
+    // 这里为了下面的测试直接指定配置文件
+    val actorSystem: ActorSystem = ActorSystem("actorSystem", ConfigFactory.load("application.conf"))
+    //2. 加载Actor
+    val workerActor: ActorRef = actorSystem.actorOf(Props(WorkerActor), "workerActor")
+    //3. 发送消息给Actor
+    workerActor ! "setup"
+  }
+}
+
 ```
 
 ### 7.5.2 Master实现
 
 **步骤**
 
-1. 创建Maven模块，导入依赖和配置文件
+1. 创建一个包MasterWork，并新增配置文件
+
+   application2.conf
+
+   ```
+   akka.actor.provider = "akka.remote.RemoteActorRefProvider"
+   akka.remote.netty.tcp.hostname = "127.0.0.1"
+   akka.remote.netty.tcp.port = "8888" 
+   ```
+
+   
+
 2. 创建启动MasterActor
+
 3. WorkerActor发送"connect"消息给MasterActor
+
 4. MasterActor回复"success"消息给WorkerActor
+
 5. WorkerActor接收并打印接收到的消息
+
 6. 启动Master、Worker测试
 
 **参考代码**
 
-Master.scala
+MasterMainActor.scala
 
 ```scala
-val masterActorSystem = ActorSystem("MasterActorSystem", ConfigFactory.load())
-val masterActor: ActorRef = masterActorSystem.actorOf(Props(MasterActor), "MasterActor")
+package test.MasterWork
+
+import akka.actor.{ActorSystem, Props}
+import com.typesafe.config.ConfigFactory
+
+/**
+ * @Class:spark.test.MasterWork.MainActor
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
+object MasterMainActor {
+  def main(args: Array[String]): Unit = {
+    //1. 构建ActorSystem
+    //指定application2.conf配置文件
+    val actorSystem: ActorSystem = ActorSystem("actorSystem", ConfigFactory.load("application2.conf"))
+    //2. 加载Actor
+    actorSystem.actorOf(Props(MasterActor),"masterActor")
+  }
+}
+
 ```
 
 MasterActor.scala
 
 ```scala
+package test.MasterWork
+
+import akka.actor.{Actor, ActorSelection}
+
+/**
+ * @Class:spark.test.MasterWork.MasterActor
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
 object MasterActor extends Actor{
   override def receive: Receive = {
-    case "connect" =>
-      println("2. Worker连接到Master")
-      sender ! "success"
+    case "connect" => {
+      println("MasterActor：接收到消息connect")
+      //获取到发送者Actor的引用
+      sender() ! "success"
+    }
   }
 }
+
 ```
 
-WorkerActor.scala
+修改work的WorkerActor.scala文件
 
 ```scala
-object WorkerActor extends Actor{
-  override def receive: Receive = {
-    case "setup" =>
-      println("1. 启动Worker...")
-      val masterActor = context.actorSelection("akka.tcp://MasterActorSystem@127.0.0.1:9999/user/MasterActor")
+package test.work
 
-      // 发送connect
+import akka.actor.{Actor, ActorSelection}
+import test.MasterWork.MasterActor.context
+
+/**
+ * @Class:spark.test.work.WorkerActor
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
+object WorkerActor extends Actor {
+  override def receive: Receive = {
+    case "setup" => {
+      println("WorkActor：接收到消息setup")
+      //发送消息给Master
+      //1. 获取到MasterActor的引用
+      // Master的引用路径：akka.tcp://actorSystem@127.0.0.1:8888/user/actor的名字
+      val masterActor: ActorSelection = context.actorSelection("akka.tcp://actorSystem@127.0.0.1:8888/user/masterActor")
+
+      //2. 在发送消息给MasterActor
       masterActor ! "connect"
-    case "success" =>
-      println("3. 连接Master成功...")
+    }
+    case "success" =>{
+      println("WorkActor：接收到消息success")
+    }
   }
 }
 ```
 
-## 7.6 简易版spark通信框架案例
+测试步骤：
 
-**案例介绍**
+1. 先启动MasterMainActor
+2. 在启动WorkerMainActor查看结果
+
+# 8.简易版spark通信框架案例
+
+## 8.1 案例介绍
 
 模拟Spark的Master与Worker通信
 
@@ -1153,318 +1844,751 @@ object WorkerActor extends Actor{
 5. 多个Worker测试阶段
    * 启动多个Worker，查看是否能够注册成功，并停止某个Worker查看是否能够正确移除
 
-**工程搭建**
+## 8.2 项目搭建
 
-1. 项目使用Maven搭建工程
+项目使用Maven搭建工程
 
-   **步骤**
+**步骤**
 
-   1. 分别搭建几下几个项目
+1. 分别搭建几下几个项目
 
-   | 工程名            | 说明                   |
-   | ----------------- | ---------------------- |
-   | spark-demo-common | 存放公共的消息、实体类 |
-   | spark-demo-master | Akka Master节点        |
-   | spark-demo-worker | Akka Worker节点        |
+| 工程名            | 说明                   |
+| ----------------- | ---------------------- |
+| spark-demo-common | 存放公共的消息、实体类 |
+| spark-demo-master | Akka Master节点        |
+| spark-demo-worker | Akka Worker节点        |
 
-   2. 导入依赖(资料包中的pom.xml)
-      * master/worker添加common依赖
-   3. 导入配置文件(资料包中的application.conf)
-      * 修改Master的端口为7000
-      * 修改Worker的端口为7100
+2. 分别导入如下依赖
+   
+   ```xml
+   <dependencies>
+       <dependency>
+           <groupId>com.typesafe.akka</groupId>
+           <artifactId>akka-actor_2.11</artifactId>
+           <version>2.3.14</version>
+       </dependency>
+       <dependency>
+           <groupId>com.typesafe.akka</groupId>
+           <artifactId>akka-remote_2.11</artifactId>
+           <version>2.3.14</version>
+       </dependency>
+       <dependency>
+           <groupId>org.scala-lang</groupId>
+           <artifactId>scala-library</artifactId>
+           <version>2.11.8</version>
+       </dependency>
+   </dependencies>
+   
+       <build>
+           <sourceDirectory>src/main/scala</sourceDirectory>
+           <testSourceDirectory>src/test/scala</testSourceDirectory>
+           <plugins>
+   
+               <plugin>
+                   <groupId>org.apache.maven.plugins</groupId>
+                   <artifactId>maven-compiler-plugin</artifactId>
+                   <version>3.0</version>
+                   <configuration>
+                       <source>1.8</source>
+                       <target>1.8</target>
+                       <encoding>UTF-8</encoding>
+                   </configuration>
+               </plugin>
+   
+               <plugin>
+                   <groupId>net.alchim31.maven</groupId>
+                   <artifactId>scala-maven-plugin</artifactId>
+                   <version>3.2.0</version>
+                   <executions>
+                       <execution>
+                           <goals>
+                               <goal>compile</goal>
+                               <goal>testCompile</goal>
+                           </goals>
+                           <configuration>
+                               <args>
+                                   <arg>-dependencyfile</arg>
+                                   <arg>${project.build.directory}/.scala_dependencies</arg>
+                               </args>
+                           </configuration>
+                       </execution>
+                   </executions>
+               </plugin>
+   
+               <plugin>
+                   <groupId>org.apache.maven.plugins</groupId>
+                   <artifactId>maven-shade-plugin</artifactId>
+                   <version>3.1.1</version>
+                   <executions>
+                       <execution>
+                           <phase>package</phase>
+                           <goals>
+                               <goal>shade</goal>
+                           </goals>
+                           <configuration>
+                               <filters>
+                                   <filter>
+                                       <artifact>*:*</artifact>
+                                       <excludes>
+                                           <exclude>META-INF/*.SF</exclude>
+                                           <exclude>META-INF/*.DSA</exclude>
+                                           <exclude>META-INF/*.RSA</exclude>
+                                       </excludes>
+                                   </filter>
+                               </filters>
+                               <transformers>
+                                   <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                       <mainClass></mainClass>
+                                   </transformer>
+                               </transformers>
+                           </configuration>
+                       </execution>
+                   </executions>
+               </plugin>
+           </plugins>
+       </build>
+   ```
+   
+   注：master/worker模块添加需要添加common包的依赖，common模块可以只保留scala-library依赖
+   
+   （这是导入的依赖是自己创建的spark-demo-common）
+   
+   ```xml
+   <dependency>
+         <groupId>org.example</groupId>
+         <artifactId>spark-demo-common</artifactId>
+         <version>1.0-SNAPSHOT</version>
+   </dependency>
+   ```
+   
+3. master/worker导入配置文件application.conf
+   * 修改Master的端口为7000
 
-2. 构建Master和Worker
+     ```
+     akka.actor.provider = "akka.remote.RemoteActorRefProvider"
+     akka.remote.netty.tcp.hostname = "127.0.0.1"
+     akka.remote.netty.tcp.port = "7000"
+     ```
 
-   分别构建Master和Worker，并启动测试
+   * 修改Worker的端口为7100
 
-   **步骤**
+     ```
+     akka.actor.provider = "akka.remote.RemoteActorRefProvider"
+     akka.remote.netty.tcp.hostname = "127.0.0.1"
+     akka.remote.netty.tcp.port = "7100"
+     ```
 
-   1. 创建并加载Master Actor
-   2. 创建并加载Worker Actor
-   3. 测试是否能够启动成功
 
-   **参考代码**
 
-   Master.scala
+## 8.3 构建Master和Worker
 
-   ```scala
-   val sparkMasterActorSystem = ActorSystem("sparkMaster", ConfigFactory.load())
-   val masterActor = sparkMasterActorSystem.actorOf(Props(MasterActor), "masterActor")
+分别构建Master和Worker，并启动测试
+
+**步骤**
+
+1. 创建并加载Master Actor
+2. 创建并加载Worker Actor
+3. 测试是否能够启动成功
+
+**参考代码**
+
+- spark-demo-master中创建如下文件
+
+  Master.scala
+
+  ```scala
+  package com.it.master
+  
+  import akka.actor.{ActorSystem, Props}
+  import com.typesafe.config.ConfigFactory
+  /**
+   * @Class:spark.com.it.master.Master
+   * @Descript:
+   * @Author:宋天
+   * @Date:2020/5/7
+   */
+  object Master {
+    def main(args: Array[String]): Unit = {
+      //1. 构建ActorSystem
+      val masterActorSystem: ActorSystem = ActorSystem("masterActorSystem", ConfigFactory.load())
+      //2. 加载Actor
+      masterActorSystem.actorOf(Props(MasterActor),"masterActor")
+      //3. 启动测试
+    }
+  
+  }
+  ```
+
+  MasterActor.scala
+
+  ```scala
+  package com.it.master
+  
+  import akka.actor.Actor
+  
+  /**
+   * @Class:spark.com.it.master.MasterActor
+   * @Descript:
+   * @Author:宋天
+   * @Date:2020/5/7
+   */
+  object MasterActor extends Actor{
+    override def receive: Receive = {
+      case x => println(x)
+    }
+  }
+  
+  ```
+
+- spark-demo-worker中创建如下文件
+
+  Worker.scala
+
+  ```scala
+  package com.it.worker
+  
+  import akka.actor.{ActorSystem, Props}
+  import com.typesafe.config.ConfigFactory
+  
+  /**
+   * @Class:spark.com.it.worker.Worker
+   * @Descript:
+   * @Author:宋天
+   * @Date:2020/5/7
+   */
+  object Worker {
+    def main(args: Array[String]): Unit = {
+      //1. 构建ActorSystem
+      val masterActorSystem: ActorSystem = ActorSystem("workerActorSystem", ConfigFactory.load())
+      //2. 加载Actor
+      masterActorSystem.actorOf(Props(WorkerActor),"workerActor")
+      //3. 启动测试
+    }
+  }
+  
+  ```
+
+  WorkerActor.scala
+
+  ```scala
+  package com.it.worker
+  
+  import akka.actor.Actor
+  
+  /**
+   * @Class:spark.com.it.worker.WorkerActor
+   * @Descript:
+   * @Author:宋天
+   * @Date:2020/5/7
+   */
+  object WorkerActor extends Actor{
+    override def receive: Receive = {
+      case x => println(x)
+    }
+  }
+  
+  ```
+
+最后分别启动两个Actor，查看日志是否正确打印输出
+
+master输出日志：
+
+```
+[INFO] [05/07/2020 09:49:20.130] [main] [Remoting] Starting remoting
+[INFO] [05/07/2020 09:49:20.765] [main] [Remoting] Remoting started; listening on addresses :[akka.tcp://masterActorSystem@127.0.0.1:7000]
+[INFO] [05/07/2020 09:49:20.766] [main] [Remoting] Remoting now listens on addresses: [akka.tcp://masterActorSystem@127.0.0.1:7000]
+```
+
+worker输出日志：
+
+```
+[INFO] [05/07/2020 09:44:40.968] [main] [Remoting] Starting remoting
+[INFO] [05/07/2020 09:44:41.594] [main] [Remoting] Remoting started; listening on addresses :[akka.tcp://workerActorSystem@127.0.0.1:7100]
+[INFO] [05/07/2020 09:44:41.595] [main] [Remoting] Remoting now listens on addresses: [akka.tcp://workerActorSystem@127.0.0.1:7100]
+```
+
+## 8.4 Worker注册阶段实现
+
+在Worker启动时，发送注册消息给Master
+
+**步骤**
+
+1. Worker向Master发送注册消息（workerid、cpu核数、内存大小）
+   * 随机生成CPU核（1、2、3、4、6、8）
+   * 随机生成内存大小（512、1024、2048、4096）（单位M）
+2. Master保存Worker信息，并给Worker回复注册成功消息
+3. 启动测试
+
+**参考代码**
+
+修改如下文件
+
+MasterActor.scala
+
+```scala
+package com.it.master
+
+import akka.actor.Actor
+import com.it.common.{RegisterSuccessMessage, WorkerInfo, WorkerRegisterMessage}
+
+/**
+ * @Class:spark.com.it.master.MasterActor
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/7
+ */
+object MasterActor extends Actor{
+  private val regWorkerMap = collection.mutable.Map[String,WorkerInfo]()
+  override def receive: Receive = {
+    case WorkerRegisterMessage(workerId,cpu,mem) => {
+      println(s"MasterActor：接收到worker注册消息${workerId},${cpu},${mem}")
+
+      //1. 保存worker信息 workerInfo
+      regWorkerMap += workerId ->WorkerInfo(workerId,cpu,mem)
+      //2. 回复一个注册成功消息
+      sender ! RegisterSuccessMessage
+    }
+  }
+}
+
+```
+
+WorkerActor.scala
+
+```scala
+package com.it.worker
+
+import java.util.{Random, UUID}
+
+import akka.actor.{Actor, ActorSelection}
+import com.it.common.{RegisterSuccessMessage, WorkerRegisterMessage}
+
+/**
+ * @Class:spark.com.it.worker.WorkerActor
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/7
+ */
+object WorkerActor extends Actor{
+  private var masterActorRef:ActorSelection = _
+  private var workerId:String = _
+  private var cpu:Int = _
+  private var mem:Int = _
+  private var CPU_LIST = List(1,2,3,4,6,8)
+  private var MEM_LIST = List(512,1024,2048,4096)
+
+
+  //在Actor启动之前就会执行的一些代码
+  //放在preStart中
+  override def preStart(): Unit = {
+    //1. 获取到MasterActor的引用
+    val masterActorPath = "akka.tcp://masterActorSystem@127.0.0.1:7000/user/masterActor"
+    masterActorRef = context.actorSelection(masterActorPath)
+    //2. 构建注册消息
+    workerId: String = UUID.randomUUID().toString
+    val r = new Random()
+    cpu = CPU_LIST(r.nextInt(CPU_LIST.length))
+    mem = MEM_LIST(r.nextInt(MEM_LIST.length))
+    val registerMessage: WorkerRegisterMessage = WorkerRegisterMessage(workerId, cpu, mem)
+
+    //3. 发送消息给MasterActor
+    masterActorRef ! registerMessage
+  }
+  override def receive: Receive = {
+    case RegisterSuccessMessage =>{
+      println("workerActor：接收到注册成功消息")
+    }
+  }
+}
+
+```
+
+在common包新增如下文件，用来封装消息
+
+Entities.scala
+
+```scala
+package com.it.common
+
+/**
+ * @Class:spark.com.it.common.Entities
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/7
+ */
+// worker基本信息
+case class WorkerInfo(workerId:String,cpu:Int,mem:Int)
+```
+
+MessagePackage.scala
+
+```scala
+package com.it.common
+
+/**
+ * @Class:spark.com.it.common.MessagePackage
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/7
+ */
+// 封装Worker注册消息
+//1. workerId
+//2. cpu核数
+//3. 内存大小（m）
+case class WorkerRegisterMessage(workerId:String,cpu:Int,mem:Int)
+
+//注册成功消息
+case object RegisterSuccessMessage
+```
+
+启动测试：
+
+worker输出如下内容：
+
+```
+workerActor：接收到注册成功消息
+```
+
+master输出如下内容：
+
+```
+MasterActor：接收到worker注册消息54e3503a-a6ed-42d3-9991-3332a336de40,4,512
+```
+
+
+
+## 8.5 Worker定时发送心跳阶段
+
+Worker接收到Master返回注册成功后，发送心跳消息。而Master收到Worker发送的心跳消息后，需要更新对应Worker的最后心跳时间。
+
+**步骤**
+
+1. 编写工具类读取心跳发送时间间隔
+2. 创建心跳消息
+3. Worker接收到注册成功后，定时发送心跳消息
+4. Master收到心跳消息，更新Worker最后心跳时间
+5. 启动测试
+
+**参考代码**
+
+worker包下修改如下代码
+
+- 配置文件新增如下内容
+
+  ```
+  # 配置worker发送心跳的周期（s）
+  worker.heartbeat.interval = 5
+  ```
+
+- 新增 ConfigUtil.scala 用来读取配置文件
+
+  ```scala
+  package com.it.worker
+  
+  import com.typesafe.config.{Config, ConfigFactory}
+  
+  /**
+   * @Class:spark.com.it.worker.ConfigUtil
+   * @Descript:
+   * @Author:宋天
+   * @Date:2020/5/7
+   */
+  object ConfigUtil {
+    private val config: Config = ConfigFactory.load()
+    val `worker.heartbeat.interval` = config.getInt("worker.heartbeat.interval")
+  
+  
+  }
+  
+  ```
+
+- WorkerActor.scala
+
+  ```scala
+  package com.it.worker
+  
+  import java.util.{Random, UUID}
+  
+  import akka.actor.{Actor, ActorSelection}
+  import com.it.common.{RegisterSuccessMessage, WorkerHeartBeatMessage, WorkerRegisterMessage}
+  
+  /**
+   * @Class:spark.com.it.worker.WorkerActor
+   * @Descript:
+   * @Author:宋天
+   * @Date:2020/5/7
+   */
+  object WorkerActor extends Actor{
+    private var masterActorRef:ActorSelection = _
+    private var workerId:String = _
+    private var cpu:Int = _
+    private var mem:Int = _
+    private var CPU_LIST = List(1,2,3,4,6,8)
+    private var MEM_LIST = List(512,1024,2048,4096)
+  
+  
+    //在Actor启动之前就会执行的一些代码
+    //放在preStart中
+    override def preStart(): Unit = {
+      //1. 获取到MasterActor的引用
+      val masterActorPath = "akka.tcp://masterActorSystem@127.0.0.1:7000/user/masterActor"
+      masterActorRef = context.actorSelection(masterActorPath)
+      //2. 构建注册消息
+      workerId = UUID.randomUUID().toString
+      val r = new Random()
+      cpu = CPU_LIST(r.nextInt(CPU_LIST.length))
+      mem = MEM_LIST(r.nextInt(MEM_LIST.length))
+      val registerMessage: WorkerRegisterMessage = WorkerRegisterMessage(workerId, cpu, mem)
+  
+      //3. 发送消息给MasterActor
+      masterActorRef ! registerMessage
+    }
+    override def receive: Receive = {
+      case RegisterSuccessMessage =>{
+        println("workerActor：接收到注册成功消息")
+  
+        //导入时间单位隐式转换
+        import scala.concurrent.duration._
+        //导入隐式参数
+        import context.dispatcher
+  
+        //定时发送心跳消息给Master
+        context.system.scheduler.schedule(0 seconds,
+          ConfigUtil.`worker.heartbeat.interval` seconds){
+  
+          masterActorRef ! WorkerHeartBeatMessage(workerId,cpu,mem)
+        }
+      }
+    }
+  }
+  
+  ```
+
+Master包下修改如下配置文件
+
+- MasterActor.scala
+
+  ```scala
+  package com.it.master
+  
+  import java.util.Date
+  
+  import akka.actor.Actor
+  import com.it.common.{RegisterSuccessMessage, WorkerHeartBeatMessage, WorkerInfo, WorkerRegisterMessage}
+  
+  /**
+   * @Class:spark.com.it.master.MasterActor
+   * @Descript:
+   * @Author:宋天
+   * @Date:2020/5/7
+   */
+  object MasterActor extends Actor{
+    private val regWorkerMap = collection.mutable.Map[String,WorkerInfo]()
+    override def receive: Receive = {
+      case WorkerRegisterMessage(workerId,cpu,mem) => {
+        println(s"MasterActor：接收到worker注册消息${workerId},${cpu},${mem}")
+  
+        //1. 保存worker信息 workerInfo
+        regWorkerMap += workerId -> WorkerInfo(workerId,cpu,mem,new Date().getTime)
+        //2. 回复一个注册成功消息
+        sender ! RegisterSuccessMessage
+      }
+      case WorkerHeartBeatMessage(workerId,cpu,mem) =>{
+        println(s"MasterActor：接收到${workerId}心跳信息")
+  
+        regWorkerMap += workerId ->WorkerInfo(workerId,cpu,mem,new Date().getTime)
+        println(regWorkerMap)
+      }
+    }
+  }
+  
+  ```
+
+common包下修改如下内容
+
+- MessagePackage.scala
+
+  新增如下内容
+
+  ```scala
+  //心跳消息
+  case class WorkerHeartBeatMessage(workerId:String,cpu:Int,mem:Int)
+  ```
+
+- 修改Entities.scala文件，增加一个字段
+
+  ```scala
+  // worker基本信息
+  case class WorkerInfo(workerId:String,cpu:Int,mem:Int,lastHeartBeatTime:Long)
+  ```
+
+  
+
+## 8.6 Master定时心跳检测阶段
+
+如果某个worker超过一段时间没有发送心跳，Master需要将该worker从当前的Worker集合中移除。可以通过Akka的定时任务，来实现心跳超时检查。
+
+**步骤**
+
+1. 编写工具类，读取检查心跳间隔时间间隔、超时时间
+2. 定时检查心跳，过滤出来大于超时时间的Worker
+3. 移除超时的Worker
+4. 对现有Worker按照内存进行降序排序，打印可用Worker
+
+**参考代码**
+
+- master包下新增工具类
+
+  ConfigUtils.scala
+
+  ```scala
+  package com.it.master
+  
+  import com.typesafe.config.{Config, ConfigFactory}
+  
+  /**
+   * @Class:spark.com.it.master.ConfigUtils
+   * @Descript:
+   * @Author:宋天
+   * @Date:2020/5/7
+   */
+  object ConfigUtils {
+    private val config:Config = ConfigFactory.load()
+  
+    // 配置检查worker心跳时间周期（s）
+     val `master.check.heartbeat.interval` = config.getInt("master.check.heartbeat.interval")
+    // 配置worker心跳超时时间（s）
+    val `master.check.heartbeat.timeout` = config.getInt("master.check.heartbeat.timeout")
+  
+  }
+  
+  ```
+
+- MasterActor.scala 修改如下
+
+  ```scala
+  package com.it.master
+  
+  import java.util.Date
+  
+  import akka.actor.Actor
+  import com.it.common.{RegisterSuccessMessage, WorkerHeartBeatMessage, WorkerInfo, WorkerRegisterMessage}
+  import scala.collection.mutable
+  
+  /**
+   * @Class:spark.com.it.master.MasterActor
+   * @Descript:
+   * @Author:宋天
+   * @Date:2020/5/7
+   */
+  object MasterActor extends Actor{
+    private val regWorkerMap = collection.mutable.Map[String,WorkerInfo]()
+  
+  
+    override def preStart(): Unit = {
+      // 导入时间单位隐式转换
+      import scala.concurrent.duration._
+      // 导入隐式参数
+      import context.dispatcher
+      //1. 启动定时任务
+  
+      context.system.scheduler.schedule(0 seconds,
+        ConfigUtils.`master.check.heartbeat.interval` seconds){
+          //2. 过滤大于超时时间的worker
+          val timeOutWorkerMap: mutable.Map[String, WorkerInfo] = regWorkerMap.filter {
+            keyval => {
+              // 获取最后一次心跳更新时间
+              val lastHeartBeatTime: Long = keyval._2.lastHeartBeatTime
+              //当前系统时间 - 最后一次心跳时间 > 超时时间（配置文件） * 1000
+              if (new Date().getTime - lastHeartBeatTime > ConfigUtils.`master.check.heartbeat.timeout` * 1000) {
+                true
+              } else {
+                false
+              }
+            }
+          }
+          //3. 移出超时worker
+          if (! timeOutWorkerMap.isEmpty){
+            regWorkerMap --= timeOutWorkerMap.map(_._1)
+  
+            //4. 对worker按照内存进行降序排徐，打印worker
+            val workList: List[WorkerInfo] = regWorkerMap.map(_._2).toList
+            val sortedWorkerList: List[WorkerInfo] = workList.sortBy(_.mem).reverse
+            println("按照内存降序排序后的worker列表：")
+            println(sortedWorkerList)
+          }
+        }
+  
+    }
+  
+    override def receive: Receive = {
+      case WorkerRegisterMessage(workerId,cpu,mem) => {
+        println(s"MasterActor：接收到worker注册消息${workerId},${cpu},${mem}")
+  
+        //1. 保存worker信息 workerInfo
+        regWorkerMap += workerId -> WorkerInfo(workerId,cpu,mem,new Date().getTime)
+        //2. 回复一个注册成功消息
+        sender ! RegisterSuccessMessage
+      }
+      case WorkerHeartBeatMessage(workerId,cpu,mem) =>{
+        println(s"MasterActor：接收到${workerId}心跳信息")
+  
+        regWorkerMap += workerId ->WorkerInfo(workerId,cpu,mem,new Date().getTime)
+        println(regWorkerMap)
+      }
+    }
+  }
+  
+  ```
+
+- 配置文件内容添加如下
+
+  ```
+  # 配置检查worker心跳时间周期（s）
+  master.check.heartbeat.interval = 6
+  # 配置worker心跳超时时间（s）
+  master.check.heartbeat.timeout = 15
+  ```
+
+启动测试：
+
+1. 启动master
+
+   ```
+   MasterActor：接收到worker注册消息99d04d2b-f45a-4a27-9c66-dd9e762a53bf,8,4096
+   MasterActor：接收到99d04d2b-f45a-4a27-9c66-dd9e762a53bf心跳信息
+   Map(99d04d2b-f45a-4a27-9c66-dd9e762a53bf -> WorkerInfo(99d04d2b-f45a-4a27-9c66-dd9e762a53bf,8,4096,1588824579263))
+   MasterActor：接收到99d04d2b-f45a-4a27-9c66-dd9e762a53bf心跳信息
+   Map(99d04d2b-f45a-4a27-9c66-dd9e762a53bf -> WorkerInfo(99d04d2b-f45a-4a27-9c66-dd9e762a53bf,8,4096,1588824584263))
+   MasterActor：接收到99d04d2b-f45a-4a27-9c66-dd9e762a53bf心跳信息
+   Map(99d04d2b-f45a-4a27-9c66-dd9e762a53bf -> WorkerInfo(99d04d2b-f45a-4a27-9c66-dd9e762a53bf,8,4096,1588824589259))
+   MasterActor：接收到99d04d2b-f45a-4a27-9c66-dd9e762a53bf心跳信息
+   
    ```
 
-   MasterActor.scala
+2. 启动worker
 
-   ```scala
-   object MasterActor extends Actor{
-     override def receive: Receive = {
-       case x => println(x)
-     }
-   }
+   ```
+   workerActor：接收到注册成功消息
    ```
 
-   Worker.scala
+3. 关闭worker，查看结果，输出如下所示
 
-   ```scala
-   val sparkWorkerActorSystem = ActorSystem("sparkWorker", ConfigFactory.load())
-   sparkWorkerActorSystem.actorOf(Props(WorkerActor), "workerActor")
+   ```
+   按照内存降序排序后的worker列表：
+   List()
    ```
 
-   WorkerActor.scala
+## 8.7 多个Worker测试阶段
 
-   ```scala
-   object WorkerActor extends Actor{
-     override def receive: Receive = {
-       case x => println(x)
-     }
-   }
-   ```
+修改配置文件，启动多个worker进行测试。
 
-3.  Worker注册阶段实现
+**步骤**
 
-   在Worker启动时，发送注册消息给Master
-
-   <br>
-
-   **步骤**
-
-   1. Worker向Master发送注册消息（workerid、cpu核数、内存大小）
-      * 随机生成CPU核（1、2、3、4、6、8）
-      * 随机生成内存大小（512、1024、2048、4096）（单位M）
-   2. Master保存Worker信息，并给Worker回复注册成功消息
-   3. 启动测试
-
-   **参考代码**
-
-   MasterActor.scala
-
-   ```scala
-   object MasterActor extends Actor{
-   
-     private val regWorkerMap = collection.mutable.Map[String, WorkerInfo]()
-   
-     override def receive: Receive = {
-       case WorkerRegisterMessage(workerId, cpu, mem) => {
-         println(s"1. 注册新的Worker - ${workerId}/${cpu}核/${mem/1024.0}G")
-         regWorkerMap += workerId -> WorkerInfo(workerId, cpu, mem, new Date().getTime)
-         sender ! RegisterSuccessMessage
-       }
-     }
-   }
-   ```
-
-   WorkerInfo.scala
-
-   ```scala
-   /**
-     * 工作节点信息
-     * @param workerId workerid
-     * @param cpu CPU核数
-     * @param mem 内存多少
-     * @param lastHeartBeatTime 最后心跳更新时间
-     */
-   case class WorkerInfo(workerId:String, cpu:Int, mem:Int, lastHeartBeatTime:Long)
-   ```
-
-   MessagePackage.scala
-
-   ```scala
-   /**
-     * 注册消息
-     * @param workerId
-     * @param cpu CPU核数
-     * @param mem 内存大小
-     */
-   case class WorkerRegisterMessage(workerId:String, cpu:Int, mem:Int)
-   
-   /**
-     * 注册成功消息
-     */
-   case object RegisterSuccessMessage
-   ```
-
-   WorkerActor.scala
-
-   ```scala
-   object WorkerActor extends Actor{
-   
-     private var masterActor:ActorSelection = _
-     private val CPU_LIST = List(1, 2, 4, 6, 8)
-     private val MEM_LIST = List(512, 1024, 2048, 4096)
-   
-     override def preStart(): Unit = {
-       masterActor = context.system.actorSelection("akka.tcp://sparkMaster@127.0.0.1:7000/user/masterActor")
-   
-       val random = new Random()
-       val workerId = UUID.randomUUID().toString.hashCode.toString
-       val cpu = CPU_LIST(random.nextInt(CPU_LIST.length))
-       val mem = MEM_LIST(random.nextInt(MEM_LIST.length))
-   
-       masterActor ! WorkerRegisterMessage(workerId, cpu, mem)
-     }
-   
-     ...
-   }
-   ```
-
-4. Worker定时发送心跳阶段
-
-   Worker接收到Master返回注册成功后，发送心跳消息。而Master收到Worker发送的心跳消息后，需要更新对应Worker的最后心跳时间。
-
-   <br>
-
-   **步骤**
-
-   1. 编写工具类读取心跳发送时间间隔
-   2. 创建心跳消息
-   3. Worker接收到注册成功后，定时发送心跳消息
-   4. Master收到心跳消息，更新Worker最后心跳时间
-   5. 启动测试
-
-   **参考代码**
-
-   ConfigUtil.scala
-
-   ```scala
-   object ConfigUtil {
-     private val config: Config = ConfigFactory.load()
-   
-     val `worker.heartbeat.interval` = config.getInt("worker.heartbeat.interval")
-   }
-   
-   ```
-
-   MessagePackage.scala
-
-   ```scala
-   package com.itheima.spark.common
-   
-   ...
-   
-   /**
-     * Worker心跳消息
-     * @param workerId
-     * @param cpu CPU核数
-     * @param mem 内存大小
-     */
-   case class WorkerHeartBeatMessage(workerId:String, cpu:Int, mem:Int)
-   ```
-
-   WorkerActor.scala
-
-   ```scala
-   object WorkerActor extends Actor{
-     ...
-   
-     override def receive: Receive = {
-       case RegisterSuccessMessage => {
-         println("2. 成功注册到Master")
-   
-         import scala.concurrent.duration._
-         import context.dispatcher
-   
-         context.system.scheduler.schedule(0 seconds,
-           ConfigUtil.`worker.heartbeat.interval` seconds){
-           // 发送心跳消息
-           masterActor ! WorkerHeartBeatMessage(workerId, cpu, mem)
-         }
-       }
-     }
-   }
-   ```
-
-   MasterActor.scala
-
-   ```scala
-   object MasterActor extends Actor{
-     ...
-   
-     override def receive: Receive = {
-   	...
-       case WorkerHeartBeatMessage(workerId, cpu, mem) => {
-         println("3. 接收到心跳消息, 更新最后心跳时间")
-         regWorkerMap += workerId -> WorkerInfo(workerId, cpu, mem, new Date().getTime)
-       }
-     }
-   }
-   ```
-
-5. Master定时心跳检测阶段
-
-   如果某个worker超过一段时间没有发送心跳，Master需要将该worker从当前的Worker集合中移除。可以通过Akka的定时任务，来实现心跳超时检查。
-
-   <br>
-
-   **步骤**
-
-   1. 编写工具类，读取检查心跳间隔时间间隔、超时时间
-   2. 定时检查心跳，过滤出来大于超时时间的Worker
-   3. 移除超时的Worker
-   4. 对现有Worker按照内存进行降序排序，打印可用Worker
-
-   **参考代码**
-
-   ConfigUtil.scala
-
-   ```scala
-   object ConfigUtil {
-     private val config: Config = ConfigFactory.load()
-   
-     // 心跳检查时间间隔
-     val `master.heartbeat.check.interval` = config.getInt("master.heartbeat.check.interval")
-     // 心跳超时时间
-     val `master.heartbeat.check.timeout` = config.getInt("master.heartbeat.check.timeout")
-   }
-   ```
-
-   MasterActor.scala
-
-   ```scala
-     override def preStart(): Unit = {
-       import scala.concurrent.duration._
-       import context.dispatcher
-   
-       context.system.scheduler.schedule(0 seconds,
-         ConfigUtil.`master.heartbeat.check.interval` seconds) {
-         // 过滤出来超时的worker
-         val timeoutWorkerList = regWorkerMap.filter {
-           kv =>
-             if (new Date().getTime - kv._2.lastHeartBeatTime > ConfigUtil.`master.heartbeat.check.timeout` * 1000) {
-               true
-             }
-             else {
-               false
-             }
-         }
-   
-         if (!timeoutWorkerList.isEmpty) {
-           regWorkerMap --= timeoutWorkerList.map(_._1)
-           println("移除超时的worker:")
-           timeoutWorkerList.map(_._2).foreach {
-             println(_)
-           }
-         }
-   
-         if (!regWorkerMap.isEmpty) {
-           val sortedWorkerList = regWorkerMap.map(_._2).toList.sortBy(_.mem).reverse
-           println("可用的Worker列表:")
-           sortedWorkerList.foreach {
-             var rank = 1
-             workerInfo =>
-               println(s"<${rank}> ${workerInfo.workerId}/${workerInfo.mem}/${workerInfo.cpu}")
-               rank = rank + 1
-           }
-         }
-       }
-     }
-     ...
-   }
-   ```
-
-6.  多个Worker测试阶段
-
-   修改配置文件，启动多个worker进行测试。
-
-   **步骤**
-
-   1. 测试启动新的Worker是否能够注册成功
-   2. 停止Worker，测试是否能够从现有列表删除
+1. 启动master
+2. 启动worker
+3. 修改worker配置文件application.conf中的端口号，为任意端口
+4. 配置IDEA启动worker程序，复制多份，并保存
+5. 然后每启动一个worker，重新修改一份worker配置文件application.conf中的端口号
+6. 查看日志是否正常输出
+7. 关闭某个worker后，等待一会查看输出结果

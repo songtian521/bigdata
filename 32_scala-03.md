@@ -2,6 +2,17 @@
 
 # 1.类型判断
 
+有时候，我们设计的程序，要根据变量的类型来执行对应的逻辑。
+
+![](img/scala/类型判断.png)
+
+在Scala中，如何来进行类型判断呢？
+
+有两种方式：
+
+- isInstanceOf
+- getClass/classOf
+
 ## 1.1 isInstanceOf
 
 scala中对象提供`isInstanceOf`和`asInstanceOf`方法。
@@ -21,18 +32,18 @@ val 变量 = 对象.asInstanceOf[类型]
 示例：
 
 ```scala
-class Person3
-class Student3 extends Person3
+class Person
+class Student extends Person
 
 object Main3 {
   def main(args: Array[String]): Unit = {
-    val s1:Person3 = new Student3
+    val s1 = new Student
 
-    // 判断s1是否为Student3类型
-    if(s1.isInstanceOf[Student3]) {
-      // 将s1转换为Student3类型
-      val s2 =  s1.asInstanceOf[Student3]
-      println(s2)
+    // 判断s1是否为Student类型
+    if(s1.isInstanceOf[Student]) {
+      // 将s1转换为Student类型
+      val s2 =  s1.asInstanceOf[Student]
+      println(s2) // test.day01$Student@13805618
     }
 
   }
@@ -92,7 +103,7 @@ abstract class 抽象类名 {
 }
 ```
 
-示例：
+案例：求面积
 
 ```scala
 // 创建形状抽象类
@@ -209,7 +220,7 @@ object Main7 {
 
 - 特质是scala中代码复用的基础单元
 - 它可以将方法和字段定义封装起来，然后添加到类中
-- 与类继承不一样的是，类继承要求每个类都只能继承`一个`超类，而一个类可以添加`任意数量`的特质。
+- 与类继承不一样的是，类继承要求每个类都**只能继承一个超类**，而一个类**可以添加任意数量的特质**。
 - 特质的定义和抽象类的定义很像，但它是使用`trait`关键字
 
 语法：
@@ -293,7 +304,7 @@ def main(args: Array[String]): Unit = {
 }
 ```
 
-## 5.2 特质中的方法
+## 5.2 特质中定义具体的方法
 
 ```scala
 trait LoggerDetail {
@@ -349,7 +360,11 @@ object MethodInTrait {
 * 目前要求输出到控制台
 * 将来可能会输出到文件、输出到Redis、或者更多的需求
 
+![](img/scala/模板1.png)
+
 在一个特质中，具体方法依赖于抽象方法，而抽象方法可以放到继承trait的子类中实现，这种设计方式也称为**模板模式**
+
+![](img/scala/模板2.png)
 
 示例：
 
@@ -402,44 +417,95 @@ val/var 对象名 = new 类 with 特质
 
 ## 5.6 trait实现调用链模式
 
-类继承了多个trait后，可以依次调用多个trait中的同一个方法，只要让多个trait中的同一个方法在最后都依次执行super关键字即可。类中调用多个tait中都有这个方法时，首先会从最右边的trait方法开始执行，然后依次往左执行，形成一个调用链条。
+我们如果要开发一个支付功能，往往需要执行一系列的验证才能完成支付。例如：
+
+1. 进行支付签名校验
+2. 数据合法性校验
+3. ...
+
+如果将来因为第三方接口支付的调整，需要增加更多的校验规则，此时如何不修改之前的校验代码，来实现扩展呢？
+
+**责任链模式**
+
+![](img/scala/责任链模式.png)
+
+trait调用链
+
+![](img/scala/trait调用链.png)类继承了多个trait后，可以依次调用多个trait中的同一个方法，只要让多个trait中的同一个方法在最后都依次执行super关键字即可。类中调用多个tait中都有这个方法时，首先会从最右边的trait方法开始执行，然后依次往左执行，形成一个调用链条。
+
+**示例：**
+
+实现一个模拟支付过程的调用链
+
+![](img/scala/模拟支付过程的调用链.png)
+
+**步骤**
+
+1. 定义一个HandlerTrait特质
+   - 定义一个具体的handler方法，打印"处理数据..."
+2. 定义一个DataValidHandlerTrait，继承HandlerTrait特质
+   - 重写handler方法，打印"验证数据"
+   - 调用父特质的handler方法
+3. 定义一个SignatureValidHandlerTrait，继承HandlerTrait特质
+   - 重写Handler方法
+   - 打印"检查签名"
+   - 调用父特质的handler方法
+4. 创建一个PaymentService类
+   - 继承DataValidHandlerTrait
+   - 继承SignatureValidHandlerTrait
+   - 定义pay方法
+     - 打印"准备支付"
+     - 调用父特质的handler方法
+5. 添加main方法
+   - 创建PaymentService对象实例
+   - 调用pay方法
 
 ```scala
-trait HandlerTrait {
-    def handle(data:String) = println("处理数据...")
-}
+object _08TraitDemo {
 
-trait DataValidHanlderTrait extends HandlerTrait {
-    override def handle(data:String): Unit = {
-        println("验证数据...")
-        super.handle(data)
+  // 1. 定义一个trait(HandlerTrait)
+  trait HandlerTrait {
+    def handle(data:String) = {
+      println("处理支付数据...")
     }
-}
+  }
 
-trait SignatureValidHandlerTrait extends HandlerTrait {
+  // 2. 定义两个trait（数据校验、签名校验）
+  trait DataValidateTrait extends HandlerTrait {
     override def handle(data: String): Unit = {
-        println("校验签名...")
-        super.handle(data)
+      println("数据校验...")
+      super.handle(data)
     }
-}
+  }
 
-class PayService extends DataValidHanlderTrait with SignatureValidHandlerTrait {
+  trait SignatureValidateTrait extends HandlerTrait {
     override def handle(data: String): Unit = {
-        println("准备支付...")
-        super.handle(data)
+      println("签名校验...")
+      super.handle(data)
     }
-}
+  }
 
-def main(args: Array[String]): Unit = {
+  // 3. 定义一个支付服务类，继承数据校验、签名校验的trait
+  class PayService extends DataValidateTrait with SignatureValidateTrait {
+    override def handle(data: String): Unit = {
+      println("准备支付...")
+      super.handle(data)
+    }
+  }
+
+  // 4. 创建支付服务对象，调用支付方法
+  def main(args: Array[String]): Unit = {
     val service = new PayService
-    service.handle("支付参数")
+    service.handle("支付数据")
+  }
 }
+
 
 程序运行输出如下：
 准备支付...
-校验签名...
-验证数据...
-处理数据...
+签名校验...
+数据校验...
+处理支付数据...
 ```
 
 ## 5.6 trait的构造机制
@@ -566,6 +632,8 @@ object _02CaseClassDemo {
 
 ### 6.2.1 apply方法
 
+默认已被实现
+
 apply方法可以让我们快速地使用类名来创建对象。参考以下代码：
 
 ```scala
@@ -581,6 +649,8 @@ object CaseClassDemo {
 
 ### 6.2.2 toString方法
 
+默认已被实现
+
 toString返回样例类名称(成员变量1, 成员变量2, 成员变量3....)，我们可以更方面查看样例类的成员
 
 ```scala
@@ -589,8 +659,8 @@ case class CasePerson(name:String, age:Int)
 object CaseClassDemo {
   def main(args: Array[String]): Unit = {
     val lisi = CasePerson("李四", 21)
-    println(lisi.toString)
-    // 输出：CasePerson(李四,21)
+    println(lisi) // CasePerson(李四,21)
+    println(lisi.toString) //CasePerson(李四,21)
   }
 }
 ```
@@ -604,11 +674,18 @@ object CaseClassDemo {
 示例：
 
 ```scala
-val lisi1 = CasePerson("李四", 21)
-val lisi2 = CasePerson("李四", 21)
-println(lisi1 == lisi2)
-println(lisi1.equals(lisi2))
-// 都输出：true
+object day04 {
+  case class CasePerson(name:String, age:Int)
+  def main(args: Array[String]): Unit = {
+    val lisi1 = CasePerson("李四", 21)
+    val lisi2 = CasePerson("李四", 21)
+    // 比较两个对象是否相等
+    println(lisi1 == lisi2) // true
+    println(lisi1.equals(lisi2)) // true
+    // 比较两个对象是否是同一个对象
+    println(lisi1.eq(lisi2)) // false
+  }
+}
 ```
 
 ### 6.2.4 hashCode方法
@@ -616,12 +693,20 @@ println(lisi1.equals(lisi2))
 样例类自动实现了hashCode方法，如果所有成员变量的值相同，则hash值相同，只要有一个不一样，则hash值不一样。
 
 ```scala
-val lisi1 = CasePerson("李四", 21)
-val lisi2 = CasePerson("李四", 22)
+object day04 {
+  case class CasePerson(name:String, age:Int)
+  def main(args: Array[String]): Unit = {
+    val lisi1 = CasePerson("李四", 21)
+    val lisi2 = CasePerson("李四", 22)
+    val lisi3 = CasePerson("李四", 21)
 
-println(lisi1.hashCode())
-println(lisi2.hashCode())
-//打印同样的地址值
+    // 打印哈希值，值相同时，哈希值也相同
+    println(lisi1.hashCode()) // 718456491
+    println(lisi2.hashCode()) // 629649205
+    println(lisi3.hashCode()) // 718456491
+  }
+}
+
 ```
 
 ### 6.2.5 copy方法
@@ -629,10 +714,15 @@ println(lisi2.hashCode())
 样例类实现了copy方法，可以快速创建一个相同的实例对象，可以使用带名参数指定给成员进行重新赋值
 
 ```scala
-val lisi1 = CasePerson("李四", 21)
+object day04 {
+  case class CasePerson(name:String, age:Int)
+  def main(args: Array[String]): Unit = {
+    val lisi1 = CasePerson("李四", 21)
 
-val wangwu = lisi1.copy(name="王五")
-println(wangwu)
+    val wangwu = lisi1.copy(name="王五")
+    println(wangwu) // CasePerson(王五,21)
+  }
+}
 ```
 
 ## 6.3 样例对象
@@ -644,7 +734,7 @@ println(wangwu)
 
 **定义枚举：**
 
-使用case object可以创建样例对象。样例对象是单例的，而且它**没有主构造器**
+使用case object可以创建样例对象。样例对象是**单例的**，而且它**没有主构造器**
 
 语法：
 
@@ -655,19 +745,24 @@ case object 样例对象名
 示例：
 
 ```scala
-trait Sex /*定义一个性别特质*/
-case object Male extends Sex		// 定义一个样例对象并实现了Sex特质
-case object Female extends Sex		
+object day04 {
+  trait Sex /*定义一个性别特质*/
+  case object Male extends Sex		// 定义一个样例对象并实现了Sex特质
+  case object Female extends Sex
 
-case class Person(name:String, sex:Sex)
-
-object CaseClassDemo {
+  case class Person(name:String, sex:Sex)
+    
   def main(args: Array[String]): Unit = {
     val zhangsan = Person("张三", Male)
+    val lisi = Person("lisi", Female)
 
     println(zhangsan)//Person(张三,Male)
+    println(lisi)//Person(lisi,Male)
+    println(Male) // Male
+    println(Female) // Female
   }
 }
+
 ```
 
 # 7.模式匹配 
@@ -731,15 +826,25 @@ println(result)
 定义一个变量为Any类型，然后分别给其赋值为"hadoop"、1、1.0
 
 ```scala
-val a:Any = "hadoop"
+object _02MatchDemo {
+  def main(args: Array[String]): Unit = {
+    // 1. 定义Any类型的变量
+    // 分别赋值："hadoop"、1、1.0
+    val a:Any = "hadoop"
+//    val a:Any = 1
+//    val a:Any = 1.0
+//    val a:Any = null // Null类型的实例
 
-val result = a match {
-    case _:String => "String"
-    case _:Int => "Int"
-    case _:Double => "Double"
+    // 2. 使用模式匹配来匹配数据类型
+    a match {
+      case _:String => println(s"字符串类型")
+      case x:Int => println(s"${x}是整形")
+      case x:Double => println(s"${x}是双精度浮点型")
+      case _ => println("未匹配")
+    }
+  }
 }
 
-println(result)
 ```
 
 注：如果case表达式中无需使用到匹配到的变量，可以使用下划线代代替
@@ -799,13 +904,22 @@ Array(0, ...)  // 可以任意数量，但是以0开头
 ```
 
 ```scala
-val arr = Array(1, 3, 5)
-arr match {
-    case Array(1, x, y) => println(x + " " + y)
-    case Array(0) => println("only 0")
-    case Array(0, _*) => println("0 ...")
-    case _ => println("something else")
+object _05MatchDemo {
+  def main(args: Array[String]): Unit = {
+    // 1. 定义三个数组，用于匹配
+    val array1 = Array(1, 2, 3)
+    val array2 = Array(0)
+    val array3 = Array(0, 1, 2, 3, 4, 5)
+
+    // 2. 使用match...case 来进行匹配
+    array3 match {
+      case Array(1, x, y) => println(s"匹配三个元素的数组，第一个元素为1，${x}, ${y}")
+      case Array(0) => println(s"匹配一个元素的数组，元素值为0")
+      case Array(0, _*) => println("第一个元素为0，数量不固定的数组")
+    }
+  }
 }
+
 ```
 
 ### 7.5.2 匹配列表
@@ -819,14 +933,22 @@ List(x,y)	   		// 只包含两个元素的列表
 ```
 
 ```scala
-val list = List(0, 1, 2)
+object _06MatchDemo {
+  def main(args: Array[String]): Unit = {
+    // 1. 创建三个不同的List
+    val list1 = List(0)
+    val list2 = List(0, 1, 1, 2, 3, 3)
+    val list3 = List(10, 11)
 
-list match {
-    case 0 :: Nil => println("只有0的列表")
-    case 0 :: tail => println("0开头的列表")
-    case x :: y :: Nil => println(s"只有另两个元素${x}, ${y}的列表")
-    case _ => println("未匹配")
+    // 2. 使用match..case来进行模式匹配
+    list3 match {
+      case 0 :: Nil => println("只有一个元素且元素为0的列表")
+      case 0 :: tail => println("第一个元素为0且数量不固定的列表")
+      case x :: y :: Nil => println(s"列表只有两个元素：${x}，${y}")
+    }
+  }
 }
+
 ```
 
 ### 7.5.3 匹配元组
@@ -839,13 +961,20 @@ list match {
 ```
 
 ```scala
-val tuple = (2, 2, 5)
+object _07MatchDemo {
+  def main(args: Array[String]): Unit = {
+    // 1. 创建两个元组用于模式匹配
+    val tuple1 = (1, 3, 4)
+    val tuple2 = (3, 4, 5)
 
-tuple match {
-    case (1, x, y) => println(s"三个元素，1开头的元组：1, ${x}, ${y}")
-    case (x, y, 5) => println(s"三个元素，5结尾的元组：${x}, ${y}, 5")
-    case _ => println("未匹配")
+    // 2. 使用match...case来进行匹配
+    tuple2 match {
+      case (1, x, y) => println(s"匹配三个元素且第一个元素为1的元组")
+      case (x, y, 5) => println(s"匹配三个元素且最后一个元素为5的元组")
+    }
+  }
 }
+
 ```
 
 ## 7.6 变量声明中的模式匹配
@@ -855,19 +984,36 @@ tuple match {
 **示例1： 获取数组中的元素**
 
 ```scala
-val array = (1 to 10).toArray
-val Array(_, x, y, z, _*) = array
+// 生成包含0-10数字的数组，使用模式匹配分别获取第二个、第三个、第四个元素
+object _08MatchDemo {
+  def main(args: Array[String]): Unit = {
+    // 1. 生成数组0-10
+    val array = (0 to 10).toArray
 
-println(x, y, z)
+    // 2. 模式匹配获取第二个、三个、四个
+    val Array(_, x, y, z, _*) = array
+
+    println(x, y, z)
+  }
+}
 ```
 
 **示例2：获取List中的数据**
 
 ```scala
-val list = (1 to 10).toList
-val x :: y :: tail = list
+// 生成包含0-10数字的列表，使用模式匹配分别获取第一个、第二个元素
+object _09MatchDemo {
+  def main(args: Array[String]): Unit = {
+    // 1. 生成0-10列表
+    val list = (0 to 10).toList
 
-println(x, y)
+    // 2. 在定义声明变量的时候，使用模式匹配，来匹配第一个、第二个元素
+    val x :: y :: tail = list
+
+    println(x, y)
+  }
+}
+
 ```
 
 # 8.Option类型
@@ -883,9 +1029,9 @@ scala中，Option类型来表示可选值。这种类型的数据有两种形式
   源码：
 
   ```scala
-  final case class Some[+A](val x : A) extends scala.Option[A] with scala.Product with scala.Serializable {
-    def isEmpty : scala.Boolean = { /* compiled code */ }
-    def get : A = { /* compiled code */ }
+  final case class Some[+A](x: A) extends Option[A] {
+    def isEmpty = false
+    def get = x
   }
   ```
 
@@ -894,9 +1040,9 @@ scala中，Option类型来表示可选值。这种类型的数据有两种形式
   源码：
 
   ```scala
-  case object None extends scala.Option[scala.Nothing] with scala.Product with scala.Serializable {
-    def isEmpty : scala.Boolean = { /* compiled code */ }
-    def get : scala.Nothing = { /* compiled code */ }
+  case object None extends Option[Nothing] {
+    def isEmpty = true
+    def get = throw new NoSuchElementException("None.get")
   }
   ```
 
@@ -911,44 +1057,35 @@ scala中，Option类型来表示可选值。这种类型的数据有两种形式
     * @param b 参数2
     * @return Option包装Double类型
     */
-  def dvi(a:Double, b:Double):Option[Double] = {
-    if(b != 0) {
-      Some(a / b)
-    }
-    else {
+object _07OptionDemo {
+  // 1. 定义一个相除的方法，会使用Option来封装数据
+  def div(x:Double, y:Double):Option[Double]  = {
+    if(y == 0) {
+      // 表示没有数据
       None
     }
-  }
-
-  def main(args: Array[String]): Unit = {
-    val result1 = dvi(1.0, 5)
-
-    result1 match {
-      case Some(x) => println(x)
-      case None => println("除零异常")
-    }
-  }
-```
-
-**示例2：**
-
-重写上述案例，使用getOrElse方法，当除零时，或者默认值为0
-
-```scala
-def dvi(a:Double, b:Double) = {
-    if(b != 0) {
-        Some(a / b)
-    }
     else {
-        None
+      val result = x / y
+      // Some表示有数据
+      Some(result)
     }
+  }
+
+  // 2. 可以使用模式匹配来判断是否有值
+  def main(args: Array[String]): Unit = {
+    val some = div(10.0, 2.0)
+    val none = div(10.0, 0)
+
+//    none match {
+//      case Some(x) => println(x)
+//      case None => println("除零异常")
+//    }
+    // 使用getOrElse来获取Option类型的值，当值为None的时候指定默认值为0
+     println(some.getOrElse(0))// 5.0
+     println(none.getOrElse(0)) // 0
+  }
 }
 
-def main(args: Array[String]): Unit = {
-    val result = dvi(1, 0).getOrElse(0)
-
-    println(result)
-}
 ```
 
 # 9. 偏函数
@@ -966,15 +1103,20 @@ def main(args: Array[String]): Unit = {
 **示例1:**
 
 ```scala
-// func1是一个输入参数为Int类型，返回值为String类型的偏函数
-val func1: PartialFunction[Int, String] = {
-    case 1 => "一"
-    case 2 => "二"
-    case 3 => "三"
-    case _ => "其他"
-}
+object day05 {
+    def main(args: Array[String]): Unit = {
+      // func1是一个输入参数为Int类型，返回值为String类型的偏函数
+      val func1: PartialFunction[Int, String] = {
+        case 1 => "一"
+        case 2 => "二"
+        case 3 => "三"
+        case _ => "其他"
+      }
 
-println(func1(2))
+      println(func1(2))// 二
+    }
+
+}
 ```
 
 **示例2：**
@@ -989,6 +1131,7 @@ val list2 = list.map{
 }
 
 println(list2)
+//List([1-3], [1-3], [1-3], [4-8], [4-8], [4-8], [4-8], [4-8], (8-*], (8-*])
 ```
 
 # 10. 正则表达式
@@ -1012,6 +1155,10 @@ val regEx = """正则表达式""".r
 **findAllMatchIn方法**
 
 * 使用findAllMatchIn方法可以获取到所有正则匹配到的字符串
+
+具体语法查看文档：
+
+https://www.runoob.com/regexp/regexp-syntax.html
 
 **示例1：**
 
@@ -1043,17 +1190,22 @@ else {
 找出以下列表中的所有不合法的邮箱
 
 ```scala
-val emlList =
-List("38123845@qq.com", "a1da88123f@gmail.com", "zhansan@163.com", "123afadff.com")
+object day05 {
+    def main(args: Array[String]): Unit = {
+      val emlList = List("38123845@qq.com", "a1da88123f@gmail.com", "zhansan@163.com", "123afadff.com")
 
-val regex = """.+@.+/..+""".r
+      val regex = """.+@.+\..+""".r
 
-val invalidEmlList = emlList.filter {
-    x =>
-    if (regex.findAllMatchIn(x).size < 1) true else false
+      val invalidEmlList = emlList.filter {
+       case x =>if (regex.findAllMatchIn(x).size < 1) true else false
+      }
+
+      println(invalidEmlList)
+      // 123afadff.com
+    }
+
 }
 
-println(invalidEmlList)
 ```
 
 **示例3**
@@ -1061,18 +1213,24 @@ println(invalidEmlList)
 使用正则表达式进行模式匹配，匹配出来邮箱运营商的名字。例如：邮箱zhansan@163.com，需要将163匹配出来
 
 ```scala
-// 使用括号表示一个分组
-val regex = """.+@(.+)/..+""".r
+object day05 {
+    def main(args: Array[String]): Unit = {
+      // 使用括号表示一个分组
+      val regex = """.+@(.+)\..+""".r
 
-val emlList =
-List("38123845@qq.com", "a1da88123f@gmail.com", "zhansan@163.com", "123afadff.com")
+      val emlList =
+        List("38123845@qq.com", "a1da88123f@gmail.com", "zhansan@163.com", "123afadff.com")
 
-val emlCmpList = emlList.map {
-    case x@regex(company) => s"${x} => ${company}"
-    case x => x + "=>未知"
+      val emlCmpList = emlList.map {
+        case x@regex(company) => s"${x} => ${company}"
+        case x => x + "=>未知"
+      }
+
+      println(emlCmpList)
+      // List(38123845@qq.com => qq, a1da88123f@gmail.com => gmail, zhansan@163.com => 163, 123afadff.com=>未知)
+    }
+
 }
-
-println(emlCmpList)
 ```
 
 # 11. 异常处理
@@ -1164,6 +1322,8 @@ def main(args: Array[String]): Unit = {
 
 ![](img/scala/解构.png)
 
+语法：
+
 ```scala
 def unapply(stu:Student):Option[(类型1, 类型2, 类型3...)] = {
     if(stu != null) {
@@ -1192,6 +1352,9 @@ object Student {
         val tuple = (student.name, student.age)
 
         Some(tuple)
+    }
+    else{
+        None
     }
 }
 
@@ -1292,7 +1455,8 @@ def demo[T <: Person](a:Array[T]) = println(a)
 def main(args: Array[String]): Unit = {
     demo(Array(new Person))
     demo(Array(new Student))
-    // 编译出错，必须是Person的子类
+    
+    // 编译出错，必须是Person或其的子类
     // demo(Array("hadoop"))
 }
 ```
@@ -1321,7 +1485,8 @@ def demo[T >: Policeman](array:Array[T]) = println(array)
 def main(args: Array[String]): Unit = {
     demo(Array(new Person))
     demo(Array(new Policeman))
-    // 编译出错：Superman是Policeman的子类
+    Policeman或其父类
+    // 编译出错：Superman是Policeman的子类，我们指定了泛型必须是Policeman或其父类
     // demo(Array(new Superman))
 }
 ```
@@ -1392,21 +1557,24 @@ class Pair[-T]
 class Super
 class Sub extends Super
 
+//非变（默认）
 class Temp1[T]
+//协变
 class Temp2[+T]
+//逆变
 class Temp3[-T]
 
 def main(args: Array[String]): Unit = {
     val a:Temp1[Sub] = new Temp1[Sub]
     // 编译报错
-    // 非变
+    // 非变不允许任何的转换
     //val b:Temp1[Super] = a
 
-    // 协变
+    // 协变泛型允许将子类赋值给父类
     val c: Temp2[Sub] = new Temp2[Sub]
     val d: Temp2[Super] = c
 
-    // 逆变
+    // 逆变泛型允许将父类赋值给子类
     val e: Temp3[Super] = new Temp3[Super]
     val f: Temp3[Sub] = e
 }
@@ -1416,7 +1584,7 @@ def main(args: Array[String]): Unit = {
 
 定义：视图界定是上界和下界的一种扩展
 
-期望 函数可以接受上界和下界规定的类型外，还可以接受通过隐式转换转换过去的类型
+期望函数可以接受上界和下界规定的类型外，还可以接受通过隐式转换转换过去的类型
 
 **语法：**
 

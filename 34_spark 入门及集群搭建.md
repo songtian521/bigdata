@@ -136,6 +136,8 @@ Spark最核心的功能是RDDS，RDDS存在于spark-core这个包内，这个包
 
 **问题：**Spark 如何将程序运行在一个集群中?
 
+![](img/spark/spark运行集群.png)
+
 - Spark 自身是没有集群管理工具的, 但是如果想要管理数以千计台机器的集群, 没有一个集群管理工具还不太现实, 所以 Spark 可以借助外部的集群工具来进行管理
 
 - 整个流程就是使用 Spark 的 Client 提交任务, 找到集群管理工具申请资源, 后将计算任务分发到集群中运行
@@ -257,7 +259,18 @@ Spark最核心的功能是RDDS，RDDS存在于spark-core这个包内，这个包
      hdfs dfs -mkdir -p /spark_log
      ```
 
-3. 分发和运行
+3. 配置profile文件
+
+   vim /etc/profile
+
+   ```
+   export SPARK_BIN=/opt/module/spark/bin
+   export PATH=$PATH:$SPARK_BIN
+   ```
+
+   source /etc/profile
+
+4. 分发和运行
 
    ```
    # 分发
@@ -353,7 +366,7 @@ Spark最核心的功能是RDDS，RDDS存在于spark-core这个包内，这个包
 
 Spark HA 的 Leader 选举使用了一个叫做 Curator 的 Zookeeper 客户端来进行
 
-Zookeeper 是一个分布式强一致性的协调服务, Zookeeper 最基本的一个保证是: 如果多个节点同时创建一个 ZNode, 只有一个能够成功创建. 这个做法的本质使用的是 Zookeeper 的 ZAB 协议, 能够在分布式环境下达成一致.
+Zookeeper 是一个分布式强一致性的协调服务, Zookeeper 最基本的一个保证是：如果多个节点同时创建一个 ZNode, 只有一个能够成功创建. 这个做法的本质使用的是 Zookeeper 的 ZAB 协议, 能够在分布式环境下达成一致.
 
 # 3.Spark入门
 
@@ -378,6 +391,17 @@ Spark 官方提供了两种方式编写代码, 都比较重要, 分别如下
 - 启动 Spark shell
   进入 Spark 安装目录后执行 `spark-shell --master master` 就可以提交Spark 任务
 - Spark shell 的原理是把每一行 Scala 代码编译成类, 最终交由 Spark 执行
+
+Master 的地址可以有如下几种设置方式：
+
+| 地址                | 解释                                                         |
+| :------------------ | :----------------------------------------------------------- |
+| `local[N]`          | 使用 N 条 Worker 线程在本地运行                              |
+| `spark://host:port` | 在 Spark standalone 中运行, 指定 Spark 集群的 Master 地址, 端口默认为 7077 |
+| `mesos://host:port` | 在 Apache Mesos 中运行, 指定 Mesos 的地址                    |
+| `yarn`              | 在 Yarn 中运行, Yarn 的地址由环境变量 `HADOOP_CONF_DIR` 来指定 |
+
+
 
 1. 准备文件
 
@@ -628,24 +652,24 @@ Spark 官方提供了两种方式编写代码, 都比较重要, 分别如下
    
    ```
    
-
-注：和 Spark shell 中不同, 独立应用需要手动创建 SparkContext
-
-**本地实际测试时，需要设置AppName，不然就会报错，而教程中并未设置也可以运行。**
-
+   注：和 Spark shell 中不同, 独立应用需要手动创建 SparkContext
+   
 3. 运行
 
    运行 Spark 独立应用大致有两种方式, 一种是直接在 IDEA 中调试, 另一种是可以在提交至 Spark 集群中运行, 而 Spark 又支持多种集群, 不同的集群有不同的运行方式
 
-   这里直接右键运行即可
+   - 本地运行：IDEA直接运行
 
-   集群运行也可，采用IDEA的打包工具即可
 
-   ```
-   spark-submit --master spark://bigdata111:7077 /
-   --class Rdds.WordCounts /
-   original-spark-0.1.0.jar
-   ```
+   - 集群运行：集群运行时需要注意修改部分代码，第一部分为去掉`setMaster("local[2]")`，第二步为修改读取文件的路径为hdfs路径或者服务器路径，然后采用IDEA的打包工具打包并上传到服务器，并通过如下代码执行
+
+     ```
+     spark-submit --master spark://bigdata111:7077 /
+     --class Rdds.WordCounts /
+     original-spark-0.1.0.jar
+     ```
+
+     
 
    参数解析：
 
@@ -665,7 +689,7 @@ Spark 官方提供了两种方式编写代码, 都比较重要, 分别如下
 1. 客户端（driver）通过sparkcontext对象，将请求交给master
 2. master将任务信息和资源分配给worker
 3. worker启动executor
-4. 整正任务提交，driver给worker提交jar，不经过master
+4. 真正的任务提交，driver给worker提交jar，不经过master
 
 ## 3.5 总结
 
@@ -748,18 +772,28 @@ object WordCounts {
    
    - 理解：RDD是由分区组成，每个分区运行在不同的Worker上，通过这种方式来实现分布式计算。
    - RDD是逻辑概念，分区是物理概念。
-   
 2. 在RDD中，有一系列函数，用于处理计算每个分区中的数据。这里把函数叫算子。
-
 3. RDD之间存在依赖关系。
-
 4. 自定义分区规则
 
    - 可以自定义分区规则来创建RDD		
 
    - 创建RDD时，可以指定分区，也可以自定义分区规则，类似于MapReduce的分区
-
 5. 优先选择离文件位置近的节点执行。
+
+**特点：**
+
+1. RDD 是一个编程模型
+   - RDD 允许用户显式的指定数据存放在内存或者磁盘
+   - RDD 是分布式的, 用户可以控制 RDD 的分区
+2. RDD 是一个编程模型
+   - RDD 提供了丰富的操作
+   - RDD 提供了 map, flatMap, filter 等操作符, 用以实现 Monad 模式
+   - RDD 提供了 reduceByKey, groupByKey 等操作符, 用以操作 Key-Value 型数据
+   - RDD 提供了 max, min, mean 等操作符, 用以操作数字型的数据
+3. RDD 是混合型的编程模型, 可以支持迭代计算, 关系查询, MapReduce, 流计算
+4. RDD 是只读的
+5. RDD 之间有依赖关系, 根据执行操作的操作符的不同, 依赖关系可以分为宽依赖和窄依赖
 
 **RDD分区**
 
@@ -888,8 +922,8 @@ Map 是一对一, 如果函数是 `String → Array[String]` 则新的 RDD 中�
 
 ```scala
  // 1. 创建 Spark Context
-    val conf = new SparkConf().setAppName("wordcount").setMaster("local[2]")
-    val sc: SparkContext = new SparkContext(conf)
+val conf = new SparkConf().setAppName("wordcount").setMaster("local[2]")
+val sc: SparkContext = new SparkContext(conf)
 
 //创建Rdd
 val rdd = sc.parallelize(Seq("Hello lily", "Hello lucy", "Hello tim"))

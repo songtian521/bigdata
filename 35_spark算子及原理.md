@@ -70,7 +70,7 @@ class AccessLogAgg {
    - 需要一个共享内存的机制
    - 需要一个总体上的协作机制来进行调度
 
-3. *如果放在集群中的话, 可能要对整个计算任务进行分解, 如何分解?*
+3. 如果放在集群中的话, 可能要对整个计算任务进行分解, 如何分解?
 
    ![](img/spark/RDD分解调度.png)
 
@@ -233,7 +233,7 @@ RDD 中的算子从功能上分为两大类
 1. `Transformation(转换) `它会在一个已经存在的 RDD 上创建一个新的 RDD, 将旧的 RDD 的数据转换为另外一种形式后放入新的 RDD
 2. `Action(动作)` 执行各个分区的计算任务, 将的到的结果返回到 Driver 中
 
-RDD 中可以存放各种类型的数据, 那么对于不同类型的数据, RDD 又可以分为三类
+RDD 中可以存放各种类型的数据, 那么对于不同类型的数据, RDD 又可以分为三类：
 
 - 针对基础类型(例如 String)处理的普通算子
 - 针对 `Key-Value` 数据处理的 `byKey` 算子
@@ -485,6 +485,16 @@ object scala {
 
 ### 3.1.7 sample
 
+作用
+
+- Sample 算子可以从一个数据集中抽样出来一部分, 常用作于减小数据集以保证运行速度, 并且尽可能少规律的损失
+
+**参数**
+
+- Sample 接受第一个参数为`withReplacement`, 意为是否取样以后**是否还放回原数据集供下次使用**, 简单的说, 如果这个参数的值为 true, 则抽样出来的数据集中可能会有重复
+- Sample 接受第二个参数为`fraction`, 意为**抽样的比例**
+- Sample 接受第三个参数为`seed`, **随机数种子**, 用于 Sample 内部随机生成下标, 一般不指定, 使用默认值
+
 语法：
 
 ```scala
@@ -516,17 +526,11 @@ sample(withReplacement, fraction, seed)
 
 ![](img/spark/sample.png)
 
-作用
 
-- Sample 算子可以从一个数据集中抽样出来一部分, 常用作于减小数据集以保证运行速度, 并且尽可能少规律的损失
-
-**参数**
-
-- Sample 接受第一个参数为`withReplacement`, 意为是否取样以后是否还放回原数据集供下次使用, 简单的说, 如果这个参数的值为 true, 则抽样出来的数据集中可能会有重复
-- Sample 接受第二个参数为`fraction`, 意为抽样的比例
-- Sample 接受第三个参数为`seed`, 随机数种子, 用于 Sample 内部随机生成下标, 一般不指定, 使用默认值
 
 ### 3.1.8 union
+
+并集
 
 示例：
 
@@ -556,6 +560,8 @@ sample(withReplacement, fraction, seed)
 ![](img/spark/union.png)
 
 ### 3.1.9 intersection
+
+交集
 
 示例：
 
@@ -587,7 +593,9 @@ sample(withReplacement, fraction, seed)
 
 ### 3.1.10 subtract
 
-**(RDD[T], RDD[T]) ⇒ RDD[T]** 差集, 可以设置分区数
+```scala
+(RDD[T], RDD[T]) ⇒ RDD[T] 差集, 可以设置分区数
+```
 
 示例：
 
@@ -647,6 +655,8 @@ sample(withReplacement, fraction, seed)
 - 本质上 Distinct 就是一个 reductByKey, 把重复的合并为一个
 
 ### 3.1.12 reduceByKey
+
+按照key进行分组，然后把每一组数据reduce
 
 示例：
 
@@ -723,15 +733,16 @@ def reduceByKey(func: (V, V) ⇒ V): RDD[(K, V)]
 
 ### 3.1.14 combineByKey
 
+combineByKey这个孙子中接收三个参数：
+
+转换数据的函数（初始函数，作用于第一条数据，用于开启整个计算），在分区上进行聚合，把所有分区的聚合结果聚合为最终结果
+
 示例：
 
 ```scala
   @Test
-  def combinByKeyDemo():Unit = {
-    val conf = new SparkConf().setAppName("demo").setMaster("local[2]")
-    val sc: SparkContext = new SparkContext(conf)
-      
-    val rdd = sc.parallelize(Seq(
+  def combineByKeyDemo():Unit = {
+    val rdd: RDD[(String, Double)] = sc.parallelize(Seq(
       ("zhangsan", 99.0),
       ("zhangsan", 96.0),
       ("lisi", 97.0),
@@ -739,13 +750,39 @@ def reduceByKey(func: (V, V) ⇒ V): RDD[(K, V)]
       ("zhangsan", 97.0))
     )
 
-    val combineRdd = rdd.combineByKey(
-      score => (score, 1),
-      (scoreCount: (Double, Int),newScore) => (scoreCount._1 + newScore, scoreCount._2 + 1),
-      (scoreCount1: (Double, Int), scoreCount2: (Double, Int)) =>
-        (scoreCount1._1 + scoreCount2._1, scoreCount1._2 + scoreCount2._2)
+    val combineRdd: RDD[(String, (Double, Int))] = rdd.combineByKey(
+
+      //对数据进行初步处理
+      /**
+       * ("zhangsan", (99.0,1))
+       * ("zhangsan", (96.0,1))
+       * ....
+       */
+      createCombiner = (curr:Double) => (curr, 1),
+
+      // 进行分区结果集处理
+      /**
+       * ("zhangsan", (195.0,2))  --分区1
+       * ("lisi", (195.0,2))  --分区2
+       * ....
+       */
+      //参数说明：第一个参数是集合的value，也就是(99.0,1)，第二个参数是下一条数据的value，也就是(96.0,1)
+      mergeValue  = (curr: (Double, Int),nextValue:Double) => (curr._1 + nextValue, curr._2 + 1),
+
+      //不同分区的相同的key数据，进行聚合
+      /**
+       * ("zhangsan", (195.0,2))  -->分区1的结果
+       *
+       *  ("zhangsan", (97.0,1))  -->分区3的结果
+       *
+       *  最后得到这个key的结果为：
+       *   ("zhangsan", (292.0,3))
+       */
+      mergeCombiners = (curr: (Double, Int), agg: (Double, Int)) =>
+        (curr._1 + agg._1, curr._2 + agg._2)
     )
 
+    //相当于：(zhangsan , 292.0 / 3)
     val meanRdd = combineRdd.map(score => (score._1, score._2._1 / score._2._2))
 
     meanRdd.collect().foreach(item=>println(item))
@@ -783,6 +820,15 @@ def reduceByKey(func: (V, V) ⇒ V): RDD[(K, V)]
 
 ### 3.1.15 aggregateByKey
 
+```
+aggregateByKey(zeroValue)(seqOp, combOp)
+    zeroValue：指定初始值
+    seqOp：作用于每一个元素，根据初始值，进行计算
+    combOp：将sqlOp处理过的结果进行聚合
+
+aggregateByKey：特别适合针对每个数据要先处理，后聚合
+```
+
 示例：
 
 ```scala
@@ -793,16 +839,13 @@ def reduceByKey(func: (V, V) ⇒ V): RDD[(K, V)]
       
     val rdd = sc.parallelize(Seq(("手机", 10.0), ("手机", 15.0), ("电脑", 20.0)))
     val result = rdd.aggregateByKey(0.8)(
-      seqOp = (zero, price) => price * zero,
+      seqOp = (zeroValue, price) => price * zeroValue,
       combOp = (curr, agg) => curr + agg
     ).collect().foreach(item=>println(item))
-    println("--------")
-    println(result)
+
     /**
      * (手机,20.0)
      * (电脑,16.0)
-     * --------
-     * ()
      */
   }
 ```
@@ -819,9 +862,11 @@ def reduceByKey(func: (V, V) ⇒ V): RDD[(K, V)]
 
   `zeroValue` 初始值`seqOp` 转换每一个值的函数`comboOp` 将转换过的值聚合的函数
 
-注意点 **为什么需要两个函数?** aggregateByKey 运行将一个`RDD[(K, V)]`聚合为`RDD[(K, U)]`, 如果要做到这件事的话, 就需要先对数据做一次转换, 将每条数据从`V`转为`U`, `seqOp`就是干这件事的 ** 当`seqOp`的事情结束以后, `comboOp`把其结果聚合
+![](img/spark/aggreateByKey.png)
 
-- 和 reduceByKey 的区别::
+注意点 **为什么需要两个函数?** aggregateByKey 运行将一个`RDD[(K, V)]`聚合为`RDD[(K, U)]`, 如果要做到这件事的话, 就需要先对数据做一次转换, 将每条数据从`V`转为`U`, `seqOp`就是干这件事的，当`seqOp`的事情结束以后, `comboOp`把其结果聚合
+
+- 和 reduceByKey 的区别:
   - aggregateByKey 最终聚合结果的类型和传入的初始值类型保持一致
   - reduceByKey 在集合中选取第一个值作为初始值, 并且聚合过的数据类型不能改变
 
@@ -852,6 +897,8 @@ def reduceByKey(func: (V, V) ⇒ V): RDD[(K, V)]
 作用
 
 - 和 ReduceByKey 是一样的, 都是按照 Key 做分组去求聚合, 但是 FoldByKey 的不同点在于可以指定初始值
+
+注意：这个初始值作用于每条数据，而不仅仅是一条
 
 调用
 
@@ -899,7 +946,7 @@ foldByKey(zeroValue)(func)
 
 作用
 
-- 将两个 RDD 按照相同的 Key 进行连接
+- 将两个 RDD **按照相同的 Key 进行连接**
 
 调用
 
@@ -983,6 +1030,7 @@ join(other, [partitioner or numPartitions])
   @Test
   def sortDemo():Unit = {
     val rdd1 = sc.parallelize(Seq(("a", 3), ("b", 2), ("c", 1)))
+      //指定按照value进行排序
     val sortByResult = rdd1.sortBy( item => item._2 ).collect().foreach(item=>println(item))
 
     /**
@@ -992,6 +1040,8 @@ join(other, [partitioner or numPartitions])
      * =======分割线========
      */
     println("=======分割线========")
+      
+      // 直接按照key进行排序
     val sortByKeyResult = rdd1.sortByKey().collect().foreach(item=>println(item))
 
     /**
@@ -1106,10 +1156,16 @@ repartition进行重分区的时候，默认是shuffle的
   @Test
   def reduceDemo():Unit = {
     val rdd = sc.parallelize(Seq(("手机", 10.0), ("手机", 15.0), ("电脑", 20.0)))
-    val result = rdd.reduce((curr, agg) => ("总价", curr._2 + agg._2))
+      // 注意这里reduceByKey是按照key进行分组过的，但是reduce并不是，所以，reduce传入的curr是一整条数据而不仅仅只是value，同理，agg也是由函数的返回结果确定
+    val result: (String, Double) = rdd.reduce((curr, agg) => ("总价", curr._2 + agg._2))
     println(result) //(总价,45.0)
   }
 ```
+
+需要知道的地方：
+
+1. 函数中传入的curr参数，并不是value，而是一整条数据
+2. reduce整体上的结果，只有一个
 
 作用
 
@@ -1124,6 +1180,28 @@ repartition进行重分区的时候，默认是shuffle的
 - reduce 和 reduceByKey 是完全不同的, reduce 是一个 action, 并不是 Shuffled 操作
 - 本质上 reduce 就是现在每个 partition 上求值, 最终把每个 partition 的结果再汇总
 
+
+
+reduceByKey和reduce有什么区别：
+
+1. reduce是一个Action算子，reduceByKey是一个转换算子
+
+2. 假设一个RDD里面有一万条数据，大部分Key是相同的，有十个不同的key
+
+   其中：`rdd.reduceByKe`y生成10条数据，`rdd.reduce`生成1条结果
+
+3. reduceBykey本质上是先按照Key进行分组，然后把每组都聚合，reduce是针对于一整个数据集来进行聚合
+
+4. ruduceByKey是针对KV类型的数据来进行计算，reduce可以针对所有类型的数据进行计算
+
+5. **reduce算子不是一个shuffle操作**
+
+   - shuffle操作分为mapper和reducer，mapper将数据放入paritioner的函数计算，求得分往那个reducer，后分到对应的reducer
+   - reduce操作并没有mapper和reducer，因为reduce算子会作用于RDD中的每一个分区，然后再分区上求得局部结果，最终汇总到Driver中求和最终结果
+   - RDD中有五大属性，partitioner在shuffle过程中使用，partitioner只有KV类型的RDD才有
+
+
+
 ### 3.2.2 collect
 
 以数组的形式返回数据集中所有的元素
@@ -1134,6 +1212,8 @@ repartition进行重分区的时候，默认是shuffle的
 
 ### 3.2.4 first
 
+注意：一般情况下action会从所有的分区中获取数据，相对来说速度就比较慢，first只是获取第一个元素，所以，first只会处理第一个分区的数据，所以速度很快，无需处理所有数据
+
 返回第一个元素
 
 ### 3.2.5 take
@@ -1142,9 +1222,14 @@ repartition进行重分区的时候，默认是shuffle的
 
 ### 3.2.5 takeSample
 
-`takeSample(withReplacement, fract)`
+`takeSample(withReplacement, num)`
 
 类似于sample，区别在这是一个Action，直接返回结果
+
+参数：
+
+- withReplacement要不要放回数据，和sample一样
+- num取出的结果
 
 ### 3.2.6 flod
 
@@ -1162,12 +1247,20 @@ repartition进行重分区的时候，默认是shuffle的
 
 ### 3.2.9 countByKey
 
+- count和countByKey的结果相距很远，每次调用Action都会生成一个job，job会运行获取结果，所以两个job中间有大量的log输出，其实就是在启动job
+- countByKey的运算结果是：Map(Key , Value) ，其中value是 key的count结果
+
+- countByKey一般用于处理数据倾斜问题：
+
+  如果要解决数据倾斜问题，是不是要先知道谁倾斜，通过countByKey，是不是可以查看key对应的数据总和，从而解决问题
+
 示例：
 
 ```scala
   @Test
   def countByKeyDemo():Unit = {
     val rdd = sc.parallelize(Seq(("手机", 10.0), ("手机", 15.0), ("电脑", 20.0)))
+    println(rdd.count) // 3
     val result = rdd.countByKey()
     println(result) // Map(手机 -> 2, 电脑 -> 1)
   }
@@ -1251,6 +1344,8 @@ count和countByKey的区别：
 
 - RDD对键值对数据的额外支持
 
+  ![](img/spark/键值.png)
+
   - 键值型数据本质上就是一个二元数组，键值对类型的RDD表示为RDD[(K,V)]
 
   - RDD对键值对的额外支持是通过隐式支持来完成的，一个RDD[(K,V)]，可以被隐式转换为一个PairRDDFunctions对象，从而调用其中的方法
@@ -1305,25 +1400,47 @@ count和countByKey的区别：
 重点：理解 RDD 的一般使用步骤
 
 ```scala
-// 1. 创建 SparkContext
-val conf = new SparkConf().setMaster("local[6]").setAppName("stage_practice1")
-val sc = new SparkContext(conf)
+package Rdd
 
-// 2. 创建 RDD
-val rdd1 = sc.textFile("dataset/BeijingPM20100101_20151231_noheader.csv")
 
-// 3. 处理 RDD
-val rdd2 = rdd1.map { item =>
-  val fields = item.split(",")
-  ((fields(1), fields(2)), fields(6))
+import org.apache.commons.lang3.StringUtils
+import org.apache.spark.{SparkConf, SparkContext}
+import org.junit.Test
+
+/**
+ * @Class:spark.Rdd.StagePractice
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/2/4
+ */
+class StagePractice {
+  @Test
+  def pro(): Unit = {
+//    1. 创建SC对象
+    val conf = new SparkConf().setAppName("StagePractice").setMaster("local[2]")
+    val sc = new SparkContext(conf);
+//    2. 读取文件
+    val source = sc.textFile("C:\\Users\\宋天\\Desktop\\大数据\\file\\BeijingPM20100101_20151231_noheader.csv")
+//    3. 通过算子处理数据
+    /**
+     * 3.1 抽取数据，年，月，PM，返回结果：（（年，月）。PM）
+     * 3.2 清洗，过滤掉空的字符串，过滤掉NA
+     * 3.3 聚合
+     * 3.4 排序
+     */
+    val resultRDD = source.map(item =>((item.split(",")(1),item.split(",")(2)),item.split(",")(6)))
+      .filter(item => StringUtils.isNotEmpty(item._2) && ! item._2.equalsIgnoreCase("NA"))
+      .map(item => (item._1,item._2.toInt))
+      .reduceByKey((curr,agg)=>curr + agg)
+      .sortBy( item => item._2, ascending = false)
+
+    // 4. 获取结果
+    resultRDD.take(10).foreach(item => println(item))
+
+    // 5. 运行测试
+    sc.stop()
+  }
 }
-val rdd3 = rdd2.filter { item => !item._2.equalsIgnoreCase("NA") }
-val rdd4 = rdd3.map { item => (item._1, item._2.toInt) }
-val rdd5 = rdd4.reduceByKey { (curr, agg) => curr + agg }
-val rdd6 = rdd5.sortByKey(ascending = false)
-
-// 4. 行动, 得到结果
-println(rdd6.first())
 ```
 
 通过上述代码可以看到，其实RDD的整体使用步骤如下所示：
@@ -1337,6 +1454,9 @@ println(rdd6.first())
 **分区的作用：**
 
 RDD使用分区来分布式并行处理数据，并且要做到尽量少的在不同的Executor之间使用网络交换数据，所以当使用RDD读取数据的时候，会尽量的在物理上靠近数据源，比如说在读取Cassandra或者DHFS中的数据的时候，会尽量的保持RDD的分区和数据源的分区数，分区模式等一一对应
+
+- RDD经常需要通过读取外部系统的数据来创建，外部存储系统往往是支持分片的，RDD需要支持分区，来和外部系统的分片一一对应
+- RDD的分区是一个并行计算的实现手段
 
 **分区和Shuffle的关系：**
 
@@ -1390,7 +1510,7 @@ res2: Int = 7
 
 **注：**rdd1 是通过本地集合创建的, 创建的时候通过第二个参数指定了分区数量. rdd2 是通过读取 HDFS 中文件创建的, 同样通过第二个参数指定了分区数, 因为是从 HDFS 中读取文件, 所以最终的分区数是由 Hadoop 的 InputFormat 来指定的, 所以比指定的分区数大了一个.
 
-### 4.1.3 通过coalesce算子指定
+### 4.1.3 通过coalesce算子指定分区数
 
 语法：
 
@@ -1444,7 +1564,7 @@ coalesce(numPartitions: Int, shuffle: Boolean = false)(implicit ord: Ordering[T]
   res5: Int = 8
   ```
 
-### 4.1.4 通过repartition算子指定
+### 4.1.4 通过repartition算子指定分区数
 
 语法：
 
@@ -1452,7 +1572,14 @@ coalesce(numPartitions: Int, shuffle: Boolean = false)(implicit ord: Ordering[T]
 repartition(numPartitions: Int)(implicit ord: Ordering[T] = null): RDD[T]
 ```
 
-repartition` 算子本质上就是 `coalesce(numPartitions, shuffle = true)
+repartition 算子本质上就是` coalesce(numPartitions, shuffle = true)`
+
+```scala
+//源码
+def repartition(numPartitions: Int)(implicit ord: Ordering[T] = null): RDD[T] = withScope {
+    coalesce(numPartitions, shuffle = true)
+  }
+```
 
 示例：
 
@@ -1471,9 +1598,6 @@ res8: Int = 100
 减少分区有效
 scala> source.repartition(1).partitions.size 
 res9: Int = 1
-
-
-
 ```
 
 注：
@@ -1703,7 +1827,7 @@ val interimRDD = sc.textFile("dataset/access_log_sample.txt")
   .reduceByKey((curr, agg) => curr + agg)
   .persist()
 
-println(interimRDD.getStorageLevel) 
+println(interimRDD.getStorageLevel)
 // StorageLevel(memory, deserialized, 1 replicas)
 
 sc.stop()
@@ -1724,21 +1848,7 @@ extends java.lang.Object with java.io.Externalizable {
 
 根据这几个参数的不同, `StorageLevel` 有如下几个枚举对象
 
-```scala
-object StorageLevel extends scala.AnyRef with scala.Serializable {
-  val NONE : org.apache.spark.storage.StorageLevel = { /* compiled code */ }
-  val DISK_ONLY : org.apache.spark.storage.StorageLevel = { /* compiled code */ }
-  val DISK_ONLY_2 : org.apache.spark.storage.StorageLevel = { /* compiled code */ }
-  val MEMORY_ONLY : org.apache.spark.storage.StorageLevel = { /* compiled code */ }
-  val MEMORY_ONLY_2 : org.apache.spark.storage.StorageLevel = { /* compiled code */ }
-  val MEMORY_ONLY_SER : org.apache.spark.storage.StorageLevel = { /* compiled code */ }
-  val MEMORY_ONLY_SER_2 : org.apache.spark.storage.StorageLevel = { /* compiled code */ }
-  val MEMORY_AND_DISK : org.apache.spark.storage.StorageLevel = { /* compiled code */ }
-  val MEMORY_AND_DISK_2 : org.apache.spark.storage.StorageLevel = { /* compiled code */ }
-  val MEMORY_AND_DISK_SER : org.apache.spark.storage.StorageLevel = { /* compiled code */ }
-  val MEMORY_AND_DISK_SER_2 : org.apache.spark.storage.StorageLevel = { /* compiled code */ }
-  val OFF_HEAP : org.apache.spark.storage.StorageLevel = { /* compiled code */ }
-```
+![](img/spark/StorageLevel.png)
 
 | 缓存级别                | `userDisk` 是否使用磁盘 | `useMemory` 是否使用内存 | `useOffHeap` 是否使用堆外内存 | `deserialized` 是否以反序列化形式存储 | `replication` 副本数 |
 | :---------------------- | :---------------------- | :----------------------- | :---------------------------- | :------------------------------------ | :------------------- |
@@ -1754,6 +1864,15 @@ object StorageLevel extends scala.AnyRef with scala.Serializable {
 | `MEMORY_AND_DISK_SER`   | true                    | true                     | false                         | false                                 | 1                    |
 | `MEMORY_AND_DISK_SER_2` | true                    | true                     | false                         | false                                 | 2                    |
 | `OFF_HEAP`              | true                    | true                     | true                          | false                                 | 1                    |
+
+简要说明：以下带`2`的表示有一个副本
+
+- NONE：不进行存储
+- `DISK_ONLY`和`DISK_ONLY_2`，只存在磁盘中
+- `MEMORY_ONLY`和`MEMORY_ONLY_2`，只存在内存中
+- MEMORY_ONLY_SER和`MEMORY_ONLY_SER_2`，存在内存中，存储的是二进制数据
+- `MEMORY_AND_DISK`和`MEMORY_AND_DISK`，表示内存和磁盘都存储
+- `MEMORY_AND_DISK_SER`  和`MEMORY_AND_DISK_SER_2` ，表示序列化以后再存，存二进制数据
 
 **如何选择分区级别**
 
@@ -1824,7 +1943,7 @@ Checkpoint 的主要作用是斩断 RDD 的依赖链, 并且将数据存储在�
 示例：
 
 ```scala
-al conf = new SparkConf().setMaster("local[6]").setAppName("debug_string")
+val conf = new SparkConf().setMaster("local[6]").setAppName("debug_string")
 val sc = new SparkContext(conf)
 sc.setCheckpointDir("checkpoint") //在使用 Checkpoint 之前需要先设置 Checkpoint 的存储路径, 而且如果任务在集群中运行的话, 这个路径必须是 HDFS 上的路径
 
@@ -1832,6 +1951,8 @@ val interimRDD = sc.textFile("dataset/access_log_sample.txt")
   .map(item => (item.split(" ")(0), 1))
   .filter(item => StringUtils.isNotBlank(item._1))
   .reduceByKey((curr, agg) => curr + agg)
+// interimRDD = interimRDD.cache()
+
 
 interimRDD.checkpoint() // 开启 Checkpoint
 
@@ -1843,12 +1964,17 @@ sc.stop()
 **注意： 一个小细节**
 
 ```scala
+val conf = new SparkConf().setMaster("local[6]").setAppName("debug_string")
+val sc = new SparkContext(conf)
+sc.setCheckpointDir("checkpoint")
+
 val interimRDD = sc.textFile("dataset/access_log_sample.txt")
   .map(item => (item.split(" ")(0), 1))
   .filter(item => StringUtils.isNotBlank(item._1))
   .reduceByKey((curr, agg) => curr + agg)
   .cache() // checkpoint 之前先 cache 一下, 准没错
 
+//如果调用checkpoint，则会重新计算一下RDD，然后把结果存在HDFS或者本地目录上，所以，应该在在checkpoint之前进行一次cache
 interimRDD.checkpoint()
 interimRDD.collect().foreach(println(_))
 ```
@@ -1902,6 +2028,7 @@ val sc = ...
     val splitRDD = textRDD.flatMap(_.split(" "))
     val tupleRDD = splitRDD.map((_, 1))
     val reduceRDD = tupleRDD.reduceByKey(_ + _)
+    //将结果转为字符串
     val strRDD = reduceRDD.map(item => s"${item._1}, ${item._2}")
 
     println(strRDD.toDebugString)
@@ -1984,6 +2111,10 @@ strRDD.collect.foreach(item => println(item))
 - 在 `Action` 调用之前, 会生成一系列的 `RDD`, 这些 `RDD` 之间的关系, 其实就是整个逻辑计划
 - 例如上述代码, 如果生成逻辑计划的, 会生成如下一些 `RDD`, 这些 `RDD` 是相互关联的, 这些 `RDD` 之间, 其实本质上生成的就是一个 **计算链**
 
+![](img/spark/RDD生成.png)
+
+接下来, 采用迭代渐进式的方式, 一步一步的查看一下整体上的生成过程
+
 ### 7.1.1 textFile算子的背后
 
 研究 `RDD` 的功能或者表现的时候, 其实本质上研究的就是 `RDD` 中的五大属性, 因为 `RDD` 透过五大属性来提供功能和表现, 所以如果要研究 `textFile` 这个算子, 应该从五大属性着手, 那么第一步就要看看生成的 `RDD` 是什么类型的 `RDD`
@@ -2058,6 +2189,11 @@ strRDD.collect.foreach(item => println(item))
 
    通过其它 `RDD` 衍生的话, 其实本质上就是通过不同的算子生成不同的 `RDD` 的子类对象, 从而控制 `compute` 函数的行为来实现算子功能
 
+   **简单说明：**
+
+   - HadoopRDD重写了分区列表和计算函数
+   - `MapPartitions` 重写了compute函数，处理整个RDD的数据
+
 2. 生成哪些 `RDD` ?
 
    不同的算子生成不同的 `RDD`, 生成 `RDD` 的类型取决于算子, 例如 `map` 和 `flatMap` 都会生成 `RDD` 的子类 `MapPartitions` 的对象
@@ -2073,8 +2209,23 @@ strRDD.collect.foreach(item => println(item))
    虽然计算函数是和计算有关的, 但是只有调用了这个函数才会进行计算, `RDD` 显然不会自己调用自己的 `Compute` 函数, 一定是由外部调用的, 所以 `RDD` 更多的意义是用于表示数据集以及其来源, 和针对于数据的计算
 
    所以如何计算 `RDD` 中的数据呢? 一定是通过其它的组件来计算的, 而计算的规则, 由 `RDD` 中的 `Compute` 函数来指定, 不同类型的 `RDD` 子类有不同的 `Compute` 函数
+   
+4. 明确边界
 
-## 7.2 RDD之间的依赖关系
+   - 明确的是RDD逻辑图的边界
+   - 逻辑图是从第一个RDD的创建开始
+   - 逻辑图到Action算子执行之前结束
+   - 逻辑图就是一组RDD以及其依赖关系
+   - **RDD五大属性：**
+     - 分区列表
+     - 依赖关系
+     - 计算函数
+     - 最佳位置
+     - 分区函数
+
+   
+
+## 7.2 RDD之间的依赖关系概述
 
  **什么是 `RDD` 之间的依赖关系?**
 
@@ -2088,11 +2239,15 @@ strRDD.collect.foreach(item => println(item))
 
   但是 `RDD` 这个概念本身并不是数据容器, 数据真正应该存放的地方是 `RDD` 的分区, 所以如果把视角放在数据这一层面上的话, 直接讲这两个 RDD 之间有关系是不科学的, 应该从这两个 RDD 的分区之间的关系来讨论它们之间的关系
 
+  **简单说明：RDD之间的依赖关系不是指RDD之间的关系，而是分区之间的关系**
+
 - 那这些分区之间是什么关系?
 
   如果仅仅说 `splitRDD` 和 `tupleRDD` 之间的话, 那它们的分区之间就是一对一的关系
 
   但是 `tupleRDD` 到 `reduceRDD` 呢? `tupleRDD` 通过算子 `reduceByKey` 生成 `reduceRDD`, 而这个算子是一个 `Shuffle` 操作, `Shuffle` 操作的两个 `RDD` 的分区之间并不是一对一, `reduceByKey` 的一个分区对应 `tupleRDD` 的多个分区
+
+
 
 **reduceByKey算子会生成ShuffledRDD** 
 
@@ -2106,7 +2261,10 @@ strRDD.collect.foreach(item => println(item))
 
 所以, 对于 `reduceByKey` 这个 `Shuffle` 操作来说, `reducer` 端的一个分区, 会从多个 `mapper` 端的分区拿取数据, 是一个多对一的关系
 
-至此为止, 出现了两种分区见的关系了, 一种是一对一, 一种是多对一
+至此为止, 出现了两种分区之间的关系了, 一种是一对一, 一种是多对一
+
+- 一对一：一般都是直接转换，例如：flatMap，map
+- 多对一：一般是Shuffle，例如：reduceByKey
 
 **整体上的流程图**
 
@@ -2205,7 +2363,13 @@ Represents a dependency on the output of a shuffle stage.
 1. RDD 的逻辑图本质上是对于计算过程的表达, 例如数据从哪来, 经历了哪些步骤的计算
 2. 每一个步骤都对应一个 RDD, 因为数据处理的情况不同, RDD 之间的依赖关系又分为窄依赖和宽依赖 
 
-## 7.4 常见的宽窄依赖类型
+**判断宽/窄依赖总结：**
+
+1. 如果分区一对一，则是窄依赖
+2. 如果分区键是多对一，要看是否有数据分发，shuffle
+3. 最准确的判断是去看看源码有没有`getDependence` 
+
+## 7.4 常见的宽窄依赖类型（重点）
 
 ### 7.4.1 一对一窄依赖
 
@@ -2217,7 +2381,7 @@ Represents a dependency on the output of a shuffle stage.
 
 ### 7.4.2 Range 窄依赖
 
-`Range` 窄依赖其实也是一对一窄依赖, 但是保留了中间的分隔信息, 可以通过某个分区获取其父分区, 目前只有一个算子生成这种窄依赖, 就是 `union` 算子, 例如 `rddC = rddA.union(rddB)`
+`Range` 窄依赖其实也是一对一窄依赖, 但是保留了中间的分隔信息, 可以通过某个分区获取其父分区, **目前只有一个算子生成这种窄依赖**, 就是 `union` 算子, 例如 `rddC = rddA.union(rddB)`
 
 ![](img/spark/Range 窄依赖.png)
 
@@ -2270,12 +2434,12 @@ Represents a dependency on the output of a shuffle stage.
 
 回顾一下 `RDD` 的五个属性
 
-简单的说就是: 分区列表, 计算函数, 依赖关系, 分区函数, 最佳位置
+简单的说就是: **分区列表, 计算函数, 依赖关系, 分区函数, 最佳位置**
 
 - 分区列表, 分区函数, 最佳位置, 这三个属性其实说的就是数据集在哪, 在哪更合适, 如何分区
 - 计算函数和依赖关系, 这两个属性其实说的是数据集从哪来
 
-所以结论是 `RDD` 是一个数据集的表示, 不仅表示了数据集, 还表示了这个数据集从哪来, 如何计算
+所以结论是 `RDD` 是一个数据集的表示, 不仅表示了数据集, 还表示了这个数据集从哪来, 如何计算。
 
 但是问题是, 谁来计算 ? 如果为一台汽车设计了一个设计图, 那么设计图自己生产汽车吗 ?
 
@@ -2289,7 +2453,7 @@ Represents a dependency on the output of a shuffle stage.
 
   ![](img/spark/和 Driver 保持交互.png)
 
-- 接受任务后, 运行任务
+- 接受任务后, 由Task运行任务
 
   
 
@@ -2297,7 +2461,7 @@ Represents a dependency on the output of a shuffle stage.
 
 **问题三: Task 该如何设计 ?**
 
-第一个想法是每个 `RDD` 都由一个 `Task` 来计算 第二个想法是一整个逻辑执行图中所有的 `RDD` 都由一组 `Task` 来执行 第三个想法是分阶段执行
+第一个想法是每个 `RDD` 都由一个 `Task` 来计算，第二个想法是一整个逻辑执行图中所有的 `RDD` 都由一组 `Task` 来执行，第三个想法是分阶段执行
 
 - 第一个想法: 为每个 RDD 的分区设置一组 Task
 
@@ -2337,6 +2501,10 @@ Represents a dependency on the output of a shuffle stage.
 
 ![](img/spark/划分阶段 2.png)
 
+把 `Task` 断开成两个部分, `Task4` 可以从 `Task 1, 2, 3` 中获取数据, 后 `Task4` 又作为管道, 继续让数据在其中流动
+
+但是还有一个问题, 说断开就直接断开吗? 不用打个招呼的呀? 这个断开即没有道理, 也没有规则, 所以可以为这个断开增加一个概念叫做阶段, 按照阶段断开, 阶段的英文叫做 `Stage`, 如下
+
 ![](img/spark/划分阶段3.png)
 
 所以划分阶段的本身就是设置断开点的规则, 那么该如何划分阶段呢?
@@ -2371,7 +2539,14 @@ strRDD.collect.foreach(item => println(item))
 
 ![](img/spark/完整逻辑执行图.png)
 
-如果放在集群中运行, 通过 `WebUI` 可以查看到如下 `DAG` 结构
+由上图分析得知：
+
+1. 数据的开始计算是发生在调用Action的RDD上
+2. 而后会往前寻找数据，直到最开始的RDD，而先获取到数据的RDD是textRDD
+3. 而后再从textRDD开始计算得出结果，往后运行。
+4. 所以，这里划分阶段是从后往前划分
+
+如果放在集群中运行, 通过 `WebUI` 可以查看到如下 `DAG` 结构，那么仔细查看可以发现和我们分析的stage是不同的，为什么呢？我们接着往下看
 
 ![](img/spark/DGA结构.png)
 
@@ -2395,7 +2570,7 @@ strRDD.collect.foreach(item => println(item))
 
 ### 7.6.1 逻辑图
 
-是什么 怎么生成 具体怎么生成
+是什么？怎么生成？具体怎么生成？
 
 ```scala
 val textRDD = sc.parallelize(Seq("Hadoop Spark", "Hadoop Flume", "Spark Sqoop"))
@@ -2459,6 +2634,8 @@ strRDD.collect.foreach(item => println(item))
 
 `Job` 是一个最大的调度单位, 也就是说 `DAGScheduler` 会首先创建一个 `Job` 的相关信息, 后去调度 `Job`, 但是没办法直接调度 `Job`, 比如说现在要做一盘手撕包菜, 不可能直接去炒一整颗包菜, 要切好撕碎, 再去炒
 
+也就是说一个job里面可以有多个stage
+
 - 为什么 `Job` 需要切分 ?
 
   ![](img/spark/job切分.png)
@@ -2477,11 +2654,11 @@ strRDD.collect.foreach(item => println(item))
 
 **问题一: 执行顺序**
 
-在图中, `Stage 0` 的计算需要依赖 `Stage 1` 的数据, 因为 `reduceRDD` 中一个分区可能需要多个 `tupleRDD` 分区的数据, 所以 `tupleRDD` 必须先计算完, 所以, 应该在逻辑图中自左向右执行 `Stage`
+在图中, `Stage 0` 的计算需要依赖 `Stage 1` 的数据, 因为 `reduceRDD` 中一个分区可能需要多个 `tupleRDD` 分区的数据, 所以 `tupleRDD` 必须先计算完, 所以, 应该在逻辑图中**自左向右执行 Stage**
 
 **问题二: 串行还是并行**
 
-还是同样的原因, `Stage 0` 如果想计算, `Stage 1` 必须先计算完, 因为 `Stage 0` 中每个分区都依赖 `Stage 1` 中的所有分区, 所以 `Stage 1` 不仅需要先执行, 而且 `Stage 1` 执行完之前 `Stage 0` 无法执行, 它们只能串行执行
+还是同样的原因, `Stage 0` 如果想计算, `Stage 1` 必须先计算完, 因为 `Stage 0` 中每个分区都依赖 `Stage 1` 中的所有分区, 所以 `Stage 1` 不仅需要先执行, 而且 `Stage 1` 执行完之前 `Stage 0` 无法执行, 它们只能**串行执行**
 
 **总结**
 
@@ -2495,7 +2672,7 @@ strRDD.collect.foreach(item => println(item))
 - `ShuffMapStage`, 其中存放窄依赖的 `RDD`
 - `ResultStage`, 每个 `Job` 只有一个, 负责计算结果, 一个 `ResultStage` 执行完成标志着整个 `Job` 执行完毕
 
-**`Stage` 和 `Task` 的关系**
+### 7.6.4 Stage和Task的关系
 
 ![](img/spark/Stage 和 Task 的关系.png)
 
@@ -2525,7 +2702,13 @@ strRDD.collect.foreach(item => println(item))
   - Task 是 Spark 中最小的独立执行单元, 其作用是处理一个 RDD 分区
   - 一个 Task 只可能存在于一个 Stage 中, 并且只能计算一个 RDD 的分区
 
-**TaskSet**
+关系说明：
+
+- 一个Stage中有多个Task
+- 一个Stage对应一个Taskset
+- 一个Stage就是一组Task
+
+### 7.6.5 TaskSet
 
 梳理一下这几个概念, `Job > Stage > Task`, `Job 中包含 Stage 中包含 Task`
 
@@ -2632,7 +2815,7 @@ def closure(): Int => Double = {
 
 上述例子中, `closure`方法返回的一个函数的引用, 其实就是一个闭包, 闭包本质上就是一个封闭的作用域, 要理解闭包, 是一定要和作用域联系起来的.
 
-**能否在 `test` 方法中访问 `closure` 定义的变量?**
+**能否在 `test` 方法中访问 `closure` 定义的变量? 不能**
 
 ```scala
 @Test
@@ -2668,9 +2851,12 @@ val areaFunction = closure()
 areaFunction()
 ```
 
-通过 `closure` 返回的函数 `areaFunction` 就是一个闭包, 其函数内部的作用域并不是 `test` 函数的作用域, 这种连带作用域一起打包的方式, 我们称之为闭包, 在 Scala 中
+通过 `closure` 返回的函数 `areaFunction` 就是一个闭包, 其函数内部的作用域并不是 `test` 函数的作用域，**如果一个函数携带了一个外包的作用域，这种函数我们称之为闭包**, 在 Scala 中
 
-- Scala 中的闭包本质上就是一个对象, 是 FunctionX 的实例
+- areaFunction就是闭包，闭包的本质就是一个函数
+- 在Scala中，函数是一个特殊的类型，FunctionX
+- 闭包也是一个FunctionX类型的对象
+- **闭包是一个对象**
 
 ## 8.2 分发闭包
 
@@ -2694,7 +2880,16 @@ class MyClass {
 }
 ```
 
+简单分析：
+
+- `(x => field + x)`引用了MyClass对象中的一个成员变量，说明其可以访问MyClass这个类的作用域，也是一个闭包，封闭的是MyClass这个作用域
+
 这段代码中的闭包就有了一个依赖, 依赖于外部的一个类, 因为传递给算子的函数最终要在 Executor 中运行, 所以需要 **序列化** `MyClass` 发给每一个 `Executor`, 从而在 `Executor` 访问 `MyClass` 对象的属性
+
+将`(x => field + x)`这个函数分发给不同的Executor中执行的时候，其依赖了MyClass这个类当前的对象，因为其封闭了这个作用域MyClass和函数，这两个都要一起被序列化发往不同的节点执行
+
+- 问题1：如果MyClass不能被序列化，将会报错
+- 问题2：如果在这个闭包中，依赖了一个外部很大的集合，那么这个集合会随着每一个Task分发，可以理解为，其依赖的外部数据，都会被复制很多份
 
 ![](img/spark/分发闭包2.png)
 
@@ -2719,11 +2914,13 @@ sc.parallelize(Seq(1, 2, 3, 4, 5))
 println(count)
 ```
 
-上面这段代码是一个非常错误的使用, 请不要仿照, 这段代码只是为了证明一些事情
+**上面这段代码是一个非常错误的使用**, 请不要仿照, 这段代码只是为了证明一些事情
 
 先明确两件事, `var count = 0` 是在 Driver 中定义的, `foreach(count += _)` 这个算子以及传递进去的闭包运行在 Executor 中
 
 这段代码整体想做的事情是累加一个变量, 但是这段代码的写法却做不到这件事, 原因也很简单, 因为具体的算子是闭包, 被分发给不同的节点运行, 所以这个闭包中累加的并不是 Driver 中的这个变量
+
+**简单来说：**就是count这个变量会被分发给不同的Executor中运行，而count的初始变量是0，也就是说，每个Executor中count的初始变量都是0，最后得出的结果就是错误的
 
 ### 8.3.1 全局累加器
 
@@ -2753,7 +2950,10 @@ println(counter.value)
 
 ![](img/spark/Accumulator.png)
 
-累计器件还有两个小特性, 第一, 累加器能保证在 Spark 任务出现问题被重启的时候不会出现重复计算. 第二, 累加器只有在 Action 执行的时候才会被触发.
+累计器件还有两个小特性,
+
+-  第一, 累加器能保证在 Spark 任务出现问题被重启的时候不会出现重复计算
+- 第二, 累加器只有在 Action 执行的时候才会被触发.
 
 ```java
 val config = new SparkConf().setAppName("ip_ana").setMaster("local[6]")
@@ -2772,55 +2972,102 @@ println(counter.value)
 
 开发者可以通过自定义累加器来实现更多类型的累加器, 累加器的作用远远不只是累加, 比如可以实现一个累加器, 用于向里面添加一些运行信息
 
-```java
-class InfoAccumulator extends AccumulatorV2[String, Set[String]] {
-  private val infos: mutable.Set[String] = mutable.Set()
+```scala
+package test
 
-  override def isZero: Boolean = {
-    infos.isEmpty
+import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.util.AccumulatorV2
+import org.junit.Test
+
+import scala.collection.mutable
+
+/**
+ * @Class:spark.test.Accumulator
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
+class Accumulator {
+  @Test
+  def acc():Unit = {
+    val config = new SparkConf().setAppName("acc").setMaster("local[6]")
+    val sc = new SparkContext(config)
+
+    val numAcc = new NumAccumulator()
+    //注册给spark
+    sc.register(numAcc,"num")
+    
+    sc.parallelize(Seq("1","2","3"))
+      .foreach(item => numAcc.add(item))
+    
+    println(numAcc.value)
+    
+    sc.stop()
   }
 
-  override def copy(): AccumulatorV2[String, Set[String]] = {
-    val newAccumulator = new InfoAccumulator()
-    infos.synchronized {
-      newAccumulator.infos ++= infos
+  class NumAccumulator extends AccumulatorV2[String,Set[String]]{
+    private val nums:mutable.Set[String] = mutable.Set()
+
+    /**
+     * 告诉spark框架，这个累加器对象是否是空的
+     * @return
+     */
+    override def isZero: Boolean = {
+      nums.isEmpty
     }
-    newAccumulator
-  }
 
-  override def reset(): Unit = {
-    infos.clear()
-  }
+    /**
+     * 提供给Spark框架一个拷贝的累加器
+     * @return
+     */
+    override def copy(): AccumulatorV2[String, Set[String]] = {
+      val  newAccumulator = new NumAccumulator()
+      nums.synchronized{
+        newAccumulator.nums ++= this.nums
+      }
+      newAccumulator
+    }
 
-  override def add(v: String): Unit = {
-    infos += v
-  }
+    /**
+     * 帮助Spark框架清理累加器的内容
+     */
+    override def reset(): Unit = {
+      nums.clear()
+    }
 
-  override def merge(other: AccumulatorV2[String, Set[String]]): Unit = {
-    infos ++= other.value
-  }
+    /**
+     * 外部传入要累加的内容，在这个方法中进行累加
+     * @param v
+     */
+    override def add(v: String): Unit = {
+      nums += v
+    }
 
-  override def value: Set[String] = {
-    infos.toSet
+    /**
+     * 合并累加器
+     *
+     * 累加器在进行累加的时候，可能每个分布式节点都有一个实例，
+     * 在最后Driver进行一次合并，把所有的实例的内容合并起来，会调用这个merge方法进行合并
+     * @param other
+     */
+    override def merge(other: AccumulatorV2[String, Set[String]]): Unit = {
+      nums ++= other.value
+    }
+
+    /**
+     * 对value值进行处理
+     *
+     * 提供给外部累加结果
+     * 那么为什么一定要给不可变的？
+     * 因为外部有可能在进行修改，如果是可变的集合，其外部的修改会影响内部的值
+     * @return
+     */
+    override def value: Set[String] = {
+      nums.toSet
+    }
   }
 }
 
-@Test
-def accumulator2(): Unit = {
-  val config = new SparkConf().setAppName("ip_ana").setMaster("local[6]")
-  val sc = new SparkContext(config)
-
-  val infoAccumulator = new InfoAccumulator()
-  sc.register(infoAccumulator, "infos")
-
-  sc.parallelize(Seq("1", "2", "3"))
-    .foreach(item => infoAccumulator.add(item))
-
-  // 运行结果: Set(3, 1, 2)
-  println(infoAccumulator.value)
-
-  sc.stop()
-}
 ```
 
 注意点:
@@ -2834,7 +3081,7 @@ def accumulator2(): Unit = {
 
 ## 8.4 广播变量
 
-**广播变量的作用：**
+### 8.4.1 广播变量的作用 
 
 广播变量允许开发者将一个 `Read-Only` 的变量缓存到集群中每个节点中, 而不是传递给每一个 Task 一个副本.
 
@@ -2845,3 +3092,205 @@ def accumulator2(): Unit = {
 
 ![](img/spark/广播变量.png)
 
+简单理解：
+
+- 如果有10个Task，那么map就会被分发十份，就会有十个map
+- 但是假如说集群只有两个Executor
+  - 无论有多少个Task，最终都会被放在这两个Executor上执行
+  - 一个Executor代表一个进程，集群需要多少个map？通过广播变量可以只需要2个map即可
+
+### 8.4.2 广播变量的API
+
+| 法名        | 描述                                   |
+| :---------- | :------------------------------------- |
+| `id`        | 唯一标识                               |
+| `value`     | 广播变量的值                           |
+| `unpersist` | 在 Executor 中异步的删除缓存副本       |
+| `destroy`   | 销毁所有此广播变量所关联的数据和元数据 |
+| `toString`  | 字符串表示                             |
+
+**使用广播变量的一般套路**
+
+可以通过如下方式创建广播变量
+
+```scala
+val b = sc.broadcast(1)
+```
+
+如果 Log 级别为 DEBUG 的时候, 会打印如下信息
+
+```text
+DEBUG BlockManager: Put block broadcast_0 locally took  430 ms
+DEBUG BlockManager: Putting block broadcast_0 without replication took  431 ms
+DEBUG BlockManager: Told master about block broadcast_0_piece0
+DEBUG BlockManager: Put block broadcast_0_piece0 locally took  4 ms
+DEBUG BlockManager: Putting block broadcast_0_piece0 without replication took  4 ms
+```
+
+创建后可以使用 `value` 获取数据
+
+```scala
+b.value
+```
+
+获取数据的时候会打印如下信息
+
+```text
+DEBUG BlockManager: Getting local block broadcast_0
+DEBUG BlockManager: Level for block broadcast_0 is StorageLevel(disk, memory, deserialized, 1 replicas)
+```
+
+广播变量使用完了以后, 可以使用 `unpersist` 删除数据
+
+```scala
+b.unpersist
+```
+
+删除数据以后, 可以使用 `destroy` 销毁变量, 释放内存空间
+
+```scala
+b.destroy
+```
+
+销毁以后, 会打印如下信息
+
+```text
+DEBUG BlockManager: Removing broadcast 0
+DEBUG BlockManager: Removing block broadcast_0_piece0
+DEBUG BlockManager: Told master about block broadcast_0_piece0
+DEBUG BlockManager: Removing block broadcast_0
+```
+
+**使用 `value` 方法的注意点**
+
+方法签名 `value: T`
+
+在 `value` 方法内部会确保使用获取数据的时候, 变量必须是可用状态, 所以必须在变量被 `destroy` 之前使用 `value` 方法, 如果使用 `value` 时变量已经失效, 则会爆出以下错误
+
+```text
+org.apache.spark.SparkException: Attempted to use Broadcast(0) after it was destroyed (destroy at <console>:27)
+  at org.apache.spark.broadcast.Broadcast.assertValid(Broadcast.scala:144)
+  at org.apache.spark.broadcast.Broadcast.value(Broadcast.scala:69)
+  ... 48 elided
+```
+
+**使用 `destroy` 方法的注意点**
+
+方法签名 `destroy(): Unit`
+
+`destroy` 方法会移除广播变量, 彻底销毁掉, 但是如果你试图多次 `destroy` 广播变量, 则会爆出以下错误
+
+```text
+org.apache.spark.SparkException: Attempted to use Broadcast(0) after it was destroyed (destroy at <console>:27)
+  at org.apache.spark.broadcast.Broadcast.assertValid(Broadcast.scala:144)
+  at org.apache.spark.broadcast.Broadcast.destroy(Broadcast.scala:107)
+  at org.apache.spark.broadcast.Broadcast.destroy(Broadcast.scala:98)
+  ... 48 elided
+```
+
+### 8.4.3 广播变量的使用场景
+
+假设我们在某个算子中需要使用一个保存了项目和项目的网址关系的 `Map[String, String]` 静态集合, 如下
+
+```scala
+val pws = Map("Apache Spark" -> "http://spark.apache.org/", "Scala" -> "http://www.scala-lang.org/")
+
+val websites = sc.parallelize(Seq("Apache Spark", "Scala")).map(pws).collect
+```
+
+上面这段代码是没有问题的, 可以正常运行的, 但是非常的低效, 因为虽然可能 `pws` 已经存在于某个 `Executor` 中了, 但是在需要的时候还是会继续发往这个 `Executor`, 如果想要优化这段代码, 则需要尽可能的降低网络开销
+
+可以使用广播变量进行优化, 因为广播变量会缓存在集群中的机器中, 比 `Executor` 在逻辑上更 "大"
+
+```scala
+val pwsB = sc.broadcast(pws)
+val websites = sc.parallelize(Seq("Apache Spark", "Scala")).map(pwsB.value).collect
+```
+
+上面两段代码所做的事情其实是一样的, 但是当需要运行多个 `Executor` (以及多个 `Task`) 的时候, 后者的效率更高
+
+完整代码：
+
+```scala
+package test
+
+import org.apache.spark.{SparkConf, SparkContext}
+import org.junit.Test
+
+/**
+ * @Class:spark.test.Broadcast
+ * @Descript:
+ * @Author:宋天
+ * @Date:2020/5/6
+ */
+class Broadcast {
+
+  /**
+   * 问题；资源占用比较大，有十个对应的value
+   */
+  @Test
+  def bc1:Unit = {
+    //数据，假设这个数据很大
+    val  v = Map("Spark"->"http://spark.apache.cn","Scala"->"http://www.scala-lang.org")
+
+    val config = new SparkConf().setAppName("bc").setMaster("local[6]")
+    val sc = new SparkContext(config)
+
+    // 将其中的spark和scala转为对应的网址
+    val r = sc.parallelize(Seq("Spark","Scala"))
+    val result: Array[String] = r.map(item => v(item)).collect()
+    println(result)
+  }
+
+  /**
+   * 改进：使用广播，大幅度减少value的复制
+   */
+  @Test
+  def bc2:Unit = {
+    //数据，假设这个数据很大
+    val  v = Map("Spark"->"http://spark.apache.cn","Scala"->"http://www.scala-lang.org")
+
+    val config = new SparkConf().setAppName("bc").setMaster("local[6]")
+    val sc = new SparkContext(config)
+
+    // 创建广播
+    val bc = sc.broadcast(v)
+
+    // 将其中的spark和scala转为对应的网址
+    val r = sc.parallelize(Seq("Spark","Scala"))
+    //在算子中使用广播变量代替直接引用集合，只会复制和executor一样的数量
+    //在使用广播之前，复制map了task数量份
+    //在使用广播之后，复制次数和executor数量一致
+    val result: Array[String] = r.map(item => bc.value(item)).collect()
+    println(result)
+  }
+}
+
+```
+
+
+
+### 8.4.4 扩展
+
+正常情况下使用 Task 拉取数据的时候, 会将数据拷贝到 Executor 中多次, 但是使用广播变量的时候只会复制一份数据到 Executor 中, 所以在两种情况下特别适合使用广播变量
+
+- 一个 Executor 中有多个 Task 的时候
+- 一个变量比较大的时候
+
+而且在 Spark 中还有一个约定俗称的做法, 当一个 RDD 很大并且还需要和另外一个 RDD 执行 `join` 的时候, 可以将较小的 RDD 广播出去, 然后使用大的 RDD 在算子 `map` 中直接 `join`, 从而实现在 Map 端 `join`
+
+```scala
+val acMap = sc.broadcast(myRDD.map { case (a,b,c,b) => (a, c) }.collectAsMap)
+val otherMap = sc.broadcast(myOtherRDD.collectAsMap)
+
+myBigRDD.map { case (a, b, c, d) =>
+  (acMap.value.get(a).get, otherMap.value.get(c).get)
+}.collect
+```
+
+一般情况下在这种场景下, 会广播 Map 类型的数据, 而不是数组, 因为这样容易使用 Key 找到对应的 Value 简化使用
+
+### 8.4.5 总结
+
+1. 广播变量用于将变量缓存在集群中的机器中, 避免机器内的 Executors 多次使用网络拉取数据
+2. 广播变量的使用步骤: (1) 创建 (2) 在 Task 中获取值 (3) 销毁

@@ -340,7 +340,7 @@
    - `cdh01` 上和 `HDFS` 有关的服务有 `NameNode`, `SecondaryNameNode`, 使用如下命令启动这两个组件
 
      ```shell
-     service hadoop-hdfs-namenode restart
+     service hadoop-hdfs-namenode start
      service hadoop-hdfs-secondarynamenode start
      ```
 
@@ -845,6 +845,16 @@
      ```text
      http://cdh02:25000
      ```
+     
+   - 使用命令impala-shell连接
+   
+     因为server服务安装在cdh02上，所以需要连接cdh02
+   
+     ```
+      impala-shell -i cdh02
+     ```
+   
+     
 
 # 8.安装 Hue
 
@@ -894,7 +904,7 @@
          <value>*</value>
      </property>
      <property>
-         <name>hadoop.proxyuser.httpfs.hosts</name>
+         <name>hadoop.proxyuser.hosts</name>
          <value>*</value>
      </property>
      <property>
