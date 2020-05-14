@@ -77,7 +77,7 @@
 
    - 新的问题：
 
-     - shark重用了hive的sql解析，逻辑计划生成以及优化，所以其实可以任务shark只是把 `Hive` 的物理执行替换为了 `Spark` 作业
+     - shark重用了hive的sql解析，逻辑计划生成以及优化，所以其实可以认为shark只是把 `Hive` 的物理执行替换为了 `Spark` 作业
      - 执行计划的生成严重依赖hive，想要增加新的优化非常困难
      - hive使用MapReduce执行作业，所以Hive是进程级别的并行，而 `Spark` 是线程级别的并行, 所以 `Hive` 中很多线程不安全的代码不适用于 `Spark`
 
@@ -101,6 +101,8 @@
      - `SparkSQL` 在 2.0 时代, 增加了一个新的 `API`, 叫做 `Dataset`, `Dataset` 统一和结合了 `SQL` 的访问和命令式 `API` 的使用, 这是一个划时代的进步，弥补了spark1.0时代存在的问题
    
        在 `Dataset` 中可以轻易的做到使用 `SQL` 查询并且筛选数据, 然后使用命令式 `API` 进行探索式分析
+   
+   ![](img/spark/dataset.png)
 
 **总结**：sparkSQL是一个为了支持SQL而设计的工具，但同时也支持命令式的API
 
@@ -154,6 +156,17 @@
        ]
    }
   ```
+  
+  - 没有固定Schema
+  
+    指的是半结构化数据是没有固定的 `Schema` 的, 可以理解为没有显式指定 `Schema`
+    比如说一个用户信息的 `JSON` 文件, 第一条数据的 `phone_num` 有可能是 `String`, 第二条数据虽说应该也是 `String`, 但是如果硬要指定为 `BigInt`, 也是有可能的
+    因为没有指定 `Schema`, 没有显式的强制的约束
+  
+  - 有结构
+  
+    虽说半结构化数据是没有显式指定 `Schema` 的, 也没有约束, 但是半结构化数据本身是有有隐式的结构的, 也就是数据自身可以描述自身
+    例如 `JSON` 文件, 其中的某一条数据是有字段这个概念的, 每个字段也有类型的概念, 所以说 `JSON` 是可以描述自身的, 也就是数据本身携带有元信息
 
 **`SparkSQL` 处理什么数据的问题?**
 
@@ -167,18 +180,11 @@
 - `SparkSQL` 提供了直接访问列的能力
   - 因为 `SparkSQL` 主要用做于处理结构化数据, 所以其提供的 `API` 具有一些普通数据库的能力
 
-**概念：**
+总结：
 
-- 没有固定Schema
-
-  - 指的是半结构化数据是没有固定的 `Schema` 的, 可以理解为没有显式指定 `Schema`
-  - 比如说一个用户信息的 `JSON` 文件, 第一条数据的 `phone_num` 有可能是 `String`, 第二条数据虽说应该也是 `String`, 但是如果硬要指定为 `BigInt`, 也是有可能的
-  - 因为没有指定 `Schema`, 没有显式的强制的约束
-
-- 有结构
-
-  虽说半结构化数据是没有显式指定 `Schema` 的, 也没有约束, 但是半结构化数据本身是有有隐式的结构的, 也就是数据自身可以描述自身
-  例如 `JSON` 文件, 其中的某一条数据是有字段这个概念的, 每个字段也有类型的概念, 所以说 `JSON` 是可以描述自身的, 也就是数据本身携带有元信息
+1. `SparkSQL` 适用于处理结构化数据的场景
+2. `SparkSQL` 是一个即支持 `SQL` 又支持命令式数据处理的工具
+3. `SparkSQL` 的主要适用场景是处理结构化数据
 
 # 2.sparkSQL初体验
 
@@ -199,6 +205,140 @@ sc.textFile("hdfs://node01:8020/dataset/wordcount.txt")
 
 ## 2.2 命令式API入门案例
 
+需要导入相关依赖的依赖
+
+```xml
+  <properties>
+        <scala.version>2.11.8</scala.version>
+        <spark.version>2.2.0</spark.version>
+        <slf4j.version>1.7.16</slf4j.version>
+        <log4j.version>1.2.17</log4j.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_2.11</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_2.11</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>2.6.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.10</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <sourceDirectory>src/main/scala</sourceDirectory>
+        <testSourceDirectory>src/test/scala</testSourceDirectory>
+
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <args>
+                                <arg>-dependencyfile</arg>
+                                <arg>${project.build.directory}/.scala_dependencies</arg>
+                            </args>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass></mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+```
+
+
+
 ```scala
 case class Person(name:String,age:Int)
 class SqlDemo {
@@ -211,12 +351,11 @@ class SqlDemo {
 
     import  spark.implicits._
 
-    val sourceRDD :RDD[Person]= spark.sparkContext.parallelize(Seq(Person("zhangsan",22),Person("lisi",33)))
-      //	SparkSQL 中有一个新的类型叫做 Dataset
+    val sourceRDD:RDD[Person]= spark.sparkContext.parallelize(Seq(Person("zhangsan",22),Person("lisi",33)))
+      //SparkSQL 中有一个新的类型叫做 Dataset
     val personDS:Dataset[Person] = sourceRDD.toDS() 
       // SparkSQL 有能力直接通过字段名访问数据集, 说明 SparkSQL 的 API 中是携带 Schema 信息的
     val resultDS = personDS.where('age > 20) 
-
       .where('age < 30)
       .select('name)
       .as[String]
@@ -289,6 +428,7 @@ import spark.implicits._
 
 val peopleRDD: RDD[People] = spark.sparkContext.parallelize(Seq(People("zhangsan", 9), People("lisi", 15)))
 val peopleDS: Dataset[People] = peopleRDD.toDS()
+// 注册临时表
 peopleDS.createOrReplaceTempView("people")
 
 val teenagers: DataFrame = spark.sql("select name from people where age > 10 and age < 20")
@@ -355,7 +495,7 @@ teenagers.show()
 
 ![](img/spark/Catalyst1.png)
 
-**解析** `SQL`**, 并且生成** `AST` **(抽象语法树)****
+**解析 `SQL`, 并且生成 `AST` (抽象语法树)**
 
 ![](img/spark/解析 SQL.png)
 
@@ -391,7 +531,7 @@ teenagers.show()
 
 ![](img/spark/queryExecution 2.png)
 
-**也可以使用** `Spark WebUI` **进行查看**
+**也可以使用collect()之后，再去`Spark WebUI` 进行查看**
 
 ![](img/spark/queryExecution 3.png)
 
@@ -399,7 +539,7 @@ teenagers.show()
 
 `SparkSQL` 和 `RDD` 不同的主要点是在于其所操作的数据是结构化的, 提供了对数据更强的感知和分析能力, 能够对代码进行更深层的优化, 而这种能力是由一个叫做 `Catalyst` 的优化器所提供的
 
-`Catalyst` 的主要运作原理是分为三步, 先对 `SQL` 或者 `Dataset` 的代码解析, 生成逻辑计划, 后对逻辑计划进行优化, 再生成物理计划, 最后生成代码到集群中以 `RDD` 的形式运行
+`Catalyst` 的主要运作原理是分为三步, **先对 `SQL` 或者 `Dataset` 的代码解析, 生成逻辑计划, 后对逻辑计划进行优化, 再生成物理计划, 最后生成代码到集群中以 `RDD` 的形式运行**
 
 # 4.Dataset的特点
 
@@ -416,12 +556,15 @@ val spark: SparkSession = new sql.SparkSession.Builder()
 import spark.implicits._
 
 val dataset: Dataset[People] = spark.createDataset(Seq(People("zhangsan", 9), People("lisi", 15)))
-// 方式1: 通过对象来处理
+// 方式1: 通过对象来处理，支持强类型的API
 dataset.filter(item => item.age > 10).show()
-// 方式2: 通过字段来处理
+// 方式2: 通过字段来处理，支持弱类型API
 dataset.filter('age > 10).show()
 // 方式3: 通过类似SQL的表达式来处理
 dataset.filter("age > 10").show()
+dataset.filter($"age" > 10).show() // 效果是一样的
+
+case class Person(name:String,age:Int)
 ```
 
 - 问题1: `People` 是什么?
@@ -438,7 +581,7 @@ dataset.filter("age > 10").show()
 
 - 问题4: `Dataset` 是什么?
 
-  `Dataset` 是一个强类型, 并且类型安全的数据容器, 并且提供了结构化查询 `API` 和类似 `RDD` 一样的命令式 `API`
+  **`Dataset` 是一个强类型, 并且类型安全的数据容器**, 并且提供了结构化查询 `API` 和类似 `RDD` 一样的命令式 `API`
 
 **即使使用** `Dataset` **的命令式** `API`**, 执行计划也依然会被优化**
 
@@ -451,8 +594,33 @@ dataset.filter("age > 10").show()
 示例：
 
 ```scala
-val dataset: Dataset[People] = spark.createDataset(Seq(People("zhangsan", 9), People("lisi", 15)))
-val internalRDD: RDD[InternalRow] = dataset.queryExecution.toRdd
+  @Test
+  def dataset():Unit = {
+    // 1. 创建sparkSession
+    val spark = new sql.SparkSession.Builder()
+      .master("local[6]")
+      .appName("dataset")
+      .getOrCreate()
+
+    //2. 导入隐式转换
+    import spark.implicits._
+
+    // 3.演示
+    val dataset: Dataset[Person] = spark.createDataset(Seq(Person("zhangsan", 20), Person("lisi", 32)))
+
+    // 无论dataset中放置的是什么类型对象，最终执行计划中的RDD都是InternalRow
+    // toRdd 直接获取到已经分析和解析过的Dataset的执行计划，从中拿到RDD
+    val executionRDD: RDD[InternalRow] = dataset.queryExecution.toRdd
+
+    // 将dataset转为RDD，类型保持一致，这个操作是重量级操作
+    // 通过将Dataset底层的RDD[InternalRow]通过Decoder转成了和Dataset一样类型的RDD
+    val typedRdd: RDD[Person] = dataset.rdd
+
+    println(executionRDD.toDebugString)
+    println(typedRdd.toDebugString)
+  }
+
+case class Person(name:String,age:Int)
 ```
 
 `dataset.queryExecution.toRdd` 这个 API 可以看到 Dataset 底层执行的 RDD, 这个 RDD 中的范型是 `InternalRow`, InternalRow 又称之为 `Catalyst Row`, 是 Dataset 底层的数据结构, 也就是说, 无论 Dataset 的范型是什么, 无论是 Dataset[Person] 还是其它的, 其最**底层进行处理的数据结构都是 InternalRow**
@@ -465,7 +633,7 @@ val internalRDD: RDD[InternalRow] = dataset.queryExecution.toRdd
 
 在 `Dataset` 中, 可以使用一个属性 `rdd` 来得到它的 `RDD` 表示, 例如 `Dataset[T] → RDD[T]`
 
-```
+```scala
 val dataset: Dataset[People] = spark.createDataset(Seq(People("zhangsan", 9), People("lisi", 15)))
 
 /*
@@ -475,7 +643,8 @@ val dataset: Dataset[People] = spark.createDataset(Seq(People("zhangsan", 9), Pe
  |  ParallelCollectionRDD[0] at rdd at Testing.scala:159 []
  */
 //步骤1：使用 Dataset.rdd 将 Dataset 转为 RDD 的形式
-println(dataset.rdd.toDebugString) // 这段代码的执行计划多了两个步骤
+println(dataset.rdd.toDebugString) // 这段代码的执行计划相比toRdd多了两个步骤
+
 
 /*
 (2) MapPartitionsRDD[5] at toRdd at Testing.scala:160 []
@@ -547,7 +716,11 @@ val spark: SparkSession = new sql.SparkSession.Builder()
 // 注意: spark 在此处不是包, 而是 SparkSession 对象
 import spark.implicits._
 
-val peopleDF: DataFrame = Seq(People("zhangsan", 15), People("lisi", 15)).toDF()
+val personList = Seq(People("zhangsan", 15), People("lisi", 15))
+
+val df1 = personList.toDF()
+val df2 = spark.sparkContext.parallelize(personList).toDF()
+val df3 = spark.createDataFrame(personList)
 ```
 
 ![](img/spark/创建DataFrame的方式1.png)
@@ -623,15 +796,19 @@ df.printSchema()
 
 //    读取数据
     val sourceDF = spark.read
+      // 指定header头
       .option("header",true)
       .csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
 
 //    sourceDF.show()
 //    查看dataframe的schema信息，需要注意的是dataframe是有结构信息的叫做schema
+//    打印 DataFrame 的 Schema, 查看其中所包含的列, 以及列的类型      
     sourceDF.printSchema()
 
     import spark.implicits._
 //    处理数据
+      // 针对某些列进行分组, 后对每组数据通过函数做聚合
+      // 对于大部分计算来说, 可能不会使用所有的列, 所以可以选择其中某些重要的列
     sourceDF.select('year ,'month,'PM_Dongsi)
       .where('PM_Dongsi =!= "NA")
       .groupBy('year,'month)
@@ -663,6 +840,8 @@ df.printSchema()
       .csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
 
     
+// 使用 SQL 来操作某个 DataFrame 的话, SQL 中必须要有一个 from 子句, 所以需要先将 DataFrame 注册为一张临时表
+      
 //    能否直接使用SQL语句进行查询
 //    1.将dataframe注册为临时表
     sourceDF.createOrReplaceTempView("pm")
@@ -703,7 +882,7 @@ df.printSchema()
 
 1.  `DataFrame` 表达的含义是一个支持函数式操作的 **表**, 而 `Dataset` 表达是是一个类似 `RDD` 的东西, `Dataset` 可以处理任何对象
 
-2. `DataFrame` 中所存放的是 `Row` 对象, 而`Dataset` 中可以存放任何类型的对象
+2. **`DataFrame` 中所存放的是 `Row` 对象, 而`Dataset` 中可以存放任何类型的对象**
 
    ```scala
    val spark: SparkSession = new sql.SparkSession.Builder()
@@ -713,9 +892,9 @@ df.printSchema()
    
    import spark.implicits._
    
-   //	DataFrame 就是 Dataset[Row]
+   //	DataFrame 就是 Dataset[Row] , DataFrame是弱类型的
    val df: DataFrame = Seq(People("zhangsan", 15), People("lisi", 15)).toDF()       
-   //	Dataset 的泛型可以是任意类型
+   //	Dataset 的泛型可以是任意类型，Dataset是强类型的
    val ds: Dataset[People] = Seq(People("zhangsan", 15), People("lisi", 15)).toDS() 
    ```
 
@@ -836,7 +1015,7 @@ val reader: DataFrameReader = spark.read
       .getOrCreate()
 
 
-//    第一种形式
+//    第一种形式 load + format
     spark.read
       .format("csv")
       .option("header",true)
@@ -844,8 +1023,8 @@ val reader: DataFrameReader = spark.read
       .load("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
       .show(10)
 
-//    第二种形式
-    spark.read
+//    第二种形式 指定具体的文件类型，比如csv
+    spark.read 
       .option("header",true)
       .option("inferSchema",true)
       .csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
@@ -859,7 +1038,7 @@ val reader: DataFrameReader = spark.read
 
 **注意：**如果使用 `load` 方法加载数据, 但是没有指定 `format` 的话, 默认是按照 `Parquet` 文件格式读取
 
-**也就是说, `SparkSQL` 默认的读取格式是 `Parquet`**
+**也就是说， `SparkSQL` 默认的读取格式是 `Parquet`**
 
 **总结：**
 
@@ -907,6 +1086,9 @@ val writer: DataFrameWriter[Row] = df.write
 //  DataFrameWriter
 @Test
 def c():Unit = {
+    //遇到一个缺少winutils文件的报错，第二个参数指定的是你winutils的存放位置，如果winutils直接放在hadoop的bin目录下可以不使用这行代码指定也不会报错
+    System.setProperty("hadoop.home.dir","c:\\winutils")
+    
 //    1.创建sparkSession
   val spark = SparkSession.builder()
     .master("local[3]")
@@ -962,7 +1144,9 @@ def d():Unit = {
   val df = spark.read.option("header",true).csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
 
 //  把数据写为parquet格式文件 mode中的Overwrite表示可以往往文件中进行覆盖 Append表示追加
-//  写入的默认格式就是parquet
+
+//  默认写入的格式就是parquet
+// mode参数表示如果目标已经存在, 则添加到文件或者 `Table` 中
 //  df.write.format("parquet").mode(SaveMode.Append).save("C://Users//宋天//Desktop//ccc")
 
 //  读取parquet格式文件
@@ -1006,7 +1190,7 @@ def d():Unit = {
 
 //  读文件，自动发现分区
 //  写分区表的时候，分区列不会包含在生成的文件中
-//  直接通过具体的一个文件来进行读取的话,分区信息会丢失,所以需要制定最外层的目录
+//  直接通过具体的一个文件来进行读取的话,分区信息会丢失,所以需要指定最外层的目录
   spark.read
     .parquet("C://Users//宋天//Desktop//ddd")
     .printSchema()
@@ -1145,7 +1329,8 @@ spark.read.json(peopleDataset).show()
 ```
 
 ```scala
-  //  toJson   把dataset[Object]转为Dataset[JsonString]
+// 对象转为json  
+//  toJson   把dataset[Object]转为Dataset[JsonString]
   /**
    * toJSON使用场景：
    * 处理完成数据以后，dataFrame中如果是一个对象，如果其他的系统只支持JSON格式的数据
@@ -1167,6 +1352,8 @@ spark.read.json(peopleDataset).show()
     df.toJSON.show()
   }
 
+
+// json转对象
 //  把RDD[JsonString]转为DataSet[Object]
 //  从消息队列中取出json的数据，需要使用sparksql进行处理
   @Test
@@ -1183,6 +1370,7 @@ spark.read.json(peopleDataset).show()
       .csv("C://Users//宋天//Desktop//大数据//file//BeijingPM20100101_20151231.csv")
 
     val jsonRDD = df.toJSON.rdd
+      
     spark.read.json(jsonRDD).show()
 
   }
@@ -1379,7 +1567,20 @@ scala> resultDF.show()
 通过 `SparkSQL` 可以直接创建 `Hive` 表, 并且使用 `LOAD DATA` 加载数据
 
 ```scala
-val createTableStr = """CREATE EXTERNAL TABLE student1( name  STRING,age   INT,gpa   string)ROW FORMAT DELIMITED FIELDS TERMINATED BY '/t' LINES TERMINATED BY '/n' STORED AS TEXTFILE LOCATION '/dataset/hive'""".stripMargin
+val createTableStr =
+  """
+    |CREATE EXTERNAL TABLE student
+    |(
+    |  name  STRING,
+    |  age   INT,
+    |  gpa   string
+    |)
+    |ROW FORMAT DELIMITED
+    |  FIELDS TERMINATED BY '\t'
+    |  LINES TERMINATED BY '\n'
+    |STORED AS TEXTFILE
+    |LOCATION '/dataset/hive'
+  """.stripMargin
 
 spark.sql("CREATE DATABASE IF NOT EXISTS spark_integrition1")
 spark.sql("USE spark_integrition1")
@@ -1424,30 +1625,49 @@ spark.sql("select * from student limit 100").show()
         .appName("hive example")
         .config("spark.sql.warehouse.dir", "hdfs://node01:8020/dataset/hive")  // 设置 WareHouse 的位置
         .config("hive.metastore.uris", "thrift://bigdata111:9083")   // 设置 MetaStore 的位置              
-        .enableHiveSupport() // 开启 Hive 支持                                                  
+        .enableHiveSupport() // 开启 Hive 支持                                
         .getOrCreate()
       ```
 
       配置好了以后, 就可以通过 `DataFrame` 处理数据, 后将数据结果推入 `Hive` 表中了, 在将结果保存到 `Hive` 表的时候, 可以指定保存模式
 
       ```scala
+      // 创建schema信息
       val schema = StructType(
         List(
-          StructField("name", StringType),
+          StructField("name", StringType), // 指定列名及类型
           StructField("age", IntegerType),
           StructField("gpa", FloatType)
         )
       )
+      import spark.implicits._
       
+      // 上传HDFS，因为要在集群中执行，无法保证程序在那一台机器中执行，所以，要把文件上传到所有的机器中，才能读取本地文件，而上传到HDFS中就可以解决这个问题，所有的机器都可以读取HDFS中的文件，因为HDFS是一个外部系统
       val studentDF = spark.read
-        .option("delimiter", "/t")
-        .schema(schema)
-        .csv("dataset/studenttab10k")
+        .option("delimiter", "/t") // 指定分隔符
+        .schema(schema) // 指定结构信息
+        .csv("hdfs://dataset/studenttab10k")
       
-      val resultDF = studentDF.where("age < 50")
-      // 通过 mode 指定保存模式, 通过 saveAsTable 保存数据到 Hive
+      val resultDF = studentDF.where('age < 50)
+      // 写入数据，通过 mode 指定保存模式, 通过 saveAsTable 保存数据到 Hive，形式为库名.表名 
       resultDF.write.mode(SaveMode.Overwrite).saveAsTable("spark_integrition1.student") 
       ```
+      
+   4. 使用IDEA打包工具打包并上传到集群
+   
+   5. 然后执行以下命令，查看输出日志是否成功
+   
+      ```
+      spark-submit --master spark://bigdata111:7077 --class jar包的全类名 jar包的路径
+      ```
+   
+   6. 打开hive命令行窗口，查询信息，检验是否成功
+   
+      ```sql
+      select * from spark_integrition1.student
+      ```
+   
+      
 
 ## 7.6  JDBC
 
@@ -1457,20 +1677,11 @@ spark.sql("select * from student limit 100").show()
 
 1. 连接 `MySQL` 数据库
 
-   ```
+   ```sql
    mysql -u root -p000000
    ```
 
-2. 创建 `Spark` 使用的用户
-
-   ```sql
-   //用户和密码
-   CREATE USER 'spark'@'%' IDENTIFIED BY 'Spark123!'; 
-   //设置访问权限
-   GRANT ALL ON spark_test.* TO 'spark'@'%';
-   ```
-
-3. 创建库和表
+2. 创建库和表
 
    ```sql
    CREATE DATABASE spark_test;
@@ -1481,9 +1692,20 @@ spark.sql("select * from student limit 100").show()
    `id` INT AUTO_INCREMENT,
    `name` VARCHAR(100) NOT NULL,
    `age` INT NOT NULL,
-   `gpa` FLOAT,
+   `gpa` FLOAT not null,
    PRIMARY KEY ( `id` )
    )ENGINE=InnoDB DEFAULT CHARSET=utf8;
+   ```
+
+   注：内容里面的``是表示里面的内容是一整个字符串
+
+3. 创建 `Spark` 使用的用户
+
+   ```sql
+   //用户和密码
+   CREATE USER 'spark'@'%' IDENTIFIED BY 'Spark123!'; 
+   //设置访问权限
+   GRANT ALL ON spark_test.* TO 'spark'@'%';
    ```
 
    
@@ -1505,7 +1727,10 @@ spark.sql("select * from student limit 100").show()
 读取数据集, 处理过后存往 `MySQL` 中的代码如下
 
 ```scala
-  @Test
+//mysql 的访问方式有两种，使用本地运行，提交到集群中运行 
+
+// 这里采用本地运行，存数据
+@Test
   def a():Unit = {
 
     val spark = SparkSession
@@ -1514,6 +1739,7 @@ spark.sql("select * from student limit 100").show()
       .master("local[6]")
       .getOrCreate()
 
+    // 注意这里的包不要导错
     val schema = StructType(
       List(
         StructField("name", StringType),
@@ -1522,14 +1748,18 @@ spark.sql("select * from student limit 100").show()
       )
     )
     val studentDF = spark.read
-      .option("delimiter", "/t")
+      .option("delimiter", "/t") // 指定分隔符
       .schema(schema)
+      // 这里因为采用本地运行的方式，所以路径也是本地的
       .csv("C://Users//宋天//Desktop//大数据//file//studenttab10k")
 
+    // 处理数据
+    val result = studentDF.where("age < 30")
+    // 落地数据
     studentDF.write.format("jdbc").mode(SaveMode.Overwrite)
       .option("url", "jdbc:mysql://bigdata111:3306/spark_test")
       .option("dbtable", "student")
-      .option("user", "spark")
+      .option("user", "spark") // sql用户名和密码是之前配置的spark用户
       .option("password", "Spark123!")
       .save()
   }
@@ -1556,7 +1786,8 @@ bin/spark-shell --packages  mysql:mysql-connector-java:5.1.27 --repositories htt
 读取 `MySQL` 的方式也非常的简单, 只是使用 `SparkSQL` 的 `DataFrameReader` 加上参数配置即可访问
 
 ```scala
-  @Test
+
+@Test
   def b():Unit = {
     val spark = SparkSession
       .builder()

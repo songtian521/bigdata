@@ -29,7 +29,7 @@
 
 - 批量计算
 
-  ![](img/spark/批量计算.png)
+  ![](img\spark\批量计算.png)
 
   数据已经存在, 一次性读取所有的数据进行批量处理
 
@@ -38,7 +38,7 @@
 
 - 流计算
 
-  ![](img/spark/流计算.png)
+  ![](img\spark\流计算.png)
 
   数据源源不断的进来, 经过处理后落地
   
@@ -51,7 +51,7 @@
 
 **混合架构：**
 
-![](img/spark/混合架构.png)
+![](img\spark\混合架构.png)
 
 **混合架构说明：**
 
@@ -63,7 +63,7 @@
 - 服务层: 分为两个部分, 一部分对应批处理层, 一部分对应速度层
 - 速度层: 随机读取, 随即写入, 增量计算
 
-
+**混合架构优缺点：**
 
 - 优点
 
@@ -76,7 +76,7 @@
 
 **流式架构**
 
-![](img/spark/流架构.png)
+![](img\spark\流架构.png)
 
 - 流式架构说明
 
@@ -103,7 +103,7 @@ Spark Streaming是核心Spark API的扩展，可实现可扩展、高吞吐量�
 
 **内部结构：**
 
-![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/内部结构.png)
+![](img\spark\内部结构.png)
 
 Spark Streaming将连续的数据流抽象为discretizedstream或**DStream**。在内部，DStream 由一个RDD序列表示。
 
@@ -121,7 +121,7 @@ Spark Streaming将连续的数据流抽象为discretizedstream或**DStream**。�
 
 **socket回顾：**
 
-![](img/spark/socket.png)
+![](img\spark\socket.png)
 
 - socket是java中为了支持基于`TCP/UDP`协议的通信所提供的编程模型
 
@@ -143,6 +143,8 @@ Spark Streaming将连续的数据流抽象为discretizedstream或**DStream**。�
 
 **Netcat**
 
+![](img\spark\nc.png)
+
 - `Netcat` 简写 `nc`, 命令行中使用 `nc` 命令调用
 - `Netcat` 是一个非常常见的 `Socket` 工具, 可以使用 `nc` 建立 `Socket server` 也可以建立 `Socket client`
   - `nc -l` 建立 `Socket server`, `l` 是 `listen` 监听的意思
@@ -157,7 +159,7 @@ Spark Streaming将连续的数据流抽象为discretizedstream或**DStream**。�
    ```XML
    		<scala.version>2.11.8</scala.version>
            <spark.version>2.3.4</spark.version>        
-   
+   <dependencies>
    		<dependency>
                <groupId>org.scala-lang</groupId>
                <artifactId>scala-library</artifactId>
@@ -184,6 +186,75 @@ Spark Streaming将连续的数据流抽象为discretizedstream或**DStream**。�
                <version>4.10</version>
                <scope>provided</scope>
            </dependency>
+      </dependencies>
+    <build>
+           <sourceDirectory>src/main/scala</sourceDirectory>
+           <testSourceDirectory>src/test/scala</testSourceDirectory>
+           <plugins>
+   
+               <plugin>
+                   <groupId>org.apache.maven.plugins</groupId>
+                   <artifactId>maven-compiler-plugin</artifactId>
+                   <version>3.0</version>
+                   <configuration>
+                       <source>1.8</source>
+                       <target>1.8</target>
+                       <encoding>UTF-8</encoding>
+                   </configuration>
+               </plugin>
+   
+               <plugin>
+                   <groupId>net.alchim31.maven</groupId>
+                   <artifactId>scala-maven-plugin</artifactId>
+                   <version>3.2.0</version>
+                   <executions>
+                       <execution>
+                           <goals>
+                               <goal>compile</goal>
+                               <goal>testCompile</goal>
+                           </goals>
+                           <configuration>
+                               <args>
+                                   <arg>-dependencyfile</arg>
+                                   <arg>${project.build.directory}/.scala_dependencies</arg>
+                               </args>
+                           </configuration>
+                       </execution>
+                   </executions>
+               </plugin>
+   
+               <plugin>
+                   <groupId>org.apache.maven.plugins</groupId>
+                   <artifactId>maven-shade-plugin</artifactId>
+                   <version>3.1.1</version>
+                   <executions>
+                       <execution>
+                           <phase>package</phase>
+                           <goals>
+                               <goal>shade</goal>
+                           </goals>
+                           <configuration>
+                               <filters>
+                                   <filter>
+                                       <artifact>*:*</artifact>
+                                       <excludes>
+                                           <exclude>META-INF/*.SF</exclude>
+                                           <exclude>META-INF/*.DSA</exclude>
+                                           <exclude>META-INF/*.RSA</exclude>
+                                       </excludes>
+                                   </filter>
+                               </filters>
+                               <transformers>
+                                   <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                       <mainClass></mainClass>
+                                   </transformer>
+                               </transformers>
+                           </configuration>
+                       </execution>
+                   </executions>
+               </plugin>
+           </plugins>
+       </build>
    ```
 
 2. 代码
@@ -191,28 +262,43 @@ Spark Streaming将连续的数据流抽象为discretizedstream或**DStream**。�
    ```scala
      @Test
      def day01():Unit ={
-       //local[2]代表开启两个线程
+       // 1. 初始化环境
+       // 在 sparkCore中的内存，创建sprkContext的时候使用
+       // 在创建 Streaming Context的时候也要用到conf，说明 Spark Streaming是基于Spark Core的
+       // 在执行master的时候，不能指定一个线程，因为在Streaming运行的时候，需要开一个新的线程来去一直监听数据的获取
        val conf = new SparkConf().setAppName("MyNetwordWordCount").setMaster("local[6]")
    
+       // StreamingContext其实就是Spark Streaming的入口
+       // 相当于SparkContext 是Spark Core的入口一样，他们也都叫XXContext
        //接收两个参数，第一个conf，第二个是采样时间间隔
        val ssc = new StreamingContext(conf,Seconds(3))
-   
+   	ssc.sparkContext.setLogLevel("WARN") // 去掉日志中的警告信息
+         
+         
+       // socketTextStream 这个方法用于创建一个DStream，监听Socket输入，当做文本处理
+       // socketTextStream.textFile() 创建一个RDD，他们俩类似，都是创建对应的数据集
+       // RDD -> Spark Core  DStream -> Spark Streaming
        //创建DStream 从netcat服务器上接收数据 因为接收字符串，所以使用textStream
        // 选择 Receiver 获取到数据后的保存方式, 此处是内存和磁盘都有, 并且序列化后保存
-       val lines = ssc.socketTextStream("192.168.64.129", 1234, StorageLevel.MEMORY_ONLY)
-   
+       val lines = ssc.socketTextStream(hostname = "192.168.64.129",port = 1234, storageLevel = StorageLevel.MEMORY_AND_DISK_SER)
+         
+       // 2. 数据处理
+       // 2.1 把句子拆为单词
        val words = lines.flatMap(_.split(" "))
-   
+   	// 2.2 转换单词，并聚合
        val wordCount = words.map((_,1)).reduceByKey(_+_)
        //    val wordCount = words.transform(x => x.map((_,1))).reduceByKey(_+_)
    
-       // 	类似 RDD 中的 Action, 执行最后的数据输出和收集
+       // 3. 展示和启动
+       // 这一步类似 RDD 中的 Action, 执行最后的数据输出和收集，其实这一步并没有启动流
        wordCount.print()
    
        // 启动流和 JobGenerator, 开始流式处理数据
        ssc.start()
    
+       // main方法执行完毕以后整个程序就会退出，所以需要阻塞主线程
        //阻塞主线程, 后台线程开始不断获取数据并处理
+       // 注：启动的线程数必须大于1
        ssc.awaitTermination()
      }
    ```
@@ -223,7 +309,9 @@ Spark Streaming将连续的数据流抽象为discretizedstream或**DStream**。�
 
 - `Spark Streaming` 并不是真正的来一条数据处理一条
 
-  ![](img/spark/Spark Streaming.png)
+  ![](img\spark\Spark Streaming.png)
+
+  - DStream 在上述案例中的体现为Socket Server，然后按照时间把外部数据源传过来的数据分组
 
   - `Spark Streaming` 的处理机制叫做小批量, 英文叫做 `mini-batch`, 是收集了一定时间的数据后生成 `RDD`, 后针对 `RDD` 进行各种转换操作, 这个原理提现在如下两个地方
     - 控制台中打印的结果是一个批次一个批次的, 统计单词数量也是按照一个批次一个批次的统计
@@ -254,7 +342,12 @@ val ssc = new StreamingContext(conf, Seconds(1))
   - 同一个 `Streaming` 程序中, 只能有一个 `StreamingContext`
   - 一旦一个 `Context` 已经启动 (`start`), 则不能添加新的数据源 
 
-**算子：**
+**各种算子：**
+
+![](img\spark\各种算子.png)
+
+- 这些算子类似 `RDD`, 也会生成新的 `DStream`
+- 这些算子操作最终会落到每一个 `DStream` 生成的 `RDD` 中
 
 | 算子          | 释义                                                         |
 | :------------ | :----------------------------------------------------------- |
@@ -262,8 +355,20 @@ val ssc = new StreamingContext(conf, Seconds(1))
 | `map`         | `words.map(x => (x, 1))`一对一的转换数据                     |
 | `reduceByKey` | `words.reduceByKey(_ + _)`这个算子需要特别注意, 这个聚合并不是针对于整个流, 而是针对于某个批次的数据 |
 
-- 这些算子类似 `RDD`, 也会生成新的 `DStream`
-- 这些算子操作最终会落到每一个 `DStream` 生成的 `RDD` 中
+## 2.3 DStream基本概念
+
+Discretized（离散） Streams (DStreams)在内部，它的工作原理如下。 Spark Streaming接收实时输入数据流并将数据分成批处理，然后由Spark引擎处理以批量生成最终结果流。
+
+![](img\spark\内部结构.png)
+
+**DStreams是什么？**
+
+是构建在Spark RDD之上的一款流处理工具。言外之意Spark DStream并不是严格意义的流处理。底层通过将RDD在时间轴上拆解成多个小的RDD-macro batch（构建在RDD之上的微批，严格意义上并不是真正的流），掺水了
+
+Spark Streaming将连续的数据流抽象为discretizedstream或**DStream**。在内部，DStream 由一个RDD序列表示。
+
+- StreamingContext会根据设置的批处理的时间间隔将产生的rdd归为一批，这一批rdd就是一个DStream，DStream可以通过算子操作转化为另一个DStream
+- SparkStreaming的数据来源是kafka、flume、hdfs等，其中用的最多的是kafka，次子是flume，SparkStreaming将接收到的数据进行分批处理，每次发送一个DStream给SparkEngine处理，将处理后的数据持久到hdfs，datebase等里面。
 
 # 3. spark streaming进阶
 
@@ -282,7 +387,7 @@ val ssc = new StreamingContext(conf, Seconds(1))
 
   - 方式2：从现有的SparkContext实例中创建
 
-    ![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/StreamingContext.png)
+    ![](img\spark\StreamingContext.png)
 
 - 程序中的要素说明
 
@@ -304,21 +409,21 @@ val ssc = new StreamingContext(conf, Seconds(1))
 
 - DiscretizedStream或DStream 是Spark Streaming对流式数据的基本抽象。它表示连续的数据流，这些连续的数据流可以是从数据源接收的输入数据流，也可以是通过对输入数据流执行转换操作而生成的经处理的数据流。在内部，DStream由一系列连续的RDD表示，如下图：
 
-  ![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/离散流1.png)
+  ![](img\spark\离散流1.png)
 
 - 举例分析：在之前的NetworkWordCount的例子中，我们将一行行文本组成的流转换为单词流，具体做法为：将flatMap操作应用于名为lines的 DStream中的每个RDD上，以生成words DStream的RDD。如下图所示：
 
-  ![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/离散流2.png)
+  ![](img\spark\离散流2.png)
 
   但是DStream和RDD也有区别，下面画图说明：
 
-  ![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/离散流3.png)
+  ![](img\spark\离散流3.png)
 
-  ![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/离散流4.png)
+  ![](img\spark\离散流4.png)
 
 ## 3.3 DStream中的转换操作
 
-![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/transformation.png)
+![](img\spark\transformation.png)
 
 **最后两个transformation算子需要重点介绍一下：**
 
@@ -328,7 +433,7 @@ val ssc = new StreamingContext(conf, Seconds(1))
 
   - 举例：在NetworkWordCount中，也可以使用transform来生成元组对
 
-    ![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/transform(func).png)
+    ![](img\spark\transform(func).png)
 
 - updateStateByKey(func)
 
@@ -337,7 +442,7 @@ val ssc = new StreamingContext(conf, Seconds(1))
      - 定义状态更新函数-怎样利用更新前的状态和从输入流里面获取的新值更新状态
   -  重写NetworkWordCount程序，**累计每个单词出现的频率（注意：累计）**
 
-  ![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/updateStateByKey(func).png)
+  ![](img\spark\updateStateByKey(func).png)
 
 - 注意：如果在IDEA中，不想输出log4j的日志信息，可以将log4j.properties文件（放在src的目录下）的第一行改为：
 
@@ -351,7 +456,7 @@ val ssc = new StreamingContext(conf, Seconds(1))
 
 Spark Streaming还提供了窗口计算功能，允许您在数据的滑动窗口上应用转换操作。下图说明了滑动窗口的工作方式：
 
-![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/窗口操作.png)
+![](img\spark\窗口操作.png)
 
 如图所示，每当窗口滑过originalDStream时，落在窗口内的源RDD被组合并被执行操作以产生windowed DStream的RDD。在上面的例子中，操作应用于最近3个时间单位的数据，并以2个时间单位滑动。这表明任何窗口操作都需要指定两个参数。
 
@@ -365,7 +470,7 @@ Spark Streaming还提供了窗口计算功能，允许您在数据的滑动窗�
 
 我们以一个例子来说明窗口操作。 假设您希望对之前的单词计数的示例进行扩展，每10秒钟对过去30秒的数据进行wordcount。为此，我们必须在最近30秒的pairs DStream数据中对(word, 1)键值对应用reduceByKey操作。这是通过使用reduceByKeyAndWindow操作完成的。
 
-![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/窗口操作示例.png)
+![](img\spark\窗口操作示例.png)
 
 一些常见的窗口操作如下表所示。所有这些操作都用到了上述两个参数 - windowLength和slideInterval。
 
@@ -507,7 +612,7 @@ object ScoketStreaming {
 
 输出操作允许DStream的操作推到如数据库、文件系统等外部系统中。因为输出操作实际上是允许外部系统消费转换后的数据，它们触发的实际操作是DStream转换。目前，定义了下面几种输出操作：
 
-![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/DStreams的输出.png)
+![](img\spark\DStreams的输出.png)
 
 **foreachRDD的设计模式**
 
@@ -515,7 +620,7 @@ DStream.foreachRDD是一个强大的原语，发送数据到外部系统中。
 
 1. 创建连接，将数据写入外部数据库（使用之前的NetworkWordCount，改写之前输出结果的部分，如下）
 
-   ![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/foreachRDD.png)
+   ![](img\spark\foreachRDD.png)
 
    会报错，原因：
 
@@ -523,7 +628,7 @@ DStream.foreachRDD是一个强大的原语，发送数据到外部系统中。
 
 2. 在每个RDD分区上单独创建Connection对象，如下：
 
-   ![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/foreachRDD2.png)
+   ![](img\spark\foreachRDD2.png)
 
 ```scala
 import java.sql.{Connection, DriverManager, PreparedStatement}
@@ -751,7 +856,7 @@ object MyCheckpointNetworkWordCount {
 
 通过查看HDFS中的信息，可以看到相关的检查点信息，如下：
 
-![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/检查点.png)
+![](img\spark\检查点.png)
 
 # 4. 高级数据源
 
@@ -931,7 +1036,7 @@ Flume被用于在Flume agents之间推送数据.在这种方式下,Spark Streami
 
 Apache Kafka是一种高吞吐量的分布式发布订阅消息系统。
 
-![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/Apache Kafka.png)
+![](img\spark\Apache Kafka.png)
 
 **搭建ZooKeeper（Standalone）：**
 
@@ -954,7 +1059,7 @@ Apache Kafka是一种高吞吐量的分布式发布订阅消息系统。
 
 1. 修改server.properties文件
 
-   ![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/server.properties文件.png)
+   ![](img\spark\server.properties文件.png)
 
 2. 启动Kafka
 
@@ -965,7 +1070,7 @@ Apache Kafka是一种高吞吐量的分布式发布订阅消息系统。
 
    如果出现以下错误
 
-   ![](C:/Users/宋天/Desktop/大数据/大数据笔记/img/spark/报错.png)
+   ![](img/spark/报错.png)
 
       需要修改bin/kafka-run-class.sh文件，将这个选项注释掉。
 
@@ -1295,11 +1400,11 @@ Spark性能优化手段：
 
   `Spark Streaming` 中的编程模型叫做 `DStream`, 所有的 `API` 都从 `DStream` 开始, 其作用就类似于 `RDD` 之于 `Spark Core`
 
-  ![](img/spark/小批量.png)
+  ![](img\spark\小批量.png)
 
   可以理解为 `DStream` 是一个管道, 数据源源不断的从这个管道进去, 被处理, 再出去
 
-  ![](img/spark/DStream.png)
+  ![](img\spark\DStream.png)
 
   但是需要注意的是, `DStream` 并不是严格意义上的实时流, 事实上, `DStream` 并不处理数据, 而是处理 `RDD`
 
@@ -1362,6 +1467,10 @@ Spark性能优化手段：
 
 ## 6.2 DGA
 
+**DGA的定义：**
+
+数据的处理是一环扣一环的，数据的处理是分步骤的，这叫有向，数据的处理不能首尾交替，如果首尾交替的话就会形成无限循环的执行，这叫无环
+
 **RDD和DStream的DAG**
 
 如果是 `RDD` 的 `WordCount`, 代码大致如下
@@ -1375,7 +1484,7 @@ val reduceRDD = tupleRDD.reduceByKey(_ + _)
 
 用图形表示如下
 
-![](img/spark/RDDWordCount.png)
+![](img\spark\RDDWordCount.png)
 
 同样, `DStream` 的代码大致如下
 
@@ -1387,13 +1496,16 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
 同理, `DStream` 也可以形成 `DAG` 如下
 
-![](img/spark/DSRDD.png)
+![](img\spark\DSRDD.png)
 
 看起来 `DStream` 和 `RDD` 好像, 确实如此
 
+- DStream就像是管道，内部是处理的是RDD
+- DStream本身也是可以组成DAG的，因为DStream通过一些转换算子，也是生成了新的DStream
+
 `RDD` **和** `DStream` **的区别**
 
-![](img/spark/RDD 和 DStream 的区别.png)
+![](img\spark\RDD 和 DStream 的区别.png)
 
 - 每个 `DStream` 都有一个关联的 `DStreamGraph` 对象
 - `DStreamGraph` 负责表示 `DStream` 之间的的依赖关系和运行步骤
@@ -1414,7 +1526,7 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
   - 后根据这张 `DAG` 生成对应的 `TaskSet` 调度到集群中运行, 如下
 
-    ![](img/spark/DAG对应的TaskSet.png)
+    ![](img\spark\DAG对应的TaskSet.png)
 
     但是在 `DStream` 中则不能这么简单的划分, 因为 `DStream` 中有一个非常重要的逻辑, 需要按照时间片划分小批量
 
@@ -1423,9 +1535,11 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
     上述两点, 其实描述的是静态的一张 `DAG`, 数据处理过程, 但是 `Streaming` 是动态的, 数据是源源不断的来的
 
-    ![](img/spark/ds.png)
+    ![](img\spark\ds.png)
 
-- 所以, 在 `DStream` 中, 静态和动态是两个概念, 有不同的流程
+- 所以, 在 `DStream` 中，静态和动态是两个概念, 有不同的流程
+
+  ![](img\spark\RDD 和 DStream 的区别.png)
 
   - `DStreamGraph` 将 `DStream` 联合起来, 生成 `DStream` 之间的 `DAG`, 这些 `DStream` 之间的关系是相互依赖的关系, 例如一个 `DStream` 经过 `map` 转为另外一个 `DStream`
   - 但是把视角移动到 `DStream` 中来看, `DStream` 代表了源源不断的 `RDD` 的生成和处理, 按照时间切片, 所以一个 `DStream DAG` 又对应了随着时间的推进所产生的无限个 `RDD DAG`
@@ -1437,7 +1551,7 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
   1. 通知 `Receiver` 将收到的数据暂存, 并汇报存储的元信息, 例如存在哪, 存了什么
   2. 通过 `DStreamGraph` 复制出一套新的 `RDD DAG`
   3. 将数据暂存的元信息和 `RDD DAG` 一同交由 `JobScheduler` 去调度执行
-  4. 提交结束后, 对系统当前的状态 `Checkpoint`
+  4. 提交结束后, 对系统当前的状态 `Checkpoint` 
 
 ## 6.3 数据的产生和导入
 
@@ -1445,11 +1559,11 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
   在 `Spark Streaming` 中一个非常大的挑战是, 很多外部的队列和存储系统都是分块的, `RDD` 是分区的, 在读取外部数据源的时候, 会用不同的分区对照外部系统的分片, 例如
 
-  ![](img/spark/Receiver.png)
+  ![](img\spark\Receiver.png)
 
-  不仅 `RDD`, `DStream` 中也面临这种挑战
+  不仅 `RDD`， `DStream` 中也面临这种挑战
 
-  ![](img/spark/Receiver2.png)
+  ![](img\spark\Receiver2.png)
 
   那么此处就有一个小问题
 
@@ -1459,9 +1573,9 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
 - `Receiver` **的结构**
 
-  ![](img/spark/Receiver 的结构.png)
+  ![](img\spark\Receiver 的结构.png)
 
-  为了保证并行获取数据, 对应每一个外部数据源的分区, 所以 `Receiver` 也要是分布式的, 主要分为三个部分
+  为了保证并行获取数据, 对应每一个外部数据源的分区, 所以 `Receiver` 也要是分布式的，可以在每个Executor中运行，其主要分为三个部分
 
   - `Receiver` 是一个对象, 是可以有用户自定义的获取逻辑对象, 表示了如何获取数据
   - `Receiver Tracker` 是 `Receiver` 的协调和调度者, 其运行在 `Driver` 上
@@ -1469,7 +1583,7 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
 - `Receiver` **的执行过程**
 
-  ![](img/spark/Receiver 的执行过程.png)
+  ![](img\spark\Receiver 的执行过程.png)
 
   1. 在 `Spark Streaming` 程序开启时候, `Receiver Tracker` 使用 `JobScheduler` 分发 `Job` 到不同的节点, 每个 `Job` 包含一个 `Task` , 这个 `Task` 就是 `Receiver Supervisor`, 这个部分的源码还挺精彩的, 其实是复用了通用的调度逻辑
   2. `ReceiverSupervisor` 启动后运行 `Receiver` 实例
@@ -1483,7 +1597,7 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
 
   - **热备**
 
-    ![](img/spark/容错.png)
+    ![](img\spark\容错.png)
 
     这行代码中的 `StorageLevel.MEMORY_AND_DISK_SER` 的作用是什么? 其实就是热备份
 
@@ -1491,7 +1605,7 @@ val wordCounts: DStream[(String, Int)] = words.map(x => (x, 1)).reduceByKey(_ + 
     - 如果设置了 `StorageLevel.MEMORY_AND_DISK_SER`, 则意味着 `BlockManager` 不仅会在本机存储, 也会发往其它的主机进行存储, 本质就是冗余备份
     - 如果某一个计算失败了, 通过冗余的备份, 再次进行计算即可
 
-    ![](img/spark/容错2.png)
+    ![](img\spark\容错2.png)
 
     这是默认的容错手段
 
@@ -1606,7 +1720,7 @@ ssc.awaitTermination()
 
 ## 7.2 窗口时间
 
-![](img/spark/窗口.png)
+![](img\spark\窗口.png)
 
 - 在 `window` 函数中, 接收两个参数
 

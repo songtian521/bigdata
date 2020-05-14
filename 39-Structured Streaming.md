@@ -56,7 +56,7 @@
 - RDD的缺点
   - 运行速度比较慢，执行过程没有优化
   - API比较僵硬，对结构化数据的访问和操作没有优化
-- DtaFrame的优点
+- DataFrame的优点
   - 针对结构化数据高度优化，可以通过列名访问和转换数据
   - 增加Catalyst优化器，执行过程是优化的，避免了因为开发者的原因影响效率
 - DataFrame的缺点
@@ -210,7 +210,7 @@ public static void main(String[] args) throws IOException {
 
 - 历史问题：	
 
-  RDD无法感知数据的组成，无法感知数据结构，只能以对象的形式处理数据
+  **RDD无法感知数据的组成，无法感知数据结构**，只能以对象的形式处理数据
 
 - DataFrame和Dataset的特点
 
@@ -227,7 +227,7 @@ public static void main(String[] args) throws IOException {
          .show()
     ```
 
-  - DataFrame中没有数据对象这个概念，所有的数据都以行的形式存在于Row对象中，Row中记录了每行数据的结构，包括列名，类型等
+  - **DataFrame中没有数据对象这个概念，所有的数据都以行的形式存在于Row对象中**，Row中记录了每行数据的结构，包括列名，类型等
 
     ![](img/spark/da.png)
 
@@ -305,6 +305,26 @@ public static void main(String[] args) throws IOException {
 - 对消息中的单词进行词频统计
 - 统计全局的结果
 
+**整体结构：**
+
+![](img/spark/结构.png)
+
+1. `Socket Server` 等待 `Structured Streaming` 程序连接
+2. `Structured Streaming` 程序启动, 连接 `Socket Server`, 等待 `Socket Server` 发送数据
+3. `Socket Server` 发送数据, `Structured Streaming` 程序接收数据
+4. `Structured Streaming` 程序接收到数据后处理数据
+5. 数据处理后, 生成对应的结果集, 在控制台打印
+
+**开发方式和步骤**
+
+`Socket server` 使用 `Netcat nc` 来实现
+
+`Structured Streaming` 程序使用 `IDEA` 实现, 在 `IDEA` 中本地运行
+
+1. 编写代码
+2. 启动 `nc` 发送 `Socket` 消息
+3. 运行代码接收 `Socket` 消息统计词频
+
 首先需要开启虚拟机，并运行`nc -lk 9999`
 
 代码实现：
@@ -321,17 +341,16 @@ object SocketProcessor {
       .getOrCreate()
 
     // 调整 Log 级别, 避免过多的 Log 影响视线
-    spark.sparkContext.setLogLevel("ERROR")   
-
+    spark.sparkContext.setLogLevel("WARN")
     import spark.implicits._
 
     // 2. 读取外部数据源, 并转为 Dataset[String]
-    val source = spark.readStream
-      .format("socket")
+    val source:Dataset[String] = spark.readStream // 读取数据流
+      .format("socket") // 指定读取socket
       .option("host","192.168.64.129")
       .option("port",9999)
       .load()
-      .as[String]   // 默认 readStream 会返回 DataFrame, 但是词频统计更适合使用 Dataset 的有类型 API                          
+      .as[String]// 转换，将DataFrame转为Dataset。默认readStream 会返回 DataFrame, 但是词频统计更适合使用 Dataset 的有类型 API                          
 
     // 3. 统计词频
     val words = source.flatMap(_.split(" "))
@@ -339,17 +358,40 @@ object SocketProcessor {
       .groupByKey(_._1)
       .count()
 
-    // 4. 输出结果
+    // 4. 结果集的生成和输出
     words.writeStream
       .outputMode(OutputMode.Complete())   // 统计全局结果, 而不是一个批次   
       .format("console") // 将结果输出到控制台                   
       .start()  // 开始运行流式应用                             
-      .awaitTermination() // 	阻塞主线程, 在子线程中不断获取数据 
+      .awaitTermination() // 阻塞主线程, 在子线程中不断获取数据 
   }
 }
 ```
 
-结果集：
+**总结：**
+
+- `Structured Streaming` 中的编程步骤依然是先读, 后处理, 最后落地
+- `Structured Streaming` 中的编程模型依然是 `DataFrame` 和 `Dataset`
+- `Structured Streaming` 中依然是有外部数据源读写框架的, 叫做 `readStream` 和 `writeStream`
+- `Structured Streaming` 和 `SparkSQL` 几乎没有区别, 唯一的区别是, `readStream` 读出来的是流, `writeStream` 是将流输出, 而 `SparkSQL` 中的批处理使用 `read` 和 `write`
+
+运行：
+
+1. 在虚拟机 `bigdata111` 中运行 `nc -lk 9999`
+
+2. 在 IDEA 中运行程序
+
+3. 在 `bigdata111`中输入以下内容
+
+   ```text
+   hello world
+   hello spark
+   hello hadoop
+   hello spark
+   hello spark
+   ```
+
+输出：
 
 ```
 -------------------------------------------
@@ -370,6 +412,11 @@ Batch: 4
 - `Structured Streaming` 依然是小批量的流处理
 - `Structured Streaming` 的输出是类似 `DataFrame` 的, 也具有 `Schema`, 所以也是针对结构化数据进行优化的
 - 从输出的时间特点上来看, 是一个批次先开始, 然后收集数据, 再进行展示, 这一点和 `Spark Streaming` 不太一样
+
+总结：
+
+1. 运行的时候需要先开启 `Socket server`
+2. `Structured Streaming` 的 API 和运行也是针对结构化数据进行优化过的
 
 # 3.Stuctured Streaming的体系和结构
 
@@ -404,6 +451,8 @@ Batch: 4
   3. 根据要生成的结果类型, 来选择是否生成基于整个数据集的结果
 
 **总结：**
+
+![](img/spark/无限表格总结.png)
 
 - `Dataset` 不仅可以表达流式数据的处理, 也可以表达批量数据的处理
 - `Dataset` 之所以可以表达流式数据的处理, 因为 `Dataset` 可以模拟一张无限扩展的表, 外部的数据会不断的流入到其中
@@ -478,6 +527,8 @@ Batch: 4
 
 上图中清晰的展示了最终的结果生成是全局的结果, 而不是一个批次的结果, 但是从 `StreamExecution` 中可以看到, 针对流的处理是按照一个批次一个批次来处理的
 
+Structured Streaming虽然从API角度上模拟出来的是一个无限扩展的表，但是其内部还是处理每一批次的数据，其实还是增量处理
+
 那么, 最终是如何生成全局的结果集呢?
 
 ![](img/spark/状态记录.png)
@@ -543,7 +594,9 @@ Batch: 4
 ```python
 import os
 
+# 创建文件
 for index in range(100):
+    # 文件内容
     content = """
     {"name":"Michael"}
     {"name":"Andy", "age":30}
@@ -563,6 +616,8 @@ for index in range(100):
 **编写spark代码：**
 
 ```scala
+System.setProperty("hadoop.home.dir","C:\\winutil")
+
 val spark = SparkSession.builder()
   .appName("hdfs_source")
   .master("local[6]")
@@ -574,19 +629,20 @@ val userSchema = new StructType()
   .add("name", "string")
   .add("age", "integer")
 
-// 以流的形式读取某个HDFS目录
+// 以流的形式读取某个HDFS目录，注意：只能是文件夹或目录，不能是某一个文件
 val source = spark
   .readStream // 指明读取的是一个流式的Dataset
   .schema(userSchema)// 指定读取到的数据的Schema
-  .json("hdfs://node01:8020/dataset/dataset") // 指定目录位置，以及数据格式
+  .json("hdfs://bigdata111:9000/dataset/dataset") // 指定目录位置，以及数据格式
 
+// 去重
 val result = source.distinct()
 
 result.writeStream
   .outputMode(OutputMode.Update())
   .format("console")
   .start()
-  .awaitTermination()
+  .awaitTermination()// 阻塞主线程
 ```
 
 **运行：**
@@ -598,7 +654,7 @@ result.writeStream
   - 运行
 
     ```
-    # 创建防止生成文件的目录
+    # 创建放置生成文件的目录
     mkdir -p /export/dataset
     # 运行程序
     python gen_files.py
@@ -823,8 +879,8 @@ result.writeStream
    ```scala
    val source = spark.readStream
      .format("kafka")
-     .option("kafka.bootstrap.servers", "node01:9092,node01:9092,node03:9092")
-     .option("subscribe", "streaming_test")
+     .option("kafka.bootstrap.servers", "bigdata111:9092,bigdata222:9092,bigdata333:9092")
+     .option("subscribe", "streaming_test") // topic的名字
      .option("startingOffsets", "earliest")
      .load()
    ```
@@ -1125,17 +1181,31 @@ val source = spark
 
 val result = source.map {
   item =>
-    val arr = item.replace("/"", "").split(";")
-    (arr(0).toInt, arr(1).toInt, arr(5).toInt)
+    val arr = item.split("::")
+    (arr(0).toInt, arr(1).toString, arr(2).toString)
 }
-.as[(Int, Int, Int)]
-.toDF("age", "job", "balance")
+.as[(Int, String, String)]
+.toDF("id", "name", "category")
 
+// 落地HDFS
 result.writeStream
   .format("parquet") // 也可以是 "orc", "json", "csv" 等
-  .option("path", "/dataset/streaming/result/")
+  .option("checkpointLocation","checkpoint") // 必须指定检查点，不然会报错
+  .option("path", "/dataset/streaming/result/") //这里目录是本地，当然也可以指定HDFS路径
   .start()
 ```
+
+测试：
+
+1. 入服务器中, 启动 `Kafka`
+
+2. 启动 `Kafka` 的 `Producer`
+
+   ```shell
+   bin/kafka-console-producer.sh --broker-list node01:9092,node02:9092,node03:9092 --topic streaming-test
+   ```
+
+3. 启动 `Spark `程序，查看输出
 
 ## 5.2 kafka sink
 
@@ -1192,7 +1262,7 @@ val result = source.map {
 
 result.writeStream
   .format("kafka")
-  .outputMode(OutputMode.Append())
+  .outputMode(OutputMode.Append())  
   .option("kafka.bootstrap.servers", "node01:9092,node02:9092,node03:9092")
   .option("topic", "streaming-bank-result")
   .start()
@@ -1200,6 +1270,8 @@ result.writeStream
 ```
 
 ## 5.3. Foreach Writer
+
+注：官方值提供了 `sink HDFS`和`sink kafka`所以，其他的方式都采用Foreach Writer
 
 **场景**
 
@@ -1270,6 +1342,7 @@ val result = source.map {
 .as[(Int, Int, Int)]
 .toDF("age", "job", "balance")
 
+// 落地到mysql
 class MySQLWriter extends ForeachWriter[Row] {
   val driver = "com.mysql.jdbc.Driver"
   var statement: Statement = _
@@ -1480,7 +1553,7 @@ result.writeStream
 
   - 步骤
 
-    根据 `Spark` 提供的调试用的数据源 `Rate` 创建流式 `DataFrame``Rate` 数据源会定期提供一个由两列 `timestamp, value` 组成的数据, `value` 是一个随机数处理和聚合数据, 计算每个个位数和十位数各有多少条数据对 `value` 求 `log10` 即可得出其位数后按照位数进行分组, 最终就可以看到每个位数的数据有多少个
+    根据 `Spark` 提供的调试用的数据源 `Rate` 创建流式 `DataFrame`，`Rate` 数据源会定期提供一个由两列 `timestamp, value` 组成的数据, `value` 是一个随机数处理和聚合数据, 计算每个个位数和十位数各有多少条数据对 `value` 求 `log10` 即可得出其位数后按照位数进行分组, 最终就可以看到每个位数的数据有多少个
 
   - 代码
 
@@ -1493,7 +1566,7 @@ result.writeStream
     import org.apache.spark.sql.functions._
     import spark.implicits._
     
-    spark.sparkContext.setLogLevel("ERROR")
+    spark.sparkContext.setLogLevel("WARN")
     
     val source = spark.readStream
       .format("rate")
@@ -1531,7 +1604,7 @@ result.writeStream
 
   - 介绍
 
-    使用微批次处理数据, 使用用户指定的时间间隔启动批次, 如果间隔指定为 `0`, 则尽可能快的去处理, 一个批次紧接着一个批次
+    使用微批次处理数据, 使用用户指定的时间间隔启动批次, 如果间隔指定为 `0`, 则尽可能快的去处理, 一个批次紧接着一个批次，相当于默认模式
 
     - 如果前一批数据提前完成, 待到批次间隔达成的时候再启动下一个批次
     - 如果前一批数据延后完成, 下一个批次会在前面批次结束后立即启动
@@ -1545,9 +1618,9 @@ result.writeStream
 
     ```scala
     result.writeStream
-      .outputMode(OutputMode.Complete())
+      .outputMode(OutputMode.Complete()) // 注意complete展示的全局的处理结果，Append展示的是一个批次的数据，所以，如果要使用complete则必须在此之前进行聚合处理
       .format("console")
-      .trigger(Trigger.ProcessingTime("2 seconds"))
+      .trigger(Trigger.ProcessingTime("2 seconds"))//指定处理间隔，
       .start()
       .awaitTermination()
     ```

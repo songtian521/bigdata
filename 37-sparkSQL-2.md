@@ -21,7 +21,7 @@
 
 - map
 
-  map可以将数据集中每条数据转为另一种形式
+  map可以将数据集中**每条数据**转为另一种形式
 
   ```scala
   @Test
@@ -44,6 +44,8 @@
       val ds = Seq(Person("zhangshan",12),Person("lisi",23)).toDS()
   
       ds.mapPartitions( iter =>{
+          // iter 不能大到每个Executor的内存放不下，不然会OOM
+          // 对每个元素进行转换，然后生成一个新的集合
           val returnValue = iter.map(
               item => Person(item.name,item.age)
       	)
@@ -65,7 +67,9 @@
   def transform():Unit = {
       import  spark.implicits._
   
+      // 生成数据集 0 - 4 
       val ds = spark.range(5)
+      // withColumn 后面再详细说明，其作用是创建新的列
       ds.transform(dataset => dataset.withColumn("doubled",'id*2)).show()
   
   }
@@ -91,6 +95,7 @@
       .option("delimiter","/t")
       .csv("C://Users//宋天//Desktop//大数据//file//studenttab10k")
   
+      // 本质上：Dataset[Row].as[Student] => Dataset[Student]
       sourceDF.as[Student].show()
   
   }
@@ -120,7 +125,7 @@ filter用来按照条件过滤数据集
 
 groupByKey
 
-  groupByKey算子的返回结果是KeyValueGroupedDataset，而不是一个Dataset，所以必须要先进过KeyValueGroupedDataset中的方法进行聚合，再转回Dataset，才能使用Action得出结果
+  **groupByKey算子的返回结果是KeyValueGroupedDataset**，而不是一个Dataset，所以必须要先进过KeyValueGroupedDataset中的方法进行聚合，再转回Dataset，才能使用Action得出结果
 
   这也印证了分组后必须聚合的道理
 
@@ -129,7 +134,13 @@ groupByKey
 def groupByKey():Unit = {
     import spark.implicits._
     val ds = Seq(Person("zhangsan",12),Person("lisi",23)).toDS()
-    ds.groupByKey(person=>person.name).count().show()
+    
+    // 分组
+    val grouped:KeyValueGroupedDataset[String,Person] = ds.groupByKey(person=>person.name)
+    
+    //注意：grouped返回值不是dataset类型，所以不能直接show，必须通过聚合方法
+    val result:Dataset[(String,Long)] = grouped.count()
+    result.show()
 }
 ```
 
@@ -137,7 +148,7 @@ def groupByKey():Unit = {
 
 - randomSplit
 
-  randomSplit会按照传入的权重随机将一个Dataset分为多少个Dataset，传入randomSplit的数组有多少个权重，最终数据就会生成多少个Dataset，这些权重的加倍和应该为1，否则将被标准化
+  randomSplit会**按照传入的权重随机将一个Dataset分为多少个Dataset**，传入randomSplit的数组有多少个权重，最终数据就会生成多少个Dataset，这些权重的加倍和应该为1，否则将被标准化
 
   ```scala
   @Test
@@ -156,6 +167,7 @@ def groupByKey():Unit = {
   @Test
   def sample():Unit = {
       val ds = spark.range(12)
+      // 第一个参数表示是否在采样后放回
       ds.sample(false,fraction = 0.4).show()
   }
   ```
@@ -172,7 +184,10 @@ def groupByKey():Unit = {
      import spark.implicits._
       val ds = Seq(Person("zhangsan",12),Person("lisi",23),Person("lisi",23)).toDS()
       ds.orderBy("age").show()
+      // 降序
       ds.orderBy('age.desc).show()
+       // 升序
+      ds.orderBy('age.asc).show()
   }
   ```
 
@@ -322,6 +337,7 @@ def groupByKey():Unit = {
   def select():Unit = {
       import spark.implicits._
       val ds = Seq(Person("zhangsan",12),Person("lisi",23),Person("lisi",25)).toDS()
+      // 在dataset当中，select可以在任何位置调用
       ds.select($"name").show()
   }
   ```
@@ -333,11 +349,15 @@ def groupByKey():Unit = {
   ```scala
    @Test
   def selectExpr():Unit = {
+      
       import spark.implicits._
-      import org.apache.spark.sql.functions._
+      
       val ds = Seq(Person("zhangsan", 12), Person("zhangsan", 8), Person("lisi", 15)).toDS()
       ds.selectExpr("count(age) as count").show()
       ds.selectExpr("rand() as random").show()
+      
+      import org.apache.spark.sql.functions._
+      
       ds.select(expr("count(age) as count")).show()
   }
   ```
@@ -352,6 +372,9 @@ def groupByKey():Unit = {
       import spark.implicits._
       import org.apache.spark.sql.functions._
       val ds = Seq(Person("zhangsan", 12), Person("zhangsan", 8), Person("lisi", 15)).toDS()
+      //如果想使用函数功能
+      //1. 使用funtions.xx
+      //2. 使用表达式，可以使用  expr("rand()") 随时随地编写表达式
       ds.withColumn("random", expr("rand()")).show()
   }
   ```
@@ -395,25 +418,30 @@ groupBy
 def groupBy():Unit = {
     import spark.implicits._
     val ds = Seq(Person("zhangsan", 12), Person("zhangsan", 8), Person("lisi", 15)).toDS()
+    
+    // GroupByKey是有类型的，主要原因是，GroupByKey所生成对象中的算子是有类型的
+    
+    // groupBy 是无类型的，主要原因是groupBy所生成的对象中的对象中的算子是无类型的，是针对列进行处理的
     ds.groupBy('name).count().show()
 }
 ```
 
 ## 1.3 Column对象
 
-column表示了Dataset中的一个列，并且可以持有一个表达式，这个表达式最勇于每一条数据，对每条数据都生成一个值，之所以有单独这样的一节是因为列这个操作属于细节，但又比较常见会在很多算子中配合出现
+column表示了Dataset中的一个列，并且可以持有一个表达式，这个表达式作用于每一条数据，对每条数据都生成一个值，之所以有单独这样的一节是因为列这个操作属于细节，但又比较常见会在很多算子中配合出现
 
 ### 1.3.1 创建
 
 - `'`
 
-  单引号的在scala中是一个特殊的符号，通过单引号会生成一个symbol对象，symbol对象可以理解为是一个字符串的变种，但是比字符串的效率高很多，在spark中，对scala中的symbol对象做了隐式转换，转换为一个columnName对象，columnName是column的子类，所以在spark中可以如下去选中一个列
+  单引号的在scala中是一个特殊的符号，通过单引号会生成一个symbol对象，symbol对象可以理解为是一个字符串的变种，但是比字符串的效率高很多，在spark中，对scala中的symbol对象做了隐式转换，转换为一个columnName对象，columnName是column的子类，所以在spark中可以如下去**选中一个列**
 
   ```scala
   val spark = SparkSession.builder().appName("column").master("local[6]").getOrCreate()
   import spark.implicits._
   val personDF = Seq(Person("zhangsan", 12), Person("zhangsan", 8), Person("lisi", 15)).toDS()
   
+  // 必须导入隐式转换才能使用
   val c1: Symbol = 'name
   personDF.select(c1).show()
   personDF.select('name).show()
@@ -428,6 +456,7 @@ column表示了Dataset中的一个列，并且可以持有一个表达式，这�
   import spark.implicits._
   val personDF = Seq(Person("zhangsan", 12), Person("zhangsan", 8), Person("lisi", 15)).toDS()
   
+  // 必须导入隐式转换才能使用
   val c2: ColumnName = $"name"
   personDF.select(c2).show()
   personDF.select('name).show()
@@ -442,6 +471,7 @@ column表示了Dataset中的一个列，并且可以持有一个表达式，这�
   import org.apache.spark.sql.functions._
   val personDF = Seq(Person("zhangsan", 12), Person("zhangsan", 8), Person("lisi", 15)).toDS()
   
+  // 必须导入functions
   val c3: sql.Column = col("name")
   personDF.select(c3).show()
   personDF.select(col("name")).show()
@@ -453,11 +483,24 @@ column表示了Dataset中的一个列，并且可以持有一个表达式，这�
   val spark = SparkSession.builder().appName("column").master("local[6]").getOrCreate()
   import org.apache.spark.sql.functions._
   val personDF = Seq(Person("zhangsan", 12), Person("zhangsan", 8), Person("lisi", 15)).toDS()
-  
+  // 必须导入functions
   val c4: sql.Column = column("name")
   personDF.select(c4).show()
   personDF.select(column("name")).show()
   ```
+
+  以上四种创建方式，没有关联dataset
+
+  ```scala
+  // dataset 可以使用
+  ds.select(column).show
+  // dataFrame 同样可以使用
+  df.select(column).show
+  // select 方法可以使用column对象来选中某个列，那么其他算子同样可以
+  df.where(column == "zhangsan").show
+  ```
+
+  
 
 - `Dataset.col`
 
@@ -468,7 +511,10 @@ column表示了Dataset中的一个列，并且可以持有一个表达式，这�
   val personDF = Seq(Person("zhangsan", 12), Person("zhangsan", 8), Person("lisi", 15)).toDS()
   
   val c5: sql.Column = personDF.col("name")
-  personDF.select(c5).show()
+  // 使用dataset来获取column对象，会和某个Dataset进行绑定，在逻辑计划中，就会有不同的表现
+  personDF.select(c5).show()  // 报错
+  
+  // 正确的使用方法
   personDF.select( personDF.col("name")).show()
   ```
 
@@ -481,6 +527,10 @@ column表示了Dataset中的一个列，并且可以持有一个表达式，这�
   val personDF = Seq(Person("zhangsan", 12), Person("zhangsan", 8), Person("lisi", 15)).toDS()
   
   val c6: sql.Column = personDF.apply("name")
+  // 因为调用了apply方法，所以等同于
+  val c7 = personDF("name")
+  
+  // 同上 
   personDF.select(c6).show()
   personDF.select( personDF.apply("name")).show()
   ```
@@ -492,7 +542,9 @@ column表示了Dataset中的一个列，并且可以持有一个表达式，这�
   as方法有两个用法，通过`as[Type]`的形式可以将一个列中数据的类型转换为type类型
 
   ```scala
-   personDF.select(col("age").as[Long]).show()
+  personDF.select(col("age").as[Long]).show()
+  // 这样也可以
+  personDF.select('age.as[Long]).show()
   ```
 
 - `as(name)`
@@ -501,6 +553,8 @@ column表示了Dataset中的一个列，并且可以持有一个表达式，这�
 
   ```scala
   personDF.select(col("age").as("age_new")).show()
+  // 简化
+  personDF.select('age as "age_new" ).show()
   ```
 
 ### 1.3.3 添加列
@@ -520,15 +574,15 @@ withColumn
   通过column的API，可以轻松实现SQL语句中`LIKE`的功能
 
   ```scala
-   personDF.filter('name like "%zhang%").show()
+  personDF.filter('name like "%zhang%").show()
   ```
 
 - `isin`
 
-  通过column的API，可以轻松实现SQL语句中`isin`的功能
+  通过column的API，可以轻松实现SQL语句中`isin`的功能，枚举判断
 
   ```scala
-   personDF.filter('name isin ("hello", "zhangsan")).show()
+  personDF.filter('name isin ("hello", "zhangsan")).show()
   ```
 
 - `sort`
@@ -551,6 +605,10 @@ withColumn
 - 什么是缺省值
 
   一个值本身的含义是这个值不存在则称之为缺省值，也就是说这个值本身代表着缺失，或者这个值本身无意义，比如说`null`，或者空字符串
+
+  NaN => Not a Number
+
+  null => 对象为空
 
   ![](img/spark/缺省值1.png)
 
@@ -607,6 +665,10 @@ withColumn
          StructField("pm", DoubleType)
        )
      )
+     // 读取数据集
+     // 方式1：通过spark csv自动推断类型读取，推断数字的时候会将NaN推断为字符串
+     // 方式2：直接读取字符串，在后续操作中使用map算子转换类型
+     // 方式3：指定schema，不要自动推断
      
      val df = spark.read
        .option("header", value = true)
@@ -618,26 +680,43 @@ withColumn
 
      丢弃包含null和NaN的行
 
-     - 当某行数据所有的值都是null或者NaN的时候丢弃此行
+     关于drop的值说明
+
+     ```scala
+     //只有一个NaN就丢弃
+     df.na.drop("any").show()
+     // 等价于
+     df.na.drop("all").show()
+     
+     // 所有的数据都是NaN的行才丢弃
+     df.na.drop("all").show()
+     
+     // 某些列的规则
+     df.na.drop("all", List("pm", "id")).show()
+     ```
+
+     
+
+     - **当某行数据所有的值**都是null或者NaN的时候丢弃此行
 
        ```scala
        df.na.drop("all").show()
        ```
 
-     - 当某行中特定列所有值都是 `null` 或者 `NaN` 的时候丢弃此行
+     - **当某行中特定列所有值**都是 `null` 或者 `NaN` 的时候丢弃此行
 
        ```scala
        df.na.drop("all", List("pm", "id")).show()
        ```
 
-     - 当某行数据任意一个字段为 `null` 或者 `NaN` 的时候丢弃此行
+     - **当某行数据任意一个字段**为 `null` 或者 `NaN` 的时候丢弃此行
 
        ```scala
        df.na.drop().show()
        df.na.drop("any").show()
        ```
 
-     - 当某行中特定列任意一个字段为 `null` 或者 `NaN` 的时候丢弃此行
+     - **当某行中特定列任意一个字段**为 `null` 或者 `NaN` 的时候丢弃此行
 
        ```scala
        df.na.drop(List("pm", "id")).show()
@@ -673,34 +752,42 @@ withColumn
      ```scala
      val df = spark.read
        .option("header", value = true)
+       .option("inferSchema", value = true)
        .csv("dataset/BeijingPM20100101_20151231.csv")
      ```
-
-  2. 使用函数直接转换非法的字符串
-
-     ```
-     val df = spark.read
-       .option("header", value = true)
-       .csv("dataset/BeijingPM20100101_20151231.csv")
-     ```
-
-  3. 使用 `where` 直接过滤
-
+   ```
+  
+   ```
+2. 使用函数直接转换非法的字符串
+  
      ```scala
-     df.select('No as "id", 'year, 'month, 'day, 'hour, 'season, 'PM_Dongsi)
-       .where('PM_Dongsi =!= "NA")
+     import org.apache.spark.sql.functions._
+     
+     df.select('No as "id", 'year, 'month, 'day, 'hour, 'season,
+       when('PM_Dongsi === "NA", Double.NaN) // 第二个参数表示满足条件时的值
+         .otherwise('PM_Dongsi cast DoubleType) // 当值不是NA的时候，将正常值转为Double类型
+       .as("pm"))
        .show()
      ```
+  
+  3. 使用 `where` 直接过滤
+
+   ```scala
+     df.select('No as "id", 'year, 'month, 'day, 'hour, 'season, 'PM_Dongsi)
+     .where('PM_Dongsi =!= "NA")
+       .show()
+   ```
 
   4. 使用 `DataFrameNaFunctions` 替换, 但是这种方式被替换的值和新值必须是同类型
 
-     ```scala
+   ```scala
+     // 原类型和转换后的类型必须保持一致
      df.select('No as "id", 'year, 'month, 'day, 'hour, 'season, 'PM_Dongsi)
-       .na.replace("PM_Dongsi", Map("NA" -> "NaN"))
+       .na.replace("PM_Dongsi", Map("NA" -> "NaN","NULL"->"null"))
        .show()
-     ```
+   ```
 
-     
+​     
 
 # 3. 聚合
 
@@ -743,27 +830,33 @@ groupBy算子会按照列将Dataset分组，并返回一个`RelationalGroupedDat
    val cleanDF = sourceDF.where('pm =!= Double.NaN)
    ```
 
-   
-
 3. 使用functions函数进行聚合
 
+   需求：统计每个月PM值的平均值
+
    ```scala
-   //  使用 functions 函数来完成聚合
+   // 使用 functions 函数来完成聚合
    import org.apache.spark.sql.functions._
-   
-   val groupedDF: RelationalGroupedDataset = pmDF.groupBy('year)
+   // 分组
+   val groupedDF: RelationalGroupedDataset = pmDF.groupBy('year,$"month")
    // 本质上, avg 这个函数定义了一个操作, 把表达式设置给 pm 列
    // select avg(pm) from ... group by
-   groupedDF.agg(avg('pm) as "pm_avg")
-     .orderBy('pm_avg)
+   groupedDF.agg(avg('pm) as "pm_avg") // avg->求平均数
+     .orderBy('pm_avg.desc)
      .show()
    ```
 
 4. 除了使用 `functions` 进行聚合, 还可以直接使用 `RelationalGroupedDataset `的 API 进行聚合
 
    ```scala
+   // 使用GroupedDataset的API来完成聚合
    groupedDF.avg("pm")
      .orderBy('pm_avg)
+     .show()
+   
+   // 求方差
+   groupedDF.agg(stddev(""))
+     .orderBy('pm_avg.desc)
      .show()
    
    groupedDF.max("pm")
@@ -783,14 +876,14 @@ groupBy算子会按照列将Dataset分组，并返回一个`RelationalGroupedDat
 1. 准备数据
 
    ```scala
-   private val spark = SparkSession.builder()
+   val spark = SparkSession.builder()
      .master("local[6]")
      .appName("aggregation")
      .getOrCreate()
    
    import spark.implicits._
    
-   private val schemaFinal = StructType(
+   val schemaFinal = StructType(
      List(
        StructField("source", StringType),
        StructField("year", IntegerType),
@@ -801,30 +894,34 @@ groupBy算子会按照列将Dataset分组，并返回一个`RelationalGroupedDat
        StructField("pm", DoubleType)
      )
    )
-   
-   private val pmFinal = spark.read
+   val pmFinal = spark.read
      .schema(schemaFinal)
      .option("header", value = true)
      .csv("dataset/pm_final.csv")
    ```
-
+   
 2. 进行多维聚合
 
    ```scala
    import org.apache.spark.sql.functions._
    
+   // 需求1：不同年，不同来源，PM值的平均数
    val groupPostAndYear = pmFinal.groupBy('source, 'year)
-     .agg(sum("pm") as "pm")
+     .agg(avg("pm") as "pm")
    
+   // 需求2：不在整个数据集中，按照不同来源来统计
    val groupPost = pmFinal.groupBy('source)
-     .agg(sum("pm") as "pm")
+     .agg(avg("pm") as "pm")
+     // lit(null) as "year" 作用是null显示为一列
      .select('source, lit(null) as "year", 'pm)
    
-   groupPostAndYear.union(groupPost)
-     .sort('source, 'year asc_nulls_last, 'pm)
+   // 合并在同一个结果集中
+groupPostAndYear.union(groupPost)
+   	// 排序 先按照source进行排序，接着按照year进行排序，当source和year相同时，按照pm进行排序
+     .sort('source, 'year.asc_nulls_last, 'pm)
      .show()
    ```
-
+   
    大家其实也能看出来, 在一个数据集中又小计又总计, 可能需要多个操作符, 如何简化呢? 请看继续往下看
 
 ### 3.2.1 rollup操作符
@@ -848,6 +945,9 @@ groupBy算子会按照列将Dataset分组，并返回一个`RelationalGroupedDat
 2. rollup操作
 
    ```scala
+   // 滚动分组
+   // 假设传入A,B两个列，那么分组结果就会是AB,A,NULL（全局结果）
+   
    sales.rollup("city", "year")
      .agg(sum("amount") as "amount")
      .sort($"city".desc_nulls_last, $"year".asc_nulls_last)
@@ -858,18 +958,34 @@ groupBy算子会按照列将Dataset分组，并返回一个`RelationalGroupedDat
      * +---------+----+------+
      * |     city|year|amount|
      * +---------+----+------+
-     * | Shanghai|2015|    50| <-- 上海 2015 的小计
+     * | Shanghai|2015|    50| <-- 上海某一年的销售额
      * | Shanghai|2016|   150|
-     * | Shanghai|null|   200| <-- 上海的总计
+     * | Shanghai|null|   200| <-- 上海一共的销售额，小计
      * |Guangzhou|2017|    50|
      * |Guangzhou|null|    50|
      * |  Beijing|2016|   100|
      * |  Beijing|2017|   200|
      * |  Beijing|null|   300|
-     * |     null|null|   550| <-- 整个数据集的总计
+     * |     null|null|   550| <-- 整个数据集的总计  
      * +---------+----+------+
      */
    ```
+
+   注：`rollup(A,B)`和`rollup(B,A)`的区别?
+
+   ```
+   rollup A,B 的分组步骤：
+   gruopBy A B
+   gruopBy A
+   gruopBy null
+   
+   rollup B,A  的分组步骤：
+   gruopBy B,A
+   gruopBy B 
+   gruopBy null
+   ```
+
+   
 
 3. 如果使用基础的 groupBy 如何实现效果?
 
@@ -931,13 +1047,13 @@ groupBy算子会按照列将Dataset分组，并返回一个`RelationalGroupedDat
 
 `cube` 的功能和 `rollup` 是一样的, 但也有区别, 区别如下
 
-- `rollup(A, B).sum©`
+- `rollup(A, B).sum`
 
   其结果集中会有三种数据形式: `A B C`, `A null C`, `null null C`
 
   不知道大家发现没, 结果集中没有对 `B` 列的聚合结果
 
-- `cube(A, B).sum©`
+- `cube(A, B).sum`
 
   其结果集中会有四种数据形式: `A B C`, `A null C`, `null null C`, `null B C`
 
@@ -1076,6 +1192,7 @@ val groupedDF: RelationalGroupedDataset = pmDF.groupBy('year)
     val cities = Seq((0, "Beijing"), (1, "Shanghai"), (2, "Guangzhou"))
       .toDF("id", "name")
     
+    //参数：join的对象，条件
     person.join(cities, person.col("cityId") === cities.col("id"))
       .select(person.col("id"),
         person.col("name"),
@@ -1161,7 +1278,7 @@ cities.createOrReplaceTempView("cities")
 
 类型字段：cross
 
-说明：交叉连接就是笛卡尔积，就是两个表中所有的数据两两结对
+说明：**交叉连接就是笛卡尔积，就是两个表中所有的数据两两结对**
 
 交叉连接是一个非常重的操作，在生产中，尽量不要将两个大数据集交叉连接，如果一定要交叉连接，也需要在交叉连接后进行过滤，优化器会进行优化
 
@@ -1182,6 +1299,7 @@ def crossJoin(): Unit = {
       .where(person.col("cityId") === cities.col("id"))
       .show()
 
+    // sql 操作
     spark.sql("select u.id, u.name, c.name from person u cross join cities c " +
       "where u.cityId = c.id")
       .show()
@@ -1192,7 +1310,7 @@ def crossJoin(): Unit = {
 
 类型字段：inner
 
-说明：内连接就是按照条件找到两个数据集关联的数据，并且在生成的结果集中只存在能关联到的数据
+说明：**内连接就是按照条件找到两个数据集关联的数据，并且在生成的结果集中只存在能关联到的数据**
 
 ![](img/spark/inner.png)
 
@@ -1211,9 +1329,10 @@ def inner(): Unit = {
     person.col("cityId") === cities.col("id"),
     joinType = "inner")
     .show()
-
+    
+  // sql 操作
   spark.sql("select p.id, p.name, c.name " +
-    "from person p inner join cities c on p.cityId = c.id")
+    "from person p inner join cities c on p.cityId = c.id") // 必须有条件
     .show()
 }
 ```
@@ -1222,7 +1341,7 @@ def inner(): Unit = {
 
 类型字段：outer，full，fullouter
 
-说明：内连接和外连接的最大区别，就是内连接的结果集中只有可以连接上的数据，而外连接可以包含没有连接上的数据，根据情况的不同，外连接又可以分为很多种，比如所有的没连接上的数据都放入结果集，就叫做全外连接
+说明：内连接和外连接的最大区别，**就是内连接的结果集中只有可以连接上的数据，而外连接可以包含没有连接上的数据**，根据情况的不同，外连接又可以分为很多种，比如所有的没连接上的数据都放入结果集，就叫做全外连接
 
 ![](img/spark/全外链接.png)
 
@@ -1243,6 +1362,7 @@ Dataset操作
       joinType = "full")
       .show()
 
+    // sql 操作
     spark.sql("select p.id, p.name, c.name " +
       "from person p full outer join cities c " +
       "on p.cityId = c.id")
@@ -1277,6 +1397,7 @@ Dataset操作
       joinType = "left")
       .show()
 
+    // sql 操作
     spark.sql("select p.id, p.name, c.name " +
       "from person p left join cities c " +
       "on p.cityId = c.id")
@@ -1289,7 +1410,7 @@ Dataset操作
 
 类型字段：leftanti
 
-说明：LeftAnit是一种特殊的连接形式，和左外连接类似，但是其结果集中没有右侧的数据，只包含左边集合中没有连接上的数据
+说明：LeftAnit是一种特殊的连接形式，和左外连接类似，但是其结果集中没有右侧的数据，**只包含左边集合中没有连接上的数据**
 
 ![](img/spark/leftanit.png)
 
@@ -1309,7 +1430,8 @@ Dataset操作：
       person.col("cityId") === cities.col("id"),
       joinType = "leftanti")
       .show()
-
+      
+	// sql 操作
     spark.sql("select p.id, p.name " +
       "from person p left anti join cities c " +
       "on p.cityId = c.id")
@@ -1321,7 +1443,7 @@ Dataset操作：
 
 类型字段：leftsemi
 
-说明：和leftanti恰好相反，leftsemi的结果集也没有右侧集合的数据，但是只包含左侧集合中连接上的数据
+说明：和leftanti恰好相反，leftsemi的结果集也没有右侧集合的数据，但是只**包含左侧集合中连接上的数据**
 
 ![](img/spark/leftsemi.png)
 
@@ -1341,7 +1463,7 @@ Dataset操作：
       person.col("cityId") === cities.col("id"),
       joinType = "leftsemi")
       .show()
-
+	// sql 操作
     spark.sql("select p.id, p.name " +
       "from person p left semi join cities c " +
       "on p.cityId = c.id")
@@ -1379,8 +1501,63 @@ def leftRight(): Unit = {
       "on p.cityId = c.id")
       .show()
 }
+```
+
+## 4.4 UDF
+
+sparkSQL中有很多预定义函数，如果这些函数觉得不满意你可以通过UDF进行扩展
+
+```scala
+object UDF {
+  def main(args: Array[String]): Unit = {
+
+      val spark = SparkSession.builder()
+        .appName("window")
+        .master("local[6]")
+        .getOrCreate()
+
+      import spark.implicits._
+
+      val data = Seq(
+        ("Thin", "Cell phone", 6000),
+        ("Normal", "Tablet", 1500),
+        ("Mini", "Tablet", 5500),
+        ("Ultra thin", "Cell phone", 5000),
+        ("Very thin", "Cell phone", 6000),
+        ("Big", "Tablet", 2500),
+        ("Bendable", "Cell phone", 3000),
+        ("Foldable", "Cell phone", 3000),
+        ("Pro", "Tablet", 4500),
+        ("Pro2", "Tablet", 6500)
+      ).toDF("product", "category", "revenue")
+
+    // 需求1：聚合每个类别的总价
+    // 1. 分组 2. 对每一组的数据进行聚合
+
+    import org.apache.spark.sql.functions._
+//    data.groupBy('category)
+//      .agg(sum('revenue))
+//      .show()
+//
+
+    // 需求2：把名称变小写
+//    data.select(lower('product))
+//      .show()
+
+    // 需求3：把价格变为字符串形式
+    //6000 6k
+    val toStrUDF: UserDefinedFunction = udf(toStr _)
+    data.select('product,'category,toStrUDF('revenue))
+  }
+
+  def toStr(revenue:Long):String = {
+    (revenue / 1000) + "k"
+  }
+}
 
 ```
+
+
 
 ## 4.3 广播连接-扩展
 
@@ -1543,22 +1720,15 @@ def leftRight(): Unit = {
      }
      ```
 
-   - 方式1：SQL语句
+   - 方式1：SQL语句方式
 
      ```sql
-     SELECT
-       product,
-       category,
-       revenue
-     FROM (
-       SELECT
-         product,
-         category,
-         revenue,
-         dense_rank() OVER (PARTITION BY category ORDER BY revenue DESC) as rank
-       FROM productRevenue) tmp
-     WHERE
-       rank <= 2
+     data.createOrReplaceTempView("productRevenue")
+     
+      spark.sql("SELECT product, category, revenue FROM " +
+           "(SELECT product,category,revenue,dense_rank() OVER (PARTITION BY category ORDER BY revenue DESC) as rank FROM productRevenue) " +
+           " WHERE rank <= 2")
+           .show()
      ```
 
      - 窗口函数在 `SQL` 中的完整语法如下
@@ -1567,17 +1737,20 @@ def leftRight(): Unit = {
        function OVER (PARITION BY ... ORDER BY ... FRAME_TYPE BETWEEN ... AND ...)
        ```
 
-   - 方式2：使用DataFrame的命令式API
+   - 方式2：使用DataFrame的命令式API（窗口函数）
 
      ```scala
+     // 定义窗口
      val window: WindowSpec = Window.partitionBy('category)
        .orderBy('revenue.desc)
      
+     // 数据处理
+     import org.apache.spark.sql.functions._
      source.select('product, 'category, 'revenue, dense_rank() over window as "rank")
-       .where('rank <= 2)
+     .where('rank <= 2)
        .show()
      ```
-
+     
      - `WindowSpec` : 窗口的描述符, 描述窗口应该是怎么样的
      - `dense_rank() over window` : 表示一个叫做 `dense_rank()` 的函数作用于每一个窗口
 
@@ -1779,16 +1952,20 @@ dense_rank() OVER (PARTITION BY category ORDER BY revenue DESC) as rank
   )
   
   val source = data.toDF("product", "category", "revenue")
-  
-  val windowSpec = Window.partitionBy('category)
+  //1. 定义窗口，按照分类进行倒序排序
+  val windowSpec = Window.partitionBy('category) //按照category进行分区
     .orderBy('revenue.desc)
   
+  //2. 找到最后的商品价格
+  val maxPrice:sql.column = max('revenue) over windowSpec
+  
+  //3. 得到结果
   source.select(
-    'product, 'category, 'revenue,
-    ((max('revenue) over windowSpec) - 'revenue) as 'revenue_difference
+  'product, 'category, 'revenue,
+    (maxPrice - 'revenue) as 'revenue_difference
   ).show()
   ```
-
+  
   
 
 # 6.sparkSQL练习项目
@@ -2036,6 +2213,38 @@ object TaxiAnalysisRunner {
 }
 ```
 
+运行结果：
+
+```text
+root
+ |-- medallion: string (nullable = true)
+ |-- hack_license: string (nullable = true)
+ |-- vendor_id: string (nullable = true)
+ |-- rate_code: string (nullable = true)
+ |-- store_and_fwd_flag: string (nullable = true)
+ |-- pickup_datetime: string (nullable = true)
+ |-- dropoff_datetime: string (nullable = true)
+ |-- passenger_count: string (nullable = true)
+ |-- trip_time_in_secs: string (nullable = true)
+ |-- trip_distance: string (nullable = true)
+ |-- pickup_longitude: string (nullable = true)
+ |-- pickup_latitude: string (nullable = true)
+ |-- dropoff_longitude: string (nullable = true)
+ |-- dropoff_latitude: string (nullable = true)
+```
+
+![](img/spark/初始运行结果.png)
+
+**下一步工作内容**
+
+1. 剪去多余列
+
+   现在数据集中包含了一些多余的列, 在后续的计算中并不会使用到, 如果让这些列参与计算的话, 会影响整体性能, 浪费集群资源
+
+2. 类型转换
+
+   可以看到, 现在的数据集中, 所有列类型都是 `String`, 而在一些统计和运算中, 不能使用 `String` 来进行, 所以要将这些数据转为对应的类型
+
 ## 6.4 数据清洗
 
 **数据转换**
@@ -2053,6 +2262,7 @@ object TaxiAnalysisRunner {
 
 }
 
+// Row -> Trip
 /**
   * 代表一个行程, 是集合中的一条记录
   * @param license 出租车执照号
@@ -2087,6 +2297,7 @@ object TaxiAnalysisRunner {
     // ... 省略数据读取
 
     // 4. 数据转换和清洗
+   // 先把taxiRaw变为RDD在进行map转换操作
     val taxiParsed = taxiRaw.rdd.map(parse)
   }
 
@@ -2126,12 +2337,19 @@ object TaxiAnalysisRunner {
 case class Trip(...)
 
 
+// DataFrame中的Row的包装类型，主要为了包装getAs方法
 class RichRow(row: Row) {
-
+  // 为了返回Option 提醒外面处理空值，提供处理方式 
+  // option代表某个方法，结果有可能为空，使得方法调用处必须处理为null的情况
+  // option对象本身提供了一些对于null方法的支持
   def getAs[T](field: String): Option[T] = {
+    // 判断row.getAs是否为空，row中对应的filed是否为空
     if (row.isNullAt(row.fieldIndex(field)) || StringUtils.isBlank(row.getAs[String](field))) {
+      // null -> 返回None
       None
     } else {
+        
+      // not null -> 返回Some
       Some(row.getAs[T](field))
     }
   }
@@ -2194,11 +2412,12 @@ object TaxiAnalysisRunner {
     */
   def parseTime(row: RichRow, field: String): Long = {
     val pattern = "yyyy-MM-dd HH:mm:ss"
-    val formatter = new SimpleDateFormat(pattern, Locale.ENGLISH)
+    val formatter = new SimpleDateFormat(pattern, Locale.ENGLISH)// 第二个参数指定时区
 
-    val timeOption = row.getAs[String](field)
-    timeOption.map( time => formatter.parse(time).getTime )
-      .getOrElse(0L)
+    // 执行转换，获取Data对象，getTime获取时间戳
+    val time:Option[String] = row.getAs[String](field)
+    val timeOption:Option[Long] = time.map( time => formatter.parse(time).getTime )
+    timeOption.getOrElse(0L)
   }
 
   /**
@@ -2208,7 +2427,11 @@ object TaxiAnalysisRunner {
     * @return 返回 Double 型的时间戳
     */
   def parseLocation(row: RichRow, field: String): Double = {
-    row.getAs[String](field).map( loc => loc.toDouble ).getOrElse(0.0D)
+    // 1. 获取数据
+    val location = row.getAs[String](field)
+      
+    // 2. 转换数据
+    val localtionOption = location.map( loc => loc.toDouble ).getOrElse(0.0D)
   }
 }
 
@@ -2238,7 +2461,7 @@ class RichRow(row: Row) {...}
   返回结果应该分为两部分来进行说明
 
   - 正确, 正确则返回数据
-  - 错误, 则应该返回两类信息, 一 告知外面哪个数据出了错, 二 告知错误是什么
+  - 错误, 则应该返回两类信息, 1.告知外面哪个数据出了错，2.告知错误是什么
 
 对于这种情况, 可以使用 `Scala` 中提供的一个类似于其它语言中多返回值的 `Either`. `Either` 分为两个情况, 一个是 `Left`, 一个是 `Right`, 左右两个结果所代表的意思可有由用户来指定
 
@@ -2250,18 +2473,21 @@ val process = (b: Double) => {
 }
 
 //	一个方法, 作用是让 process 函数调用起来更安全, 在其中 catch 错误, 报错后返回足够的信息 (报错时的参数和报错信息)
+// Either[正确时返回的结果,(出现异常的参数，异常信息)]
+// Either => Left or Right
 def safe(function: Double => Double, b: Double): Either[Double, (Double, Exception)] = {  
-    // 	正常时返回 Left, 放入正确结果
   try {
+    // 	正常时返回 Left, 放入正确结果
     val result = function(b)         
     Left(result)
   } catch {
-      //异常时返回 Right, 放入报错时的参数, 和报错信息
+   //异常时返回 Right, 放入报错时的参数, 和报错信息
     case e: Exception => Right(b, e) 
   }
 }
 // 	外部调用
-val result = safe(process, 0)        
+val result = safe(process, 0)
+
 
 // 处理调用结果, 如果是 Right 的话, 则可以进行响应的异常处理和弥补
 result match {                       
@@ -2285,6 +2511,7 @@ object TaxiAnalysisRunner {
     // ...
 
     // 4. 数据转换和清洗
+    // 注意，这里我们传入的parse是一个函数，而不是一个方法，所以我们定义的safe也需要返回一个函数
     val taxiParsed = taxiRaw.rdd.map(safe(parse))
   }
 
@@ -2404,11 +2631,14 @@ object TaxiAnalysisRunner {
   def main(args: Array[String]): Unit = {
     ...
 
-    // 5. 过滤行程无效的数据
+    // 5. 绘制时长直方图
+    // 5.1 编写UDF完成计算，将毫秒值转换为小时单位
     val hours = (pickUp: Long, dropOff: Long) => {
-      val duration = dropOff - pickUp
-      TimeUnit.HOURS.convert(, TimeUnit.MILLISECONDS)
+      val duration = dropOff - pickUp 
+      val hours = TimeUnit.HOURS.convert(duration, TimeUnit.MILLISECONDS)
+      hours
     }
+    // 转为UDF
     val hoursUDF = udf(hours)
   }
 
@@ -2428,13 +2658,17 @@ object TaxiAnalysisRunner {
   def main(args: Array[String]): Unit = {
     ...
 
-    // 5. 过滤行程无效的数据
-    val hours = (pickUp: Long, dropOff: Long) => {
-      val duration = dropOff - pickUp
-      TimeUnit.MINUTES.convert(, TimeUnit.MILLISECONDS)
+    // 5. 绘制时长直方图
+    // 5.1 编写UDF完成计算，将毫秒值转换为小时单位
+     val hours = (pickUp: Long, dropOff: Long) => {
+      val duration = dropOff - pickUp 
+      val hours = TimeUnit.HOURS.convert(duration, TimeUnit.MILLISECONDS)
+      hours
     }
+    // 转为UDF
     val hoursUDF = udf(hours)
 
+    // 5.2 进行统计
     taxiGood.groupBy(hoursUDF($"pickUpTime", $"dropOffTime").as("duration"))
       .count()
       .sort("duration")
@@ -2455,18 +2689,23 @@ object TaxiAnalysisRunner {
   def main(args: Array[String]): Unit = {
     ...
 
-    // 5. 过滤行程无效的数据
-    val hours = (pickUp: Long, dropOff: Long) => {
-      val duration = dropOff - pickUp
-      TimeUnit.MINUTES.convert(, TimeUnit.MILLISECONDS)
+    // 5. 绘制时长直方图
+    // 5.1 编写UDF完成计算，将毫秒值转换为小时单位
+     val hours = (pickUp: Long, dropOff: Long) => {
+      val duration = dropOff - pickUp 
+      val hours = TimeUnit.HOURS.convert(duration, TimeUnit.MILLISECONDS)
+      hours
     }
+    // 转为UDF
     val hoursUDF = udf(hours)
-
+    // 5.2 进行统计
     taxiGood.groupBy(hoursUDF($"pickUpTime", $"dropOffTime").as("duration"))
       .count()
       .sort("duration")
       .show()
 
+    //6. 根据直方图的显示，查看数据分布后，减除反常数据
+    // 注册UDF
     spark.udf.register("hours", hours)
     val taxiClean = taxiGood.where("hours(pickUpTime, dropOffTime) BETWEEN 0 AND 3")
     taxiClean.show()
@@ -2511,12 +2750,12 @@ object TaxiAnalysisRunner {
 
 - 如何表示地理位置
 
-  |  类型  | 例子                                                         |
-  | :----: | ------------------------------------------------------------ |
-  |   点   | `{    "type": "Point",    "coordinates": [30, 10] }`         |
-  |  线段  | `{    "type": "Point",    "coordinates": [30, 10] }`         |
-  | 多边形 | `{    "type": "Point",    "coordinates": [30, 10] }`         |
-  |        | `{    "type": "Polygon",    "coordinates": [        [[35, 10], [45, 45], [15, 40], [10, 20], [35, 10]],        [[20, 30], [35, 35], [30, 20], [20, 30]]    ] }` |
+  |  类型  | 图片显示，                 | 例子                                                         |
+  | :----: | :------------------------- | ------------------------------------------------------------ |
+  |   点   | ![](img/spark/点.png)      | `{    "type": "Point",    "coordinates": [30, 10] }`         |
+  |  线段  | ![](img/spark/线段.png)    | `{    "type": "Point",    "coordinates": [30, 10] }`         |
+  | 多边形 | ![](img/spark/多边形1.png) | `{    "type": "Point",    "coordinates": [30, 10] }`         |
+  |        | ![](img/spark/多边形2.png) | `{    "type": "Polygon",    "coordinates": [        [[35, 10], [45, 45], [15, 40], [10, 20], [35, 10]],        [[20, 30], [35, 35], [30, 20], [20, 30]]    ] }` |
 
 **数据集**
 
@@ -2590,14 +2829,15 @@ val product =
     |{"name":"Toy","price":35.35}
   """.stripMargin
 
-// 可以解析 JSON 为对象
+// 使用序列化 API 之前, 要先导入代表转换规则的 formats 对象隐式转换
+// 隐式转换的形式提供格式化工具，例如 如何解析时间字符串
+implicit val formats = Serialization.formats(NoTypeHints)
+
+// 将JSON具体的解析为某个对象
 val obj: Product = parse(product).extra[Product]
 
 // 可以将对象序列化为 JSON
 val str: String = compact(render(Product("电视", 10.5)))
-
-// 使用序列化 API 之前, 要先导入代表转换规则的 formats 对象隐式转换
-implicit val formats = Serialization.formats(NoTypeHints)
 
 // 可以使用序列化的方式来将 JSON 字符串反序列化为对象
 val obj1 = read[Person](product)
@@ -2709,7 +2949,10 @@ GeometryEngine.contains(geometry, other, csr)
   object FeatureExtraction {
   
     def parseJson(json: String): FeatureCollection = {
+      import org.json4s.jackson.Serialization.read
+      //1. 导入formats隐式转换
       implicit val format: AnyRef with Formats = Serialization.formats(NoTypeHints)
+      // 2. JSON->Obj
       val featureCollection = read[FeatureCollection](json)
       featureCollection
     }
@@ -2719,6 +2962,8 @@ GeometryEngine.contains(geometry, other, csr)
 - 读取数据集, 转换数据
 
   ```scala
+  // 7. 增加行政区信息
+  // 7.1 读取数据集
   val geoJson = Source.fromFile("dataset/nyc-borough-boundaries-polygon.geojson").mkString
   val features = FeatureExtraction.parseJson(geoJson)
   ```
@@ -2773,11 +3018,14 @@ GeometryEngine.contains(geometry, other, csr)
 
 **在出租车 DataFrame 中增加行政区信息**
 
--  排序 `Geometry`
+- 排序 `Geometry`
 
   - 动机: 后续需要逐个遍历 `Geometry` 对象, 取得每条出租车数据所在的行政区, 大的行政区排在前面效率更好一些
 
   ```scala
+  // 7.2 排序 
+  // 后续需要得到每一个出租车在那个行政区，拿到经纬度，遍历features 搜索其所在的行政区
+  // 在搜索的过程中，行政区越大命中的几率就越高，所以把大的行政区放在前面，更容易命中，减少遍历次数
   val areaSortedFeatures = features.features.sortBy(feature => {
       (feature.properties("boroughCode"), - feature.getGeometry.calculateArea2D())
     })
@@ -2788,6 +3036,7 @@ GeometryEngine.contains(geometry, other, csr)
   - 动机: `Geometry` 对象数组相对来说是一个小数据集, 后续需要使用 `Spark` 来进行计算, 将 `Geometry` 分发给每一个 `Executor` 会显著减少 `IO` 通量
 
   ```scala
+  // 7.3 广播
   val featuresBc = spark.sparkContext.broadcast(areaSortedFeatures)
   ```
 
@@ -2796,15 +3045,19 @@ GeometryEngine.contains(geometry, other, csr)
   - 动机: 创建 UDF, 接收每个出租车数据的下车经纬度, 转为行政区信息, 以便后续实现功能
 
   ```scala
+  // 7.4 创建UDF，完成功能
   val boroughLookUp = (x: Double, y: Double) => {
+    // 7.4.1 搜索经纬度所在的行政区
     val features: Option[Feature] = featuresBc.value.find(feature => {
       GeometryEngine.contains(feature.getGeometry, new Point(x, y), SpatialReference.create(4326))
     })
-    features.map(feature => {
+    // 7.4.2 转为行政区信息
+    val borough = features.map(feature => {
       feature.properties("borough")
     }).getOrElse("NA")
+    borough
   }
-  
+  // 7.5 统计信息
   val boroughUDF = udf(boroughLookUp)
   ```
 
@@ -2813,6 +3066,7 @@ GeometryEngine.contains(geometry, other, csr)
   - 动机: 写完功能最好先看看, 运行一下
 
   ```scala
+  // 测试
   taxiClean.groupBy(boroughUDF('dropOffX, 'dropOffY))
     .count()
     .show()
@@ -2879,12 +3133,14 @@ GeometryEngine.contains(geometry, other, csr)
 - Step 1: 过滤没有经纬度的数据
 
   ```scala
+  // 8.1 过滤没有经纬度的数据
   val taxiDone = taxiClean.where("dropOffX != 0 and dropOffY != 0 and pickUpX != 0 and pickUpY != 0")
   ```
 
 - Step 2: 划分会话
 
   ```scala
+  // 8.2 会话分析
   val sessions = taxiDone.repartition('license)
     .sortWithinPartitions('license, 'pickUpTime)
   ```
@@ -2894,6 +3150,7 @@ GeometryEngine.contains(geometry, other, csr)
   1. 处理每个分区, 通过 `Scala` 的 `API` 找到相邻的数据
 
      ```scala
+     // 8.3 求得时间差
      sessions.mapPartitions(trips => {
        val viter = trips.sliding(2)
      })
@@ -2902,6 +3159,7 @@ GeometryEngine.contains(geometry, other, csr)
   2. 过滤司机不同的相邻数据
 
      ```scala
+     // 8.3 求得时间差
      sessions.mapPartitions(trips => {
        val viter = trips.sliding(2)
          .filter(_.size == 2)
@@ -2917,7 +3175,7 @@ GeometryEngine.contains(geometry, other, csr)
        val duration = (t2.pickUpTime - t1.dropOffTime) / 1000
        (borough, duration)
      }
-     
+     // 8.3 求得时间差
      val boroughDurations = sessions.mapPartitions(trips => {
        val viter = trips.sliding(2)
          .filter(_.size == 2)
@@ -2929,6 +3187,7 @@ GeometryEngine.contains(geometry, other, csr)
 - Step 4: 统计数据
 
   ```scala
+  // 8.4 测试
   boroughDurations.where("seconds > 0")
     .groupBy("borough")
     .agg(avg("seconds"), stddev("seconds"))
