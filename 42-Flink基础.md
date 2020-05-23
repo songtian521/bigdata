@@ -565,10 +565,10 @@ Flink提供了不同的抽象级别以开发流式或批处理应用
 
 ![](img/flink/数据流编程模型.svg)
 
-- 最底层提供了有状态流。它将通过过程函数（Process Function）嵌入到DataStream API中。它允许用户可以自由地处理来自一个或者多个流数据的事件，并使用一致、容错的状态。除此之外，用户可以注册事件时间和处理事件回调，从而使程序可以实现复杂的计算
-- DataStream/DataSet API 是Flink提供的核心API，DataSet处理有界的数据集，DataStream处理有界或者无界的数据流。用户可以通过各种方法（map / flatmap / window / keyby / sum / max / min / avg / join 等）将数据进行转换/计算
-- Table API 是以表为中心的声明式DSL，其中表可能会动态变化（在表达流数据时）。Table API 提供了例如select、project、join、group-by、aggregat等操作，使用起来却更加简洁（代码量更少）。你可以在表于DataStream/DataSet 之间无缝切换，也允许程序将Table API与DataStream以及DataSet混合使用
-- Flink提供了最高层级的抽象是SQL，这一层抽象在语法与表达能力上与Table API类似，但是是以SQL查询表达式的形式表现程序。SQL抽象与Table API交互密切，同时SQL查询可以直接在Table API定义的表上执行
+- **最底层提供了有状态流**。它将通过过程函数（Process Function）嵌入到DataStream API中。它允许用户可以自由地处理来自一个或者多个流数据的事件，并使用一致、容错的状态。除此之外，用户可以注册事件时间和处理事件回调，从而使程序可以实现复杂的计算
+- **DataStream/DataSet API 是Flink提供的核心API**，DataSet处理有界的数据集，DataStream处理有界或者无界的数据流。用户可以通过各种方法（map / flatmap / window / keyby / sum / max / min / avg / join 等）将数据进行转换/计算
+- **Table API 是以表为中心的声明式DSL**，其中表可能会动态变化（在表达流数据时）。Table API 提供了例如select、project、join、group-by、aggregat等操作，使用起来却更加简洁（代码量更少）。你可以在表于DataStream/DataSet 之间无缝切换，也允许程序将Table API与DataStream以及DataSet混合使用
+- **Flink提供了最高层级的抽象是SQL**，这一层抽象在语法与表达能力上与Table API类似，但是是以SQL查询表达式的形式表现程序。SQL抽象与Table API交互密切，同时SQL查询可以直接在Table API定义的表上执行
 
 ## 3.4 Flink程序结构
 

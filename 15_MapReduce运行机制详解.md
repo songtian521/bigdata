@@ -8,6 +8,12 @@ MapReduce工作机制全流程图
 
 **概述：**inputFile通过split被逻辑切分为多个split文件，通过Record按行读取内容给Map（用户自己实现）进行处理，数据被Map处理结束之后交给OutPutCollector收集器，对其结果key进行分区（默认使用hash分区），然后写入buffer，每个MapTask都有一个内存缓冲区，存储着Map的输出结果，当缓冲区快满的时候需要将缓冲区的数据以一个临时文件的方式存放到磁盘，当整个MapTask结束后再对磁盘中这个MapTask产生的所有临时文件做合并，生成最终的正式输出文件，然后等待ReduceTask来拉取数据
 
+整个Map阶段流程大体如上图所示：
+
+![](img/MapReduce/MapTask工作机制.png)
+
+![](img/MapReduce/MapTask2.png)
+
 ### 1.1详细步骤
 
 1. 读取数据组件InputFormat（默认TextInputFormat）会通过getSplits方法对输入目录中文件进行逻辑切片规划得到block，有多少个block就对应启动多少个MapTask
@@ -511,7 +517,7 @@ id 		 date 		pid 	amount
        //setup方法只执行一次
        @Override
        protected void setup(Context context) throws IOException, InterruptedException {
-           //1.获取分布式缓存列表
+           //1.获取分布式缓存列表，已经在Main方法中进行缓存过了，这里只需要读取就可以了
            URI[] cacheFiles = context.getCacheFiles();//包含了所有的缓存文件
            //2.获取指定的缓存文件的文件系统（fileSystem）
            FileSystem fileSystem = FileSystem.get(cacheFiles[0], context.getConfiguration());

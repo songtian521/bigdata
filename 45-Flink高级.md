@@ -99,8 +99,8 @@ import org.apache.flink.util.Collector
 /**
   * RichFlatMapFunction[IN, OUT]
   *
-  * IN : 输入数据的类型
-  * OUT: 输出数据的类型
+  *(Long, Long) ---> IN : 输入数据的类型
+  *(Long, Long) ---> OUT: 输出数据的类型
   *
   */
 class CountWindowAverage extends RichFlatMapFunction[(Long, Long), (Long, Long)] {
@@ -853,13 +853,15 @@ object DataSet_DataStreamToTable {
     val orderA: DataStream[Order1] = env.fromCollection(Seq(
       Order1(1L, "beer", 3),
       Order1(1L, "diaper", 4),
-      Order1(3L, "rubber", 2)))
+      Order1(3L, "rubber", 2)
+    ))
 
     // 4. 根据数据注册表
     tableEnv.registerDataStream("OrderA", orderA)
     // 5. 执行SQL
     val result = tableEnv.sqlQuery("SELECT * FROM OrderA")
     // 6. 写入CSV文件中
+    // 参数：写入的文件路径，各个字段之间的分隔符，写入文件的数量，是否覆盖文件
     result.writeToSink(new CsvTableSink("./data/ccc", ",", 1, FileSystem.WriteMode.OVERWRITE))
     // 7. 执行任务
     env.execute()
@@ -926,7 +928,7 @@ val retractStream: DataStream[(Boolean, Row)] = tableEnv.toRetractStream[Row](ta
 
 使用Flink流式环境, 加载下列集合数据, 转换为Table, 并将Table转换为DataStream
 
-```
+```scala
 List(
       (1L, 1, "Hello"),
       (2L, 2, "Hello"),
@@ -1018,7 +1020,7 @@ val dsTuple: DataSet[(String, Int)] = tableEnv.toDataSet[(String, Int)](table)
 
 使用Flink批处理环境, 加载下列集合数据, 转换为Table, 并将Table转换为DataSet
 
-```
+```scala
 List(
       (1L, 1, "Hello"),
       (2L, 2, "Hello"),

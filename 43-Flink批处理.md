@@ -407,7 +407,11 @@ val datas = env.readTextFile("hdfs://bigdata111:9000/data.txt")
 
 //    导入隐式转换
     import org.apache.flink.api.scala._
-    val csv = env.readCsvFile[Student]("./data/subject.csv")
+    val csv:Dataset[Student] = env.readCsvFile[Student]("./data/subject.csv")
+      
+     // 注意：没有使用样例类时，其数据类型是Nothing
+    //val csv:Dataset[Nothing] = env.readCsvFile("./data/subject.csv")
+      
 //    触发程序执行
     csv.print()
 
@@ -418,7 +422,7 @@ val datas = env.readTextFile("hdfs://bigdata111:9000/data.txt")
   }
 
 //    映射CSV文件中的样例类
-case class Student(id:Int,name: String)
+case class Student(id:Int,name:String)
 ```
 
 ### 2.2.4 读取压缩文件
@@ -465,7 +469,7 @@ flink支持对一个文件目录内的所有文件，包括所有子目录中的
   }
 ```
 
-# 3. Flink批处理Transformation、
+# 3. Flink批处理Transformation
 
 | Transformation  | 说明                                                         |
 | --------------- | ------------------------------------------------------------ |
@@ -564,7 +568,7 @@ Tom,America,NewYork,Manhattan
 
 ## 3.3 mapPartition
 
-将一个`分区`中的元素转换为另一个元素
+将一个**分区**中的元素转换为另一个元素
 
 **示例**
 
@@ -718,7 +722,7 @@ Tom,America,NewYork,Manhattan
 
   可以对一个dataset或者一个group来进行聚合计算，最终聚合成一个元素
 
-reduce和reduceGroup的`区别`
+reduce和reduceGroup的区别
 
 ![](img/flink/reduceGroup.png)
 
@@ -784,9 +788,9 @@ reduce和reduceGroup的`区别`
       List(("java" , 1) , ("java", 1) ,("scala" , 1)  )
     )
 //    3.使用groupBy 按照单词分组
-    val group = wordcountDataSet.groupBy(0)
+    val group = wordcountDataSet.groupBy(0) // 传入分组元素的下标
 //    4. 使用aggregate对每个分组进行sum统计
-    val result = group.aggregate(Aggregations.SUM, 1)
+    val result = group.aggregate(Aggregations.SUM, 1) // 第二个参数要进行SUM操作的下标
 
     result.print()
 
@@ -816,7 +820,6 @@ reduce和reduceGroup的`区别`
 
 ```html
 ("java" , 1) , ("java", 2) ,("scala" , 1)
-
 ```
 
 去重得到
@@ -835,7 +838,7 @@ reduce和reduceGroup的`区别`
     val wordcountDataSet = env.fromCollection(
       List(("java" , 1) , ("java", 1) ,("scala" , 1)  )
     )
-//    3. 使用distinct 指定按照哪个字段来进行去重
+//    3. 使用distinct 指定按照哪个字段来进行去重，指定多个字段下标时，需要全部条件时才会去重
     val result = wordcountDataSet.distinct(0)
     result.print()
 
@@ -912,16 +915,29 @@ case class Score(id:Int, name:String, subjectId:Int, score:Double)
     // 2. 使用`fromCollection`创建两个数据源
     val wordDataSet1 = env.fromCollection(List("hadoop", "hive", "flume"))
     val wordDataSet2 = env.fromCollection(List("hadoop", "hive", "spark"))
-    // 3. 使用`union`将两个数据源关联在一起
+    // 3. 使用`union`将两个数据源关联在一起，
     val resultDataSet = wordDataSet1.union(wordDataSet2)
-
+	
+    // 去重
+    val resultDataSet1 = wordDataSet1.union(wordDataSet2).distinct
+      
     // 4. 打印测试
     resultDataSet.print()
-
+	resultDataSet1.print()
+      
     /**
      * hadoop
      * hadoop
      * hive
+     * hive
+     * flume
+     * spark
+     */
+      
+     // 去重后
+      
+     /**
+     * hadoop
      * hive
      * flume
      * spark
@@ -931,7 +947,7 @@ case class Score(id:Int, name:String, subjectId:Int, score:Double)
 
 ## 3.11 rebalance
 
-  Flink也会产生`数据倾斜`的时候，例如：当前的数据量有10亿条，在处理过程就有可能发生如下状况：
+  Flink也会产生数据倾斜的时候，例如：当前的数据量有10亿条，在处理过程就有可能发生如下状况：
 
 ![](img/flink/rebalance1.png)
 
@@ -953,9 +969,10 @@ case class Score(id:Int, name:String, subjectId:Int, score:Double)
 //    val filterDataSet = numDataSet.filter(_ > 8).rebalance()
 
     // 4. 使用map操作传入`RichMapFunction`，将当前子任务的ID和数字构建成一个元组
-    val resultDataSet = filterDataSet.map(new RichMapFunction[Long, (Long, Long)] {
-      override def map(in: Long): (Long, Long) = {
-        (getRuntimeContext.getIndexOfThisSubtask, in)
+    val resultDataSet:DataSet[(Int,Long)] = filterDataSet.map(new RichMapFunction[Long, (Long, Long)] {
+      override def map(value: Long): (Long, Long) = {
+        // 获取子任务序号
+        (getRuntimeContext.getIndexOfThisSubtask, value)
       }
     })
 
@@ -987,7 +1004,7 @@ List(1,1,1,1,1,1,1,2,2,2,2,2)
     // 1. 获取`ExecutionEnvironment`运行环境
     val env = ExecutionEnvironment.getExecutionEnvironment
     import org.apache.flink.api.scala._
-    // 1. 设置并行度为`2`
+    // 1. 设置并行度为2
     env.setParallelism(2)
 
     // 2. 使用`fromCollection`构建测试数据集
@@ -1003,6 +1020,33 @@ List(1,1,1,1,1,1,1,2,2,2,2,2)
 
   }
 ```
+
+打印测试后可以在`parition_output`目录下发现两个文件，按照字符串的hash进行了分区
+
+```scala
+ @Test
+  def hashPartition():Unit = {
+    // 1. 获取`ExecutionEnvironment`运行环境
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    import org.apache.flink.api.scala._
+    // 1. 设置并行度为2
+    env.setParallelism(2)
+
+    // 2. 使用`fromCollection`构建测试数据集
+    val numDataSet = env.fromCollection(List("flink",1),("hadoop",2),("hive",3))
+    // 3. 使用`partitionByHash`按照字符串的hash进行分区
+    val partitionDataSet = numDataSet.partitionByHash(0) // 指定按照元组的第一位进行分区
+
+    // 4. 调用`writeAsText`写入文件到`data/parition_output`目录中
+    partitionDataSet.writeAsText("./data/parition_output1")
+
+    // 5. 打印测试
+    partitionDataSet.print()
+
+  }
+```
+
+打印测试发现控制台输出了三个元组，而在`parition_output1`目录中仍旧是两个文件
 
 ## 3.13 sortPartition
 
@@ -1113,9 +1157,13 @@ Map(1 -> "spark", 2 -> "flink")
     import org.apache.flink.api.scala._
     //2.定义数据
     val ds1: DataSet[Map[Int, String]] = env.fromElements(Map(1 -> "spark", 2 -> "flink"))
-    //3 .TODO 写入到本地，文本文档,NO_OVERWRITE模式下如果文件已经存在，则报错，OVERWRITE模式下如果文件已经存在，则覆盖
-    ds1.setParallelism(1).writeAsText("data/data1/aa", WriteMode.OVERWRITE)
-    env.execute()
+    //3 写入到本地，文本文档,NO_OVERWRITE模式下如果文件已经存在，则报错，OVERWRITE模式下如果文件已经存在，则覆盖
+    ds1.writeAsText("data/data1/aa", WriteMode.OVERWRITE)
+    // 设置并行度，如果并行度大于1，会输出多个文件，aa1就是一个目录，如果并行度为1，那么aa1就是一个文件
+    ds1.setParallelism(2).writeAsText("data/data1/aa1", WriteMode.OVERWRITE)
+    // 手动执行任务
+    env.execute("sinkFile") // 参数指定任务名
+    // env.print() // 这个方法可以直接触发execute
   }
 ```
 
@@ -1172,8 +1220,8 @@ object local {
   def main(args: Array[String]): Unit = {
     val startTime = new Date().getTime
     // env
-    val localEnv: ExecutionEnvironment = ExecutionEnvironment.createLocalEnvironment(2)
-    val collectEnv: ExecutionEnvironment = ExecutionEnvironment.createCollectionsEnvironment
+    val localEnv: ExecutionEnvironment = ExecutionEnvironment.createLocalEnvironment(2) // 本地环境，多线程的，
+    val collectEnv: ExecutionEnvironment = ExecutionEnvironment.createCollectionsEnvironment // 集合环境，只包含单线程，数据量不能超过内存
     import org.apache.flink.api.scala._
     // load list
     val listDataSet: DataSet[Int] = localEnv.fromCollection(List(1,2,3,4))
@@ -1500,6 +1548,7 @@ object CounterDemo {
 
     // 4. 输出到文件
 //    resultDataSet.print()
+    // 落地到文件不会触发任务执行
     resultDataSet.writeAsText("./data/couter",FileSystem.WriteMode.OVERWRITE)
 
     // 5. 执行任务
@@ -1530,11 +1579,11 @@ Flink提供了一个类似于Hadoop的分布式缓存，让并行运行实例的
 
 使用ExecutionEnvironment实例对本地的或者远程的文件（例如：HDFS上的文件）,为缓存文件指定一个名字注册该缓存文件。当程序执行时候，Flink会自动将复制文件或者目录到所有worker节点的本地文件系统中，函数可以根据名字去该节点的本地文件系统中检索该文件！
 
->   注意:广播是将变量分发到各个worker节点的内存上，分布式缓存是将文件缓存到各个worker节点上
+>   注意：广播是将变量分发到各个worker节点的内存上，分布式缓存是将文件缓存到各个worker节点上
 
 **操作步骤:**
 
-```
+```scala
 1：注册一个文件
 env.registerCachedFile("hdfs:///path/to/your/file", "hdfsFile")  
 2：访问数据

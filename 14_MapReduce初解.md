@@ -6,9 +6,9 @@
 
 MapReduce思想在生活中处处可见。或多或少都曾接触过这种思想。MapReduce的思想核心是“分而治之”，适用于大量复杂的任务处理场景（大规模数据处理场景）。
 
-- Map负责“分”，即把复杂的任务分解为若干个简单的任务来并行处理。可以拆分的前提是这些小任务可以并行计算，彼此间几乎没有依赖关系
+- Map负责“**分**”，即把复杂的任务分解为若干个简单的任务来并行处理。可以拆分的前提是这些小任务可以并行计算，彼此间几乎没有依赖关系
 
-- Reduce负责“和”，即对map阶段的结果进行全局汇总。
+- Reduce负责“**和**”，即对map阶段的结果进行全局汇总。
 
 - MapReduce运行在yarn集群
 
@@ -17,7 +17,7 @@ MapReduce思想在生活中处处可见。或多或少都曾接触过这种思�
 
   这两个阶段合起来正是MapReduce思想的体现
 
-![](img/MapReduce/MapReduce编程流程.jpg)
+![](img/MapReduce/MR执行流程.png)
 
 使用比较通俗的语言进行解释MapReduce就是：
 
@@ -64,41 +64,27 @@ Map和Reduce为程序员提供了一个清晰的接口抽象描述。MapReduce�
 
 ## 3.MapReduce编程规范
 
-用户编写的程序分成三个部分：Mapper，Reducer，Driver(提交运行mr程序的客户端)
+> MapReduce 的开发一共有八个步骤, 其中 Map 阶段分为 2 个步骤，Shuffle 阶段 4 个步骤，Reduce 阶段分为 2 个步骤
+
+
 
 1. Map阶段
    
-   - 用户自定义的Mapper要继承自己的父类
-   
-   - Mapper的输入数据是KV对的形式（KV的类型可自定义）
-   - Mapper中的业务逻辑写在map()方法中
-   - Mapper的输出数据是KV对的形式（KV的类型可自定义）
-   - **map()方法（maptask进程）对每一个<K,V>调用一次**
+   - 设置 InputFormat 类, 将数据切分为 Key-Value**(K1和V1)** 对, 输入到第二步
+   - 自定义 Map 逻辑, 将第一步的结果转换成另外的 Key-Value（**K2和V2**） 对, 输出结果
    
 2. Shuffle阶段
-   - maptask收集我们的map()方法输出的kv对，放到内存缓冲区中
-   - 从内存缓冲区不断溢出本地磁盘文件，可能会溢出多个文件
-   - 多个溢出文件会被合并成大的溢出文件
-   - 在溢出的过程中，及合并的过程中，都要调用partitioner进行分区和针对key进行排序
-- reducetask根据自己的分区号，去各个maptask机器上取相对应的结果分区数据
-   - reducetask会取到同一个分区的来自不同maptask的结果文件，reducetask会将这些文件进行合并（归并排序）
-   - 合并成大文件之后，shuffle的过程也就结束了，后面进入reducetask的逻辑运算过程（从文件中取出一个一个的键值对group，调用用户自定义的reduce()方法）
-   
-   **注意：**Shuffle中的缓冲区大小会影响到mapreduce的程序执行效率，原则上说，缓冲区越大，磁盘IO的次数越少，执行速度就越快
-   
-   缓冲区的大小可以通过参数调整，参数：io.sort.mb  默认100M。
-   
+   - 对输出的 Key-Value 对进行**分区**
+   - 对不同分区的数据按照相同的 Key **排序**
+   - (可选) 对分组过的数据初步**规约**, 降低数据的网络拷贝
+   - 对数据进行**分组**, 相同 Key 的 Value 放入一个集合中
 3. Reduce阶段
 
-   - 用户自定义的Reducer要继承自己的父类
+   - 对多个 Map 任务的结果进行排序以及合并, 编写 Reduce 函数实现自己的逻辑, 对输入的 Key-Value 进行处理, 转为新的 Key-Value（**K3和V3**）输出
+- 设置 OutputFormat 处理并保存 Reduce 输出的 Key-Value 数据
+  
 
-   - Reducer的输入数据类型对应Mapper的输出数据类型，也是KV
-   - Reducer的业务逻辑写在reduce()方法中
-   - **Reducetask进程对每一组相同k的<k,v>组调用一次reduce()方法**
-
-4. Deiver阶段
-
-   整个程序需要一个Driver来进行提交，提交的是一个描述了各种必要信息的job对象
+![](img/MapReduce/MapReduce编程流程.jpg)
 
 ## 4.WordCound案例
 
@@ -236,34 +222,51 @@ Map和Reduce为程序员提供了一个清晰的接口抽象描述。MapReduce�
        @Override
        public int run(String[] strings) throws Exception {
            //1.创建job任务对象
+           // 注意：同一个任务的代码中的Configuration必须是同一个
            Job job = Job.getInstance(super.getConf(), "wordcount");
+           
            //如果打包运行出错，需要加如下代码
            job.setJarByClass(JobMain.class);
    
            //2.配置job任务对象(八个步骤)
-           job.setInputFormatClass(TextInputFormat.class);//1.读文件的方式使用InputFormat的子类TextInputFormat
-           TextInputFormat.addInputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\WordCount\\wordcount.txt"));//2.指定读取源文件对象地址。
+           // 第一步：指定文件的读取方式和读取路径
+           job.setInputFormatClass(TextInputFormat.class);//读文件的方式使用InputFormat的子类TextInputFormat
+           //指定读取源文件对象地址。
+           TextInputFormat.addInputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\WordCount\\wordcount.txt"));
+   		
+           // 第二步：指定Map阶段的处理方式和数据类型
+           job.setMapperClass(WordCountMapper.class);//指定map阶段的处理方式
+           job.setMapOutputKeyClass(Text.class);//设置map阶段k2的类型
+           job.setMapOutputValueClass(LongWritable.class);//设置map阶段v2的类型
    
-           job.setMapperClass(WordCountMapper.class);//3.指定map阶段的处理方式
-           job.setMapOutputKeyClass(Text.class);//4.设置map阶段k2的类型
-           job.setMapOutputValueClass(LongWritable.class);//5.设置map阶段v2的类型
+   //       第三，四，五，六，shuffle阶段暂不做处理，此处采用默认方式
    
-   //        shuffle阶段暂不做处理，此处采用默认方式
-   
-           //6.指定Reduce阶段的处理方式和数据类型
+           // 第七步：指定Reduce阶段的处理方式和数据类型
+           //指定Reduce阶段的处理方式和数据类型
            job.setReducerClass(WordCountReducer.class);
-           //7.设置k3类型
+           //设置k3类型
            job.setOutputKeyClass(Text.class);
-           //8.设置v3的类型
+           //设置v3的类型
            job.setOutputValueClass(LongWritable.class);
    
-           //9.设置输出类型
+           // 第八步：设置输出类型和输出路径
            job.setOutputFormatClass(TextOutputFormat.class);
-           //10.设置输出路径
+           // 设置输出路径，会自动创建不存在的目录，如果目录已存在会报错
            Path path = new Path("file:///G:\\学习\\maven\\src\\main\\java\\WordCount\\OutWordCount");
            TextOutputFormat.setOutputPath(job,path);
    
-           //11.等待任务结束
+           // 作用：当目标目录存在时，将目录删除
+           // 获取FileSystem
+           FileSystem fileSystem = FileSystem.get(new URI("file:///G:\\学习\\maven\\src\\main\\java\\WordCount"), new Configuration());
+           // 判断目标目录是否存在
+           boolean blog = fileSystem.exists(path);
+           if (blog){
+               //删除目标目录
+               // 参数1：路径 参数2：是否递归删除
+               fileSystem.delete(path,true);
+           }
+           
+           //3.等待任务结束
            boolean b1 = job.waitForCompletion(true);
            return b1 ? 0 : 1;//根据返回结果判断任务是否正常
        }
@@ -272,8 +275,9 @@ Map和Reduce为程序员提供了一个清晰的接口抽象描述。MapReduce�
            //配置文件对象
            Configuration conf = new Configuration();
            //启动job任务
+           // 返回值run记录的是任务执行的状态
            int run = ToolRunner.run(conf, new JobMain(), args);
-           System.exit(run);//退出任务
+           System.exit(run);//退出任务，任务失败时以失败退出，任务成功时以成功退出
        }
    }
    
@@ -286,22 +290,52 @@ Map和Reduce为程序员提供了一个清晰的接口抽象描述。MapReduce�
 ### 5.1本地运行模式
 
 1. MapReduce程序是被提交到LocalJobRunner在本地以单进程的形式运行
+
 2. 处理的数据即输出结果可以在本地文件系统，也可以在hdfs上
-3. 怎样实现本地运行？写一个程序，不要带集群的配置文件，本质是程序的conf中是否有`mapreduce.framework.name=local` 以及`yarn.resourcemanager.hostname=local `参数
+
+3. 怎样实现本地运行？
+
+   写一个程序，不要带集群的配置文件，本质是程序的conf中是否有`mapreduce.framework.name=local` 以及`yarn.resourcemanager.hostname=local `参数
+
 4. 本地模式非常便于业务逻辑的debug，只要偶在idea中打断点即可
 
 ```java
 configuration.set("mapreduce.framework.name","local");
-configuration.set(" yarn.resourcemanager.hostname","local");
+configuration.set("yarn.resourcemanager.hostname","local");
 TextInputFormat.addInputPath(job,new Path("file:///F:\\wordcount\\input"));
 TextOutputFormat.setOutputPath(job,new Path("file:///F:\\wordcount\\output"));
 ```
 
+注：本地运行会输出警告信息，只需要在项目的resources目录下创建log4j.properties文件，并写入如下内容即可
+
+```shell
+# Configure logging for testing: optionally with log file
+
+#log4j.rootLogger=debug,appender
+log4j.rootLogger=info,appender  
+#log4j.rootLogger=error,appender
+
+#\u8F93\u51FA\u5230\u63A7\u5236\u53F0
+log4j.appender.appender=org.apache.log4j.ConsoleAppender  
+#\u6837\u5F0F\u4E3ATTCCLayout
+log4j.appender.appender.layout=org.apache.log4j.TTCCLayout
+```
+
+
+
 ### 5.2集群运行模式
 
 1. 将MapReduce程序交给Yarn集群，分发到很多的节点上并发执行
+
 2. 处理的数据和输出结果应位于hdfs文件系统
-3. 提交集群的实现步骤：将程序打包jar，然后在集群的任意一个节点上使用hadoop命令穹顶
+
+3. 提交集群的实现步骤：将程序打包jar，然后在集群的任意一个节点上使用hadoop命令执行
+
+   ```shell
+   hadoop jar jar包路径名字 主类的全路径名
+   ```
+
+   
 
 ## 6.MapReduce分区
 
@@ -363,9 +397,10 @@ TextOutputFormat.setOutputPath(job,new Path("file:///F:\\wordcount\\output"));
        /**
         * 1. 定义分区规则
         * 2. 返回对应的分区编号
-        * @param text
-        * @param nullWritable
-        * @param i
+        * 返回值只是一个分区的标记，标记所有相同的数据去指定的分区
+        * @param text K2
+        * @param nullWritable V2
+        * @param i ReduceTask个数
         * @return 0
         */
        @Override
@@ -425,16 +460,21 @@ TextOutputFormat.setOutputPath(job,new Path("file:///F:\\wordcount\\output"));
            job.setMapperClass(PartitionMapper.class);
            job.setMapOutputKeyClass(Text.class);
            job.setMapOutputValueClass(NullWritable.class);
+           
+           
            //3.shuffle 分区，排序，规约，分组
+           // 设置分区类，以及reduceTask的个数，注意reduceTask的个数要与分区数保持一致
            job.setPartitionerClass(MyPartition.class);//自定义分区规则，其他采用默认
+    
+           
            //7.指定Reducer和数据类型
            job.setReducerClass(partitionReducer.class);
            job.setOutputValueClass(Text.class);
            job.setOutputValueClass(NullWritable.class);
-   
+           
            //设置reduceTask的个数
            job.setNumReduceTasks(2);
-   
+           
            //8.指定输出类和输出路径
            job.setOutputFormatClass(TextOutputFormat.class);
            TextOutputFormat.setOutputPath(job,new Path("file:///G:\\学习\\maven\\src\\main\\java\\partition\\partitionOUT"));
@@ -517,8 +557,10 @@ Mapper<LongWritable,Text,Text,NullWritable>{
     @Override
     protected void map(LongWritable key, Text value, Context context) 
 throws Exception{
+        // 参数1：计数器的类型 参数2：计数器变量的名字
         Counter counter = context.getCounter("MR_COUNT", 
 "MyRecordCounter");
+        // 当map方法执行一次，就会给increment变量 +1
         counter.increment(1L);
         context.write(value,NullWritable.get());
    }
@@ -540,7 +582,9 @@ MR_COUNTER
 
 ```java
 public class partitionReducer extends Reducer<Text, NullWritable,Text,NullWritable> {
+    // 定义枚举类
     public static enum Counter{
+        // 输入记录数，输入字节数
         MY_INPUT_RECOREDS,MY_INPUT_BYTES
     }
     @Override
@@ -568,7 +612,7 @@ public class partitionReducer extends Reducer<Text, NullWritable,Text,NullWritab
 - 反序列化是序列化的逆过程，把字节流转为结构化对象。当要在进程间传递对象或持久化对象的时候，就需要序列化对象成字节流，反之当要接收到或从磁盘读取的字节流转换为对象，就要进行反序列化
 - **Java的序列化是一个重量级序列化框架，**一个对象被序列化后，会附带很多额外的信息（各种校验信息，header，继承体系等），**不便于在网络中高效传输**。所以，**hadoop自己开发了一套序列化机制Writable**，精简高效，不用像java对象类一样传输多层的父子关系，需要哪个属性就传输哪个属性值，大大的减少了网络传输的开销
 - writable是hadoop的序列化格式，hadoop定义了这样一个writable接口。一个类要支持可序列化就只需要实现这个接口即可
-- 另外writable有一个子接口是writableComparable，writableComparable是即可实现序列化，也可以对key进行比较，我们这里可以通过自定义key实现writableComparable来实现我们的排序功能
+- 另外writable有一个子接口是writableComparable，**writableComparable是既可以实现序列化，也可以对key进行比较**，我们这里可以通过自定义key实现writableComparable来实现我们的排序功能
 
 ### 8.1 为什么序列化对Hadoop很重要
 
@@ -650,14 +694,14 @@ public class partitionReducer extends Reducer<Text, NullWritable,Text,NullWritab
         * 规则：
         *  第一列（word）按照字典顺序进行排序
         *  第一列相同的时候，第二列（num）按照升序进行排序
-        * @param sortBean
+        * @param sortBean 是你传进来的数据
         * @return
         */
        @Override
        public int compareTo(SortBean sortBean) {
-           //先对第一列进行排序
-           int result = this.word.compareTo(sortBean.word);//这里的compareTo方法并不是自己写的
-           //如果第一类相同，则按照第二列进行排序
+           //先对第一列进行排序  word列
+           int result = this.word.compareTo(sortBean.word);//这里的compareTo方法是字符串自带的方法
+           //如果第一类相同，则按照第二列进行排序   num列
            if (result == 0){
                return this.num - sortBean.num;
            }
@@ -1321,7 +1365,7 @@ combiner能够应用的前提是不能影响最终的业务逻辑，而且，com
        //指定排序的规则
        @Override
        public int compareTo(FlowBean o) {
-           //this.upFlow .compareTo(o.getUpFlow());
+           //this.upFlow .compareTo(o.getUpFlow()) * -1;
            return  o.upFlow - this.upFlow;//降序 返回-1为降序
        }
    }
@@ -1354,9 +1398,13 @@ combiner能够应用的前提是不能影响最终的业务逻辑，而且，com
 3. reducer
 
    ```java
+   // k2 FlowBean， V2 Text 手机号
+   // k3 Text 手机号， V3 FlowBean 
    public class FlowSortReducer extends Reducer<FlowBean,Text, Text,FlowBean> {
        @Override
        protected void reduce(FlowBean key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+           // Iterable<Text> values 这里存储的是手机号
+           
            //1.遍历集合，取出k3，并将k3和v3写入上下文
            for ( Text value : values){
                context.write(value,key);
@@ -1419,7 +1467,7 @@ combiner能够应用的前提是不能影响最终的业务逻辑，而且，com
 
    
 
-### 9.4案例：手机号分区
+### 9.4 案例：手机号分区
 
 在案例9.2的基础上继续完善将不同的手机号分到不同的数据文件的当中去，需要自定义
 分区来实现，这里我们自定义来模拟分区，将以下数字开头的手机号进行分开

@@ -115,7 +115,7 @@ class demo {
 
 
 
-//    流处理必须手动执行才行
+//    执行任务，在批处理时，println方法是可以触发任务的，但是在流环境下，必须手动执行任务
     senv.execute(this.getClass.getName)
   }
 
@@ -133,6 +133,7 @@ Flink的流处理可以直接通过`readTestFile()`方法读取文件来创建�
     // 1. 获取流处理运行环境
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     // 2. 读取文件
+    // 注意：这里是DataStream而不是Dataset
     val textDataStream: DataStream[String] = env.readTextFile("hdfs://bigdata111:9000/flink-datas/score.csv")
     // 3. 打印数据
     textDataStream.print()
@@ -302,7 +303,7 @@ object DataSource_kafka {
 
 **相关依赖**
 
-```
+```xml
  <!-- 指定mysql-connector的依赖 -->
  <dependency>
      <groupId>mysql</groupId>
@@ -337,6 +338,7 @@ object DataSource_mysql {
   }
 }
 
+// 自定义数据源需要继承自RichSourceFunction，泛型是我们要收集数据的泛型
 class MySql_source extends RichSourceFunction[(Int, String, String, String)] {
 
   override def run(ctx: SourceContext[(Int, String, String, String)]): Unit = {
@@ -400,11 +402,11 @@ object KeyBy {
     //3. 获取Socket数据源
     val stream = senv.socketTextStream("bigdata111", 9999, '/n')
     //4. 转换操作,以空格切分,每个元素计数1,以单词分组,累加
-    val text = stream.flatMap(_.split("//s"))
+    val text = stream.flatMap(_.split("\\s"))
       .map((_,1))
-      //TODO 逻辑上将一个流分成不相交的分区，每个分区包含相同键的元素。在内部，这是通过散列分区来实现的
+      // 逻辑上将一个流分成不相交的分区，每个分区包含相同键的元素。在内部，这是通过散列分区来实现的
       .keyBy(_._1)
-      //TODO 这里的sum并不是分组去重后的累加值，如果统计去重后累加值，则使用窗口函数
+      // 这里的sum并不是分组去重后的累加值，如果统计去重后累加值，则使用窗口函数
       .sum(1)
     //5. 打印到控制台
     text.print()
@@ -661,7 +663,7 @@ object DataSink_mysql {
       (12, "sanpang", "123456", "三胖")
     ))
     // 3. 添加sink
-    value addSink new MySql_Sink
+    value.addSink(new MySql_Sink)
     //4.触发流执行
     env.execute()
   }
@@ -992,6 +994,7 @@ object WindowApply {
     val windowedDataStream = groupedDataStream.timeWindow(Time.seconds(3))
 
     // 6. 实现一个WindowFunction匿名内部类
+    // 泛型：输入类型，输出类型，分组的元素类型，划分的时间窗口类型
     val resultDataStream: DataStream[(String, Int)] = windowedDataStream.apply(new WindowFunction[(String, Int), (String, Int), String, TimeWindow] {
 
       //   - 在apply方法中实现聚合计算
@@ -1069,7 +1072,7 @@ env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime)
 -   水印并不会影响原有Eventtime
 -   当数据流添加水印后，会按照水印时间来触发窗口计算
 -   一般会设置水印时间，比Eventtime小几秒钟
--   当接收到的`水印时间 >= 窗口的endTime`，则触发计算
+-   当接收到的`水印时间 >= 窗口的endTime`，则触发窗口计算
 
 ![](img/flink/水印.png)
 
@@ -1169,23 +1172,23 @@ object WatermarkDemo {
         }
 
         // 抽取当前时间戳
-        override def extractTimestamp(element: Order, previousElementTimestamp: Long): Long = {
-          // 比对两个元素的时间,求最大值
+        // element：当前元素，previousElementTimestamp：上一个元素
+        override def extractTimestamp(element: Order, previousElementTimestamp
+previousElementTimestamp: Long): Long = {
+          // 比对两个元素的时间,求最大值，将最大值赋值给当前时间戳
           currentTimestamp = Math.max(element.timestamp, previousElementTimestamp)
           currentTimestamp
-        }
+         }
       })
 
-
-
+      
     //  6. 按照用户进行分流
     //  7. 设置5秒的时间窗口
-    //  8. 进行聚合计算
-    val resultDataStream: DataStream[Order] = watermarkDataStream.
-      keyBy(_.userId).
-      timeWindow(Time.seconds(5))
+    //  8. 进行聚合计算 
+    val resultDataStream: DataStream[Order] = watermarkDataStream
+      .keyBy(_.userId)
+      .timeWindow(Time.seconds(5))
       .reduce((p1, p2) => Order(p1.orderId, p1.userId, p1.money + p2.money, 0L))
-
     //  9. 打印结果数据
     resultDataStream.print()
 
